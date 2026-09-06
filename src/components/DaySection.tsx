@@ -1,0 +1,163 @@
+import React, { useState } from 'react';
+import { ItineraryDay, Tour, Traveler } from '../types';
+import { TourCard } from './TourCard';
+import { Calendar, MapPin, Plus, CheckCircle2, ChevronDown, ChevronUp } from 'lucide-react';
+
+interface DaySectionProps {
+  day: ItineraryDay;
+  tours: Tour[];
+  travelers: Traveler[];
+  activeTravelerId: string;
+  onToggleVisit: (tourId: string, travelerId: string) => void;
+  onOpenTickets: (tour: Tour) => void;
+  onEditTour: (tour: Tour) => void;
+  onDeleteTour: (tourId: string) => void;
+  onQuickChangeAlert: (tourId: string, hours: number) => void;
+  onAddTourToDay: (dayNumber: number) => void;
+}
+
+export const DaySection: React.FC<DaySectionProps> = ({
+  day,
+  tours,
+  travelers,
+  activeTravelerId,
+  onToggleVisit,
+  onOpenTickets,
+  onEditTour,
+  onDeleteTour,
+  onQuickChangeAlert,
+  onAddTourToDay,
+}) => {
+  const [isExpanded, setIsExpanded] = useState<boolean>(true);
+
+  // Tours for this day
+  const dayTours = tours
+    .filter((t) => t.dayNumber === day.dayNumber)
+    .sort((a, b) => a.time.localeCompare(b.time));
+
+  // Visited count for active user on this day
+  const activeUserVisitedOnDay = dayTours.filter((t) =>
+    t.visitedByUserIds.includes(activeTravelerId)
+  ).length;
+
+  const isDayCompleted =
+    dayTours.length > 0 && activeUserVisitedOnDay === dayTours.length;
+
+  return (
+    <div
+      id={`day-section-${day.dayNumber}`}
+      className="bg-stone-50/80 rounded-2xl border border-stone-200/90 overflow-hidden shadow-xs transition-all"
+    >
+      {/* Day Header */}
+      <div
+        className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer hover:bg-stone-100/70 transition-colors"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <div className="flex items-start sm:items-center gap-3">
+          {/* Day number badge */}
+          <div
+            className={`w-12 h-12 rounded-xl flex flex-col items-center justify-center font-bold shrink-0 shadow-2xs ${
+              isDayCompleted
+                ? 'bg-emerald-600 text-white'
+                : 'bg-stone-900 text-white'
+            }`}
+          >
+            <span className="text-[10px] uppercase tracking-wider opacity-80">DÍA</span>
+            <span className="text-lg leading-none">{day.dayNumber}</span>
+          </div>
+
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-bold text-amber-800 bg-amber-100/80 px-2.5 py-0.5 rounded-full">
+                {day.dayName}
+              </span>
+              <span className="text-xs font-semibold text-stone-600 flex items-center gap-1">
+                <MapPin className="w-3 h-3 text-stone-400" />
+                {day.city}
+              </span>
+            </div>
+
+            <h3 className="text-base sm:text-lg font-bold text-stone-900 mt-1">
+              {day.title}
+            </h3>
+          </div>
+        </div>
+
+        {/* Right side stats & collapse toggle */}
+        <div className="flex items-center justify-between sm:justify-end gap-3 pl-15 sm:pl-0">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-semibold text-stone-500">
+              {dayTours.length} {dayTours.length === 1 ? 'actividad' : 'actividades'}
+            </span>
+            {dayTours.length > 0 && (
+              <span
+                className={`text-xs px-2 py-0.5 rounded-md font-bold ${
+                  isDayCompleted
+                    ? 'bg-emerald-100 text-emerald-800'
+                    : 'bg-stone-200/80 text-stone-700'
+                }`}
+              >
+                {activeUserVisitedOnDay}/{dayTours.length} visitados
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onAddTourToDay(day.dayNumber);
+              }}
+              className="px-2.5 py-1 text-xs font-bold text-amber-700 bg-amber-100/80 hover:bg-amber-200 rounded-lg transition-colors flex items-center gap-1"
+              title="Agregar tour a este día"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Tour</span>
+            </button>
+
+            <button
+              type="button"
+              className="p-1 rounded-lg text-stone-400 hover:text-stone-700"
+            >
+              {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Expanded Tours List */}
+      {isExpanded && (
+        <div className="p-4 sm:p-5 pt-0 space-y-3">
+          {dayTours.length === 0 ? (
+            <div className="text-center py-6 px-4 bg-white rounded-xl border border-dashed border-stone-200">
+              <p className="text-xs text-stone-500">No hay tours programados para este día aún.</p>
+              <button
+                type="button"
+                onClick={() => onAddTourToDay(day.dayNumber)}
+                className="mt-2 text-xs font-bold text-amber-600 hover:text-amber-700 inline-flex items-center gap-1"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Agregar la primera actividad de este día
+              </button>
+            </div>
+          ) : (
+            dayTours.map((tour) => (
+              <TourCard
+                key={tour.id}
+                tour={tour}
+                travelers={travelers}
+                activeTravelerId={activeTravelerId}
+                onToggleVisit={onToggleVisit}
+                onOpenTickets={onOpenTickets}
+                onEditTour={onEditTour}
+                onDeleteTour={onDeleteTour}
+                onQuickChangeAlert={onQuickChangeAlert}
+              />
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+};

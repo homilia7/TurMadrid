@@ -1,0 +1,6 @@
+{
+  "name": "Itinerario de Viaje y Control de Visitas",
+  "description": "Itinerario grupal para 5 viajeros con marcado de visitas, gestión de tours diarios, alertas configurables antes de cada tour y visor/descarga de entradas.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
