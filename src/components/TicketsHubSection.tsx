@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { formatDateWithDay, getDayOfWeek } from '../utils/dateUtils';
 import { deleteDocumentFromCloud, uploadDocumentToCloud } from '../utils/cloudSync';
+import { formatCleanReference } from '../utils/ticketGenerator';
 import { LargeQRModal } from './LargeQRModal';
 import { ImageLightboxModal } from './ImageLightboxModal';
 
@@ -383,15 +384,15 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
                     </div>
 
                     {/* QR Code Decoded or Reference Badge */}
-                    <div className="bg-white px-2 py-1 rounded-lg border border-stone-200/90 overflow-hidden">
+                    <div className="bg-stone-50 px-2 py-1 rounded-lg border border-stone-200/90 overflow-hidden max-w-full">
                       <span className="text-[9px] font-extrabold uppercase tracking-wider text-amber-700 block leading-none mb-0.5">
-                        {ticket.qrCodeText ? 'Código QR Detectado:' : 'Referencia / Asiento:'}
+                        {ticket.seatOrSection ? 'Asiento / Referencia:' : 'Referencia:'}
                       </span>
                       <span
-                        className="text-[11px] font-mono font-bold text-stone-800 block truncate"
-                        title={ticket.qrCodeText || ticket.seatOrSection || ticket.referenceNumber}
+                        className="text-[11px] font-mono font-bold text-stone-800 block truncate max-w-full"
+                        title={ticket.seatOrSection || ticket.referenceNumber || ticket.qrCodeText || 'Confirmada'}
                       >
-                        {ticket.qrCodeText || ticket.seatOrSection || ticket.referenceNumber || 'Confirmada'}
+                        {formatCleanReference(ticket.seatOrSection || ticket.referenceNumber || ticket.qrCodeText || 'Confirmada')}
                       </span>
                     </div>
                   </div>

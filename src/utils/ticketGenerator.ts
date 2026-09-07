@@ -158,3 +158,33 @@ export function downloadFile(url: string, filename: string) {
   link.click();
   document.body.removeChild(link);
 }
+
+/**
+ * Cleanly formats reference numbers and prevents raw URLs/long QR tokens from overflowing the UI.
+ */
+export function formatCleanReference(ref?: string): string {
+  if (!ref || !ref.trim()) return 'ESP-GRUPO-5';
+  const clean = ref.trim();
+  if (clean === 'undefined' || clean === 'null') return 'ESP-GRUPO-5';
+
+  // If it's a URL (e.g. from a real QR scan)
+  if (clean.startsWith('http://') || clean.startsWith('https://') || clean.includes('://')) {
+    try {
+      const url = new URL(clean);
+      const codeParam = url.searchParams.get('c') || url.searchParams.get('code') || url.searchParams.get('id') || url.searchParams.get('ticket');
+      if (codeParam && codeParam.length <= 16) {
+        return `QR-${codeParam}`;
+      }
+      return `Ticket Web (${url.hostname.replace(/^www\./, '')})`;
+    } catch {
+      return 'QR Verificado Online';
+    }
+  }
+
+  // If it is an excessively long decoded raw payload/hash
+  if (clean.length > 20) {
+    return `${clean.substring(0, 8)}...${clean.substring(clean.length - 6)}`;
+  }
+
+  return clean;
+}

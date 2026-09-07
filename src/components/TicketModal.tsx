@@ -25,7 +25,7 @@ import {
   Camera,
   RefreshCw,
 } from 'lucide-react';
-import { generateDigitalTicketSvg, downloadFile } from '../utils/ticketGenerator';
+import { generateDigitalTicketSvg, downloadFile, formatCleanReference } from '../utils/ticketGenerator';
 import { formatDateWithDay, getDayOfWeek } from '../utils/dateUtils';
 import { decodeQRFromImage } from '../utils/qrReader';
 import { deleteDocumentFromCloud, uploadDocumentToCloud } from '../utils/cloudSync';
@@ -142,12 +142,15 @@ export const TicketModal: React.FC<TicketModalProps> = ({
         qrCropUrl,
       });
       setIsScanningQR(false);
-
       if (!ticketTitle.trim()) {
         setTicketTitle(file.name.replace(/\.[^/.]+$/, ''));
       }
       if (detectedQR && !seatOrRef.trim()) {
-        setSeatOrRef(detectedQR);
+        if (detectedQR.length <= 20 && !detectedQR.includes('://')) {
+          setSeatOrRef(detectedQR);
+        } else {
+          setSeatOrRef('Entrada General');
+        }
       }
     };
 
@@ -194,7 +197,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
         fileSize: finalFileSize,
         qrCodeText: detectedQR || currentActive.qrCodeText,
         qrCropUrl: qrCropUrl || currentActive.qrCropUrl,
-        referenceNumber: detectedQR || currentActive.referenceNumber,
+        referenceNumber: currentActive.referenceNumber || (detectedQR && detectedQR.length <= 20 && !detectedQR.includes('://') ? detectedQR : 'ESP-GRUPO-5'),
       };
 
       const updatedList = ticketsList.map((t) => (t.id === currentActive.id ? updatedTicket : t));
@@ -220,7 +223,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
       ...currentActive,
       qrCropUrl: croppedDataUrl,
       qrCodeText: detectedQR || currentActive.qrCodeText,
-      referenceNumber: detectedQR || currentActive.referenceNumber,
+      referenceNumber: currentActive.referenceNumber || (detectedQR && detectedQR.length <= 20 && !detectedQR.includes('://') ? detectedQR : 'ESP-GRUPO-5'),
     };
 
     const updatedList = ticketsList.map((t) => (t.id === currentActive.id ? updatedTicket : t));
@@ -855,28 +858,31 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                 </div>
 
                 {/* Ticket Details Summary Bar */}
-                <div className="w-full bg-white p-3.5 rounded-xl border border-stone-200 text-xs flex flex-wrap items-center justify-between gap-2.5">
-                  <div className="flex items-center gap-1.5">
+                <div className="w-full bg-white p-3 sm:p-3.5 rounded-xl border border-stone-200 text-xs flex flex-wrap items-center justify-between gap-2.5 overflow-hidden">
+                  <div className="flex items-center gap-1.5 shrink-0">
                     <Calendar className="w-3.5 h-3.5 text-amber-600" />
                     <span className="text-stone-400 font-medium">Fecha: </span>
                     <span className="font-bold text-amber-900 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
                       {formatDateWithDay(tour.date)}
                     </span>
                   </div>
-                  <div>
+                  <div className="shrink-0">
                     <span className="text-stone-400 font-medium">Lugar: </span>
                     <span className="font-semibold text-stone-800">{tour.location}</span>
                   </div>
                   {tour.meetingPoint && (
-                    <div>
+                    <div className="shrink-0">
                       <span className="text-stone-400 font-medium">Punto de encuentro: </span>
                       <span className="font-semibold text-amber-800">{tour.meetingPoint}</span>
                     </div>
                   )}
-                  <div>
-                    <span className="text-stone-400 font-medium">Ref: </span>
-                    <span className="font-mono font-bold text-stone-700">
-                      {activeTicket.referenceNumber || 'ESP-GRUPO-5'}
+                  <div className="flex items-center gap-1 min-w-0 max-w-full sm:max-w-xs">
+                    <span className="text-stone-400 font-medium shrink-0">Ref: </span>
+                    <span
+                      className="font-mono font-bold text-amber-950 bg-amber-50/80 px-2 py-0.5 rounded-md border border-amber-200/80 text-[11px] truncate max-w-[170px] sm:max-w-[220px] block"
+                      title={activeTicket.referenceNumber || activeTicket.qrCodeText || 'ESP-GRUPO-5'}
+                    >
+                      {formatCleanReference(activeTicket.referenceNumber || activeTicket.qrCodeText)}
                     </span>
                   </div>
                 </div>
