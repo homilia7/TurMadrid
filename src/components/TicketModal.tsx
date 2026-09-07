@@ -15,12 +15,15 @@ import {
   ShieldCheck,
   QrCode,
   Users,
-  Calendar
+  Calendar,
+  Maximize2,
+  ZoomIn
 } from 'lucide-react';
 import { generateDigitalTicketSvg, downloadFile } from '../utils/ticketGenerator';
 import { formatDateWithDay, getDayOfWeek } from '../utils/dateUtils';
 import { decodeQRFromImage } from '../utils/qrReader';
 import { LargeQRModal } from './LargeQRModal';
+import { ImageLightboxModal } from './ImageLightboxModal';
 
 interface TicketModalProps {
   isOpen: boolean;
@@ -49,6 +52,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
   const [isScanningQR, setIsScanningQR] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string>('');
+  const [isLightboxOpen, setIsLightboxOpen] = useState<boolean>(false);
   const [pendingFile, setPendingFile] = useState<{
     fileName: string;
     fileType: 'pdf' | 'image' | 'digital';
@@ -557,6 +561,17 @@ export const TicketModal: React.FC<TicketModalProps> = ({
 
                   <div className="flex items-center gap-2">
                     <button
+                      id="zoom-ticket-image-btn"
+                      type="button"
+                      onClick={() => setIsLightboxOpen(true)}
+                      className="text-xs font-bold px-3 py-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-800 transition-colors flex items-center gap-1.5 border border-stone-300 cursor-pointer"
+                      title="Agrandar y hacer zoom en pantalla completa"
+                    >
+                      <Maximize2 className="w-3.5 h-3.5 text-amber-600" />
+                      <span>Agrandar Foto</span>
+                    </button>
+
+                    <button
                       id="open-large-qr-btn"
                       type="button"
                       onClick={() =>
@@ -596,7 +611,16 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                 </div>
 
                 {/* Ticket Display Canvas */}
-                <div className="w-full bg-stone-950 p-2 sm:p-4 rounded-2xl shadow-xl flex items-center justify-center overflow-hidden border border-stone-800">
+                <div
+                  className="w-full bg-stone-950 p-2 sm:p-4 rounded-2xl shadow-xl flex items-center justify-center overflow-hidden border border-stone-800 relative group cursor-pointer"
+                  onClick={() => setIsLightboxOpen(true)}
+                  title="Haz clic para agrandar en pantalla completa"
+                >
+                  <div className="absolute top-3 right-3 z-10 bg-black/70 hover:bg-black/90 backdrop-blur-xs text-white text-[11px] font-bold px-2.5 py-1 rounded-lg border border-white/20 opacity-90 group-hover:opacity-100 flex items-center gap-1.5 transition">
+                    <Maximize2 className="w-3.5 h-3.5 text-amber-400" />
+                    <span>🔍 Clic para Agrandar</span>
+                  </div>
+
                   {activeTicket.fileType === 'pdf' ? (
                     <div className="w-full h-96 flex flex-col items-center justify-center bg-white rounded-xl p-4 text-center">
                       <FileText className="w-16 h-16 text-red-500 mb-3" />
@@ -609,6 +633,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                           href={activeTicket.dataUrl}
                           target="_blank"
                           rel="noreferrer"
+                          onClick={(e) => e.stopPropagation()}
                           className="px-4 py-2 bg-stone-900 text-white text-xs font-bold rounded-lg hover:bg-stone-800 flex items-center gap-1.5"
                         >
                           <ExternalLink className="w-3.5 h-3.5" />
@@ -616,7 +641,10 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                         </a>
                         <button
                           type="button"
-                          onClick={() => handleDownload(activeTicket)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDownload(activeTicket);
+                          }}
                           className="px-4 py-2 bg-amber-500 text-white text-xs font-bold rounded-lg hover:bg-amber-600 flex items-center gap-1.5"
                         >
                           <Download className="w-3.5 h-3.5" />
@@ -628,7 +656,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                     <img
                       src={activeTicket.dataUrl}
                       alt={activeTicket.title}
-                      className="max-w-full max-h-[55vh] object-contain rounded-lg shadow-md"
+                      className="max-w-full max-h-[55vh] object-contain rounded-lg shadow-md group-hover:scale-[1.01] transition-transform"
                     />
                   )}
                 </div>
@@ -692,6 +720,18 @@ export const TicketModal: React.FC<TicketModalProps> = ({
         referenceNumber={qrModalData.referenceNumber}
         seatOrSection={qrModalData.seatOrSection}
       />
+
+      {/* High-Resolution Image Zoom / Lightbox Modal */}
+      {activeTicket && (
+        <ImageLightboxModal
+          isOpen={isLightboxOpen}
+          onClose={() => setIsLightboxOpen(false)}
+          imageUrl={activeTicket.dataUrl}
+          title={activeTicket.title}
+          fileType={activeTicket.fileType}
+          fileName={activeTicket.fileName}
+        />
+      )}
     </div>
   );
 };

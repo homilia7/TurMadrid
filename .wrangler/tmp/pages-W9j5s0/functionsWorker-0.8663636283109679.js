@@ -476,7 +476,7 @@ var onRequestPost3 = /* @__PURE__ */ __name(async (context) => {
   }
 }, "onRequestPost");
 
-// ../.wrangler/tmp/pages-yvJM66/functionsRoutes-0.31658554812668716.mjs
+// ../.wrangler/tmp/pages-W9j5s0/functionsRoutes-0.8216275942661818.mjs
 var routes = [
   {
     routePath: "/api/data",

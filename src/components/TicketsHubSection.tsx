@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { formatDateWithDay, getDayOfWeek } from '../utils/dateUtils';
 import { LargeQRModal } from './LargeQRModal';
+import { ImageLightboxModal } from './ImageLightboxModal';
 
 interface TicketsHubSectionProps {
   tours: Tour[];
@@ -333,45 +334,15 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
         </div>
       )}
 
+      {/* Image Zoom & Lightbox Fullscreen Modal */}
       {previewDoc && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3">
-          <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95">
-            <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-gray-50">
-              <h3 className="font-bold text-gray-900 text-sm truncate">{previewDoc.title}</h3>
-              <div className="flex items-center gap-2">
-                <a
-                  href={previewDoc.url}
-                  download={previewDoc.title}
-                  className="p-1.5 text-gray-700 hover:bg-gray-200 rounded-lg transition"
-                >
-                  <Download className="w-4 h-4" />
-                </a>
-                <button
-                  onClick={() => setPreviewDoc(null)}
-                  className="p-1.5 text-gray-500 hover:text-gray-900 hover:bg-gray-200 rounded-lg transition"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-
-            <div className="flex-1 p-4 overflow-auto flex items-center justify-center bg-gray-900/5 min-h-[300px]">
-              {previewDoc.type === 'pdf' ? (
-                <iframe
-                  src={previewDoc.url}
-                  className="w-full h-[65vh] rounded-xl border border-gray-200"
-                  title="PDF Preview"
-                />
-              ) : (
-                <img
-                  src={previewDoc.url}
-                  alt={previewDoc.title}
-                  className="max-h-[65vh] max-w-full object-contain rounded-xl shadow-md"
-                />
-              )}
-            </div>
-          </div>
-        </div>
+        <ImageLightboxModal
+          isOpen={Boolean(previewDoc)}
+          onClose={() => setPreviewDoc(null)}
+          imageUrl={previewDoc.url}
+          title={previewDoc.title}
+          fileType={previewDoc.type as any}
+        />
       )}
 
       {/* Large QR Scanner Modal */}
