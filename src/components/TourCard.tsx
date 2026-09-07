@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Tour, Traveler } from '../types';
 import {
   Clock,
@@ -7,14 +7,11 @@ import {
   Bell,
   CheckCircle2,
   Circle,
-  AlertTriangle,
-  Calendar,
   Compass,
   Edit2,
   Trash2,
   Users,
-  ChevronDown,
-  Sparkles
+  ChevronDown
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -41,14 +38,16 @@ export const TourCard: React.FC<TourCardProps> = ({
 }) => {
   const [showAlertMenu, setShowAlertMenu] = useState(false);
   const activeTraveler = travelers.find((t) => t.id === activeTravelerId);
-  const isVisitedByActive = tour.visitedByUserIds.includes(activeTravelerId);
-  const visitedCount = tour.visitedByUserIds.length;
+  const visitedList = Array.isArray(tour.visitedByUserIds) ? tour.visitedByUserIds : [];
+  const ticketList = Array.isArray(tour.tickets) ? tour.tickets : [];
+
+  const isVisitedByActive = visitedList.includes(activeTravelerId);
+  const visitedCount = visitedList.length;
   const isAllVisited = visitedCount === 5;
 
   const handleActiveToggle = () => {
     onToggleVisit(tour.id, activeTravelerId);
     if (!isVisitedByActive) {
-      // Fire celebratory confetti!
       try {
         confetti({
           particleCount: 40,
@@ -63,7 +62,7 @@ export const TourCard: React.FC<TourCardProps> = ({
   };
 
   const handleTravelerToggle = (travelerId: string) => {
-    const wasVisited = tour.visitedByUserIds.includes(travelerId);
+    const wasVisited = visitedList.includes(travelerId);
     onToggleVisit(tour.id, travelerId);
     if (!wasVisited) {
       try {
@@ -90,29 +89,24 @@ export const TourCard: React.FC<TourCardProps> = ({
       }`}
     >
       <div className="p-4 sm:p-5">
-        {/* Top meta bar: Time, Category, City, Alert, Actions */}
+        {/* Top meta bar */}
         <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-stone-100">
           <div className="flex items-center gap-2 flex-wrap">
-            {/* Time badge */}
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-stone-900 text-white">
               <Clock className="w-3.5 h-3.5 text-amber-400" />
               {tour.time}
             </span>
 
-            {/* City */}
             <span className="px-2 py-0.5 rounded-md text-xs font-semibold bg-stone-100 text-stone-700">
               {tour.city}
             </span>
 
-            {/* Category tag */}
             <span className="px-2 py-0.5 rounded-md text-[11px] font-medium bg-amber-50 text-amber-800 border border-amber-200/60 capitalize">
               {tour.category}
             </span>
           </div>
 
-          {/* Right: Alert Badge + Tour options */}
           <div className="flex items-center gap-1.5">
-            {/* Alert badge with quick hours dropdown */}
             <div className="relative">
               <button
                 type="button"
@@ -125,7 +119,7 @@ export const TourCard: React.FC<TourCardProps> = ({
                 title="Configurar anticipación de alerta para este tour"
               >
                 <Bell className="w-3.5 h-3.5 text-amber-600" />
-                <span>{tour.alertHoursBefore}h antes</span>
+                <span>{tour.alertHoursBefore || 3}h antes</span>
                 <ChevronDown className="w-3 h-3 text-stone-400" />
               </button>
 
@@ -156,7 +150,6 @@ export const TourCard: React.FC<TourCardProps> = ({
               )}
             </div>
 
-            {/* Edit / Delete */}
             <button
               type="button"
               onClick={() => onEditTour(tour)}
@@ -192,7 +185,6 @@ export const TourCard: React.FC<TourCardProps> = ({
             </p>
           )}
 
-          {/* Location and Meeting Point Highlights */}
           <div className="mt-3 space-y-1.5 text-xs">
             {tour.location && (
               <div className="flex items-start gap-2 text-stone-600">
@@ -219,12 +211,11 @@ export const TourCard: React.FC<TourCardProps> = ({
 
         {/* Tickets button & 5 Users Visit Marking Section */}
         <div className="mt-4 pt-3 border-t border-stone-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-          {/* Entradas Button (Subir, Ver en Línea, Descargar) */}
           <button
             type="button"
             onClick={() => onOpenTickets(tour)}
             className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-center sm:justify-start gap-2 transition-all ${
-              tour.tickets.length > 0
+              ticketList.length > 0
                 ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-xs'
                 : 'bg-stone-100 hover:bg-stone-200 text-stone-700'
             }`}
@@ -232,13 +223,12 @@ export const TourCard: React.FC<TourCardProps> = ({
           >
             <TicketIcon className="w-4 h-4" />
             <span>
-              {tour.tickets.length > 0
-                ? `Entradas (${tour.tickets.length}) - Ver / Descargar`
+              {ticketList.length > 0
+                ? `Entradas (${ticketList.length}) - Ver / Descargar`
                 : 'Subir Entradas del Tour'}
             </span>
           </button>
 
-          {/* Multi-Traveler Checkmarks (5 Users) */}
           <div className="flex items-center justify-between sm:justify-end gap-2 bg-stone-50 p-1.5 rounded-xl border border-stone-200/70">
             <div className="text-[11px] font-bold text-stone-500 pl-1 flex items-center gap-1">
               <Users className="w-3.5 h-3.5 text-stone-400" />
@@ -248,10 +238,9 @@ export const TourCard: React.FC<TourCardProps> = ({
               </span>
             </div>
 
-            {/* 5 User avatar toggles */}
             <div className="flex items-center gap-1">
               {travelers.map((traveler) => {
-                const visited = tour.visitedByUserIds.includes(traveler.id);
+                const visited = visitedList.includes(traveler.id);
                 return (
                   <button
                     key={traveler.id}
@@ -271,7 +260,6 @@ export const TourCard: React.FC<TourCardProps> = ({
               })}
             </div>
 
-            {/* Quick 1-click button for current active user */}
             <button
               type="button"
               onClick={handleActiveToggle}

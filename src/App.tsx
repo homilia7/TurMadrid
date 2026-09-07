@@ -224,10 +224,11 @@ export default function App() {
     setTours((prevTours) => {
       const updated = prevTours.map((t) => {
         if (t.id !== tourId) return t;
-        const exists = t.visitedByUserIds.includes(travelerId);
+        const currentVisited = Array.isArray(t.visitedByUserIds) ? t.visitedByUserIds : [];
+        const exists = currentVisited.includes(travelerId);
         const updatedUserIds = exists
-          ? t.visitedByUserIds.filter((id) => id !== travelerId)
-          : [...t.visitedByUserIds, travelerId];
+          ? currentVisited.filter((id) => id !== travelerId)
+          : [...currentVisited, travelerId];
         return {
           ...t,
           visitedByUserIds: updatedUserIds,
@@ -343,17 +344,20 @@ export default function App() {
 
   // Filtered tours and days
   const filteredTours = tours.filter((tour) => {
-    if (selectedCity !== 'all' && !tour.city.toLowerCase().includes(selectedCity.toLowerCase())) {
+    if (selectedCity !== 'all' && !tour.city?.toLowerCase().includes(selectedCity.toLowerCase())) {
       return false;
     }
 
-    if (filterStatus === 'visited' && !tour.visitedByUserIds.includes(activeTravelerId)) {
+    const visited = Array.isArray(tour.visitedByUserIds) ? tour.visitedByUserIds : [];
+    const tickets = Array.isArray(tour.tickets) ? tour.tickets : [];
+
+    if (filterStatus === 'visited' && !visited.includes(activeTravelerId)) {
       return false;
     }
-    if (filterStatus === 'pending' && tour.visitedByUserIds.includes(activeTravelerId)) {
+    if (filterStatus === 'pending' && visited.includes(activeTravelerId)) {
       return false;
     }
-    if (filterStatus === 'tickets' && (!tour.tickets || tour.tickets.length === 0)) {
+    if (filterStatus === 'tickets' && tickets.length === 0) {
       return false;
     }
 

@@ -1,6 +1,6 @@
-import React from 'react';
+﻿import React from 'react';
 import { Traveler, Tour } from '../types';
-import { Users, CheckCircle2, Award, Sparkles, MapPin, Compass } from 'lucide-react';
+import { Users, Award } from 'lucide-react';
 
 interface GroupSummaryProps {
   travelers: Traveler[];
@@ -15,11 +15,12 @@ export const GroupSummary: React.FC<GroupSummaryProps> = ({
   activeTravelerId,
   onSelectActiveTraveler,
 }) => {
-  const totalTours = tours.length;
+  const safeTours = Array.isArray(tours) ? tours : [];
+  const safeTravelers = Array.isArray(travelers) ? travelers : [];
+  const totalTours = safeTours.length;
 
-  // Calculate stats for each traveler
-  const travelerStats = travelers.map((traveler) => {
-    const visited = tours.filter((t) => t.visitedByUserIds.includes(traveler.id)).length;
+  const travelerStats = safeTravelers.map((traveler) => {
+    const visited = safeTours.filter((t) => (t.visitedByUserIds || []).includes(traveler.id)).length;
     const percent = totalTours > 0 ? Math.round((visited / totalTours) * 100) : 0;
     return {
       traveler,
@@ -28,8 +29,7 @@ export const GroupSummary: React.FC<GroupSummaryProps> = ({
     };
   });
 
-  const allVisitedTours = tours.filter((t) => t.visitedByUserIds.length === 5);
-  const totalTickets = tours.reduce((acc, t) => acc + t.tickets.length, 0);
+  const allVisitedTours = safeTours.filter((t) => (t.visitedByUserIds || []).length === 5);
 
   return (
     <div id="group-summary-card" className="bg-white rounded-2xl border border-stone-200 p-5 shadow-xs">
@@ -52,7 +52,6 @@ export const GroupSummary: React.FC<GroupSummaryProps> = ({
         </div>
       </div>
 
-      {/* Grid of 5 Travelers Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 mt-4">
         {travelerStats.map(({ traveler, visited, percent }) => {
           const isActive = traveler.id === activeTravelerId;
@@ -66,7 +65,6 @@ export const GroupSummary: React.FC<GroupSummaryProps> = ({
                   : 'border-stone-200 bg-stone-50/50 hover:bg-stone-100 hover:border-stone-300'
               }`}
             >
-              {/* Avatar */}
               <div
                 className="w-10 h-10 rounded-full mx-auto flex items-center justify-center text-white font-bold text-sm shadow-xs mb-2"
                 style={{ backgroundColor: traveler.avatarColor }}
@@ -82,7 +80,6 @@ export const GroupSummary: React.FC<GroupSummaryProps> = ({
                 {visited} / {totalTours}
               </div>
 
-              {/* Progress Bar */}
               <div className="w-full bg-stone-200 rounded-full h-1.5 mt-2 overflow-hidden">
                 <div
                   className="h-full rounded-full transition-all duration-300"

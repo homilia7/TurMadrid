@@ -33,8 +33,9 @@ export const TicketModal: React.FC<TicketModalProps> = ({
   travelers,
   onUpdateTourTickets,
 }) => {
+  const ticketsList = Array.isArray(tour?.tickets) ? tour.tickets : [];
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(
-    tour.tickets.length > 0 ? tour.tickets[0] : null
+    ticketsList.length > 0 ? ticketsList[0] : null
   );
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [ticketTitle, setTicketTitle] = useState<string>('');
@@ -68,7 +69,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
         referenceNumber: 'REF-' + Math.floor(100000 + Math.random() * 900000),
       };
 
-      const updated = [...tour.tickets, newTicket];
+      const updated = [...ticketsList, newTicket];
       onUpdateTourTickets(tour.id, updated);
       setSelectedTicket(newTicket);
       setIsUploading(false);
@@ -108,7 +109,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
       referenceNumber: refCode,
     };
 
-    const updated = [...tour.tickets, newTicket];
+    const updated = [...ticketsList, newTicket];
     onUpdateTourTickets(tour.id, updated);
     setSelectedTicket(newTicket);
     setIsUploading(false);
@@ -117,7 +118,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
   };
 
   const handleDeleteTicket = (ticketId: string) => {
-    const updated = tour.tickets.filter((t) => t.id !== ticketId);
+    const updated = ticketsList.filter((t) => t.id !== ticketId);
     onUpdateTourTickets(tour.id, updated);
     if (selectedTicket?.id === ticketId) {
       setSelectedTicket(updated.length > 0 ? updated[0] : null);
@@ -128,7 +129,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
     downloadFile(ticket.dataUrl, ticket.fileName || `Entrada_${ticket.title}.svg`);
   };
 
-  const activeTicket = selectedTicket || tour.tickets[0] || null;
+  const activeTicket = selectedTicket || ticketsList[0] || null;
 
   return (
     <div id="ticket-modal-backdrop" className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/75 backdrop-blur-xs">
@@ -145,7 +146,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                   Entradas y Boletos: {tour.title}
                 </h3>
                 <span className="text-xs bg-amber-100 text-amber-800 font-bold px-2 py-0.5 rounded-full">
-                  {tour.tickets.length} {tour.tickets.length === 1 ? 'entrada' : 'entradas'}
+                  {ticketsList.length} {ticketsList.length === 1 ? 'entrada' : 'entradas'}
                 </span>
               </div>
               <p className="text-xs text-stone-500">
@@ -181,7 +182,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
             </div>
 
             {/* List */}
-            {tour.tickets.length === 0 ? (
+            {ticketsList.length === 0 ? (
               <div className="text-center py-8 px-3 border-2 border-dashed border-stone-200 rounded-xl bg-white">
                 <TicketIcon className="w-8 h-8 text-stone-300 mx-auto mb-2" />
                 <p className="text-xs font-semibold text-stone-600">Aún no hay entradas para este tour</p>
@@ -196,7 +197,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
               </div>
             ) : (
               <div className="space-y-2">
-                {tour.tickets.map((t) => {
+                {ticketsList.map((t) => {
                   const isSelected = activeTicket?.id === t.id;
                   const assigned = travelers.find((tr) => tr.id === t.travelerId);
                   return (

@@ -45,7 +45,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   const activeTraveler = travelers.find((t) => t.id === activeTravelerId) || travelers[0];
   const activeUserVisitedCount = tours.filter((t) =>
-    t.visitedByUserIds.includes(activeTravelerId)
+    (t.visitedByUserIds || []).includes(activeTravelerId)
   ).length;
 
   const totalTours = tours.length;

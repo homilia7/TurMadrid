@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { ItineraryDay, Tour, Traveler } from '../types';
 import { TourCard } from './TourCard';
-import { Calendar, MapPin, Plus, CheckCircle2, ChevronDown, ChevronUp } from 'lucide-react';
+import { MapPin, Plus, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface DaySectionProps {
   day: ItineraryDay;
@@ -13,7 +13,7 @@ interface DaySectionProps {
   onEditTour: (tour: Tour) => void;
   onDeleteTour: (tourId: string) => void;
   onQuickChangeAlert: (tourId: string, hours: number) => void;
-  onAddTourToDay: (dayNumber: number) => void;
+  onAddNewTourToDay: (dayNumber: number) => void;
 }
 
 export const DaySection: React.FC<DaySectionProps> = ({
@@ -26,18 +26,17 @@ export const DaySection: React.FC<DaySectionProps> = ({
   onEditTour,
   onDeleteTour,
   onQuickChangeAlert,
-  onAddTourToDay,
+  onAddNewTourToDay,
 }) => {
   const [isExpanded, setIsExpanded] = useState<boolean>(true);
+  const safeTours = Array.isArray(tours) ? tours : [];
 
-  // Tours for this day
-  const dayTours = tours
+  const dayTours = safeTours
     .filter((t) => t.dayNumber === day.dayNumber)
-    .sort((a, b) => a.time.localeCompare(b.time));
+    .sort((a, b) => (a.time || '').localeCompare(b.time || ''));
 
-  // Visited count for active user on this day
   const activeUserVisitedOnDay = dayTours.filter((t) =>
-    t.visitedByUserIds.includes(activeTravelerId)
+    (t.visitedByUserIds || []).includes(activeTravelerId)
   ).length;
 
   const isDayCompleted =
@@ -48,13 +47,11 @@ export const DaySection: React.FC<DaySectionProps> = ({
       id={`day-section-${day.dayNumber}`}
       className="bg-stone-50/80 rounded-2xl border border-stone-200/90 overflow-hidden shadow-xs transition-all"
     >
-      {/* Day Header */}
       <div
         className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer hover:bg-stone-100/70 transition-colors"
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="flex items-start sm:items-center gap-3">
-          {/* Day number badge */}
           <div
             className={`w-12 h-12 rounded-xl flex flex-col items-center justify-center font-bold shrink-0 shadow-2xs ${
               isDayCompleted
@@ -83,7 +80,6 @@ export const DaySection: React.FC<DaySectionProps> = ({
           </div>
         </div>
 
-        {/* Right side stats & collapse toggle */}
         <div className="flex items-center justify-between sm:justify-end gap-3 pl-15 sm:pl-0">
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold text-stone-500">
@@ -107,7 +103,7 @@ export const DaySection: React.FC<DaySectionProps> = ({
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                onAddTourToDay(day.dayNumber);
+                onAddNewTourToDay(day.dayNumber);
               }}
               className="px-2.5 py-1 text-xs font-bold text-amber-700 bg-amber-100/80 hover:bg-amber-200 rounded-lg transition-colors flex items-center gap-1"
               title="Agregar tour a este día"
@@ -126,7 +122,6 @@ export const DaySection: React.FC<DaySectionProps> = ({
         </div>
       </div>
 
-      {/* Expanded Tours List */}
       {isExpanded && (
         <div className="p-4 sm:p-5 pt-0 space-y-3">
           {dayTours.length === 0 ? (
@@ -134,7 +129,7 @@ export const DaySection: React.FC<DaySectionProps> = ({
               <p className="text-xs text-stone-500">No hay tours programados para este día aún.</p>
               <button
                 type="button"
-                onClick={() => onAddTourToDay(day.dayNumber)}
+                onClick={() => onAddNewTourToDay(day.dayNumber)}
                 className="mt-2 text-xs font-bold text-amber-600 hover:text-amber-700 inline-flex items-center gap-1"
               >
                 <Plus className="w-3.5 h-3.5" />

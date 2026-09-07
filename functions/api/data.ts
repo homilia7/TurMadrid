@@ -20,16 +20,35 @@ export const onRequestGet: PagesFunction<Env> = async (context) => {
       db.prepare('SELECT * FROM settings').all(),
     ]);
 
-    const tours = (toursRes.results || []).map((t: any) => ({
-      ...t,
-      alertEnabled: Boolean(t.alertEnabled),
-      visitedByUserIds: t.visitedByUserIds ? JSON.parse(t.visitedByUserIds) : [],
-    }));
+    const documents = documentsRes.results || [];
+
+    const tours = (toursRes.results || []).map((t: any) => {
+      let visited: string[] = [];
+      try {
+        if (typeof t.visitedByUserIds === 'string') {
+          visited = JSON.parse(t.visitedByUserIds);
+        } else if (Array.isArray(t.visitedByUserIds)) {
+          visited = t.visitedByUserIds;
+        }
+      } catch {
+        visited = [];
+      }
+
+      // Attach matching tickets to tour
+      const tourTickets = documents.filter((doc: any) => doc.tourId === t.id);
+
+      return {
+        ...t,
+        alertEnabled: Boolean(t.alertEnabled),
+        visitedByUserIds: Array.isArray(visited) ? visited : [],
+        tickets: tourTickets,
+      };
+    });
 
     return new Response(
       JSON.stringify({
         travelers: travelersRes.results || [],
-        documents: documentsRes.results || [],
+        documents,
         tours,
         days: daysRes.results || [],
         settings: (settingsRes.results || []).reduce((acc: any, curr: any) => {
