@@ -62,6 +62,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
   const [ticketToDelete, setTicketToDelete] = useState<Ticket | null>(null);
   const [deleteTicketPin, setDeleteTicketPin] = useState<string>('');
   const [pinError, setPinError] = useState<boolean>(false);
+  const [isLightboxOpen, setIsLightboxOpen] = useState<boolean>(false);
 
   const [pendingFile, setPendingFile] = useState<{
     fileName: string;
