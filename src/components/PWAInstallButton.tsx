@@ -1,17 +1,17 @@
 import React, { useState } from 'react';
 import { usePWAInstall } from '../hooks/usePWAInstall';
-import { Download, Sparkles, X, Share2, PlusSquare, Smartphone, CheckCircle, ArrowDownToLine } from 'lucide-react';
+import { Download, X, Share2, PlusSquare, Smartphone, CheckCircle, ArrowDownToLine } from 'lucide-react';
 
 interface PWAInstallButtonProps {
   variant?: 'nav' | 'banner' | 'floating' | 'header-arrow' | 'icon';
 }
 
 export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({ variant = 'nav' }) => {
-  const { isInstallable, hasNativePrompt, isInstalled, isIOS, install } = usePWAInstall();
+  const { hasNativePrompt, isInstalled, isIOS, install } = usePWAInstall();
   const [showModal, setShowModal] = useState<boolean>(false);
   const [justInstalledToast, setJustInstalledToast] = useState<boolean>(false);
 
-  // If already running as installed PWA, hide the button completely from the UI
+  // If already running as installed standalone PWA on phone, hide the button completely
   if (isInstalled) {
     return null;
   }
@@ -36,12 +36,12 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({ variant = 'n
           id="btn-download-arrow-header"
           type="button"
           onClick={handleInstallClick}
-          className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 text-[11px] font-extrabold text-amber-950 bg-amber-400 hover:bg-amber-300 active:bg-amber-500 rounded-full border border-amber-500/80 shadow-2xs transition-all cursor-pointer shrink-0"
-          title="Descargar e instalar la app en tu teléfono celular"
+          className="inline-flex items-center gap-1 px-2.5 sm:px-3 py-1.5 text-xs font-black text-amber-950 bg-amber-400 hover:bg-amber-300 active:bg-amber-500 rounded-xl border border-amber-500/80 shadow-xs transition-all cursor-pointer shrink-0 animate-bounce-subtle"
+          title="Descargar e instalar la aplicación en tu celular"
         >
           <ArrowDownToLine className="w-3.5 h-3.5 stroke-[2.5]" />
-          <span className="hidden sm:inline">Descargar App</span>
-          <span className="sm:hidden">App</span>
+          <span className="hidden sm:inline">Instalar App</span>
+          <span className="sm:hidden">Instalar</span>
         </button>
       )}
 
@@ -51,10 +51,9 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({ variant = 'n
           id="btn-pwa-install-nav"
           type="button"
           onClick={handleInstallClick}
-          className="group relative inline-flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-white bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 hover:from-amber-700 hover:to-amber-700 rounded-xl shadow-xs hover:shadow-md transition-all border border-amber-400/40 shrink-0 cursor-pointer animate-pulse-slow"
+          className="group relative inline-flex items-center gap-2 px-3 py-1.5 text-xs font-bold text-white bg-gradient-to-r from-amber-600 via-amber-500 to-amber-600 hover:from-amber-700 hover:to-amber-700 rounded-xl shadow-xs hover:shadow-md transition-all border border-amber-400/40 shrink-0 cursor-pointer"
           title="Descargar aplicación en tu celular o computadora para usar sin conexión"
         >
-          {/* Costa Rica / Spain Flags + Airplane mini badge */}
           <div className="flex items-center gap-0.5">
             <span className="text-xs">🇨🇷</span>
             <span className="text-[10px] text-amber-200">✈️</span>
@@ -115,7 +114,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({ variant = 'n
                 className="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-stone-950 font-extrabold text-xs rounded-xl shadow-lg flex items-center gap-2 transition-all transform hover:scale-[1.02] cursor-pointer"
               >
                 <Download className="w-4 h-4 text-stone-950" />
-                <span>Descargar / Instalar</span>
+                <span>Instalar en el Celular</span>
               </button>
             </div>
           </div>
@@ -124,7 +123,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({ variant = 'n
 
       {/* iOS & Browser Install Guide Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/70 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/75 backdrop-blur-xs p-4 animate-in fade-in duration-200">
           <div className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-stone-200 relative overflow-hidden">
             {/* Header with App Logo */}
             <div className="flex items-center justify-between pb-4 border-b border-stone-100">
@@ -211,52 +210,37 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({ variant = 'n
 
               <div className="flex items-center gap-2 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs font-medium">
                 <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
-                <span>Una vez descargada, este botón se ocultará automáticamente.</span>
+                <span>Al abrir la app desde tu pantalla de inicio, este botón de descarga desaparecerá automáticamente.</span>
               </div>
             </div>
 
             {/* Footer actions */}
-            <div className="pt-3 border-t border-stone-100 flex items-center justify-between gap-2 flex-wrap">
+            <div className="pt-3 border-t border-stone-100 flex items-center justify-end gap-2">
               <button
                 type="button"
-                onClick={() => {
-                  localStorage.setItem('pwa_app_installed_status_v1', 'true');
-                  setShowModal(false);
-                  window.location.reload();
-                }}
-                className="px-3 py-2 bg-stone-100 hover:bg-stone-200 text-stone-600 text-xs font-semibold rounded-xl transition-colors cursor-pointer"
-                title="Ocultar este botón si ya tienes la app en tu pantalla de inicio"
+                onClick={() => setShowModal(false)}
+                className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold rounded-xl transition-colors cursor-pointer"
               >
-                Ya la tengo instalada
+                Cerrar
               </button>
 
-              <div className="flex items-center gap-2">
+              {hasNativePrompt && (
                 <button
                   type="button"
-                  onClick={() => setShowModal(false)}
-                  className="px-3.5 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                  onClick={async () => {
+                    const success = await install();
+                    if (success) {
+                      setJustInstalledToast(true);
+                      setShowModal(false);
+                      setTimeout(() => setJustInstalledToast(false), 4000);
+                    }
+                  }}
+                  className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-stone-950 text-xs font-black rounded-xl transition-all shadow-md shadow-amber-500/20 flex items-center gap-1.5 cursor-pointer"
                 >
-                  Cerrar
+                  <Download className="w-4 h-4 text-stone-950" />
+                  <span>Instalar Ahora</span>
                 </button>
-
-                {hasNativePrompt && (
-                  <button
-                    type="button"
-                    onClick={async () => {
-                      const success = await install();
-                      if (success) {
-                        setJustInstalledToast(true);
-                        setShowModal(false);
-                        setTimeout(() => setJustInstalledToast(false), 4000);
-                      }
-                    }}
-                    className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-stone-950 text-xs font-black rounded-xl transition-all shadow-md shadow-amber-500/20 flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Download className="w-4 h-4 text-stone-950" />
-                    <span>Instalar Ahora</span>
-                  </button>
-                )}
-              </div>
+              )}
             </div>
           </div>
         </div>
@@ -275,3 +259,4 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({ variant = 'n
     </>
   );
 };
+

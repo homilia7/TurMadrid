@@ -5,8 +5,6 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed'; platform: string }>;
 }
 
-const PWA_INSTALLED_KEY = 'pwa_app_installed_status_v1';
-
 export function usePWAInstall() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(() => {
     if (typeof window !== 'undefined' && (window as any).__deferredPWAInstallPrompt) {
@@ -14,52 +12,38 @@ export function usePWAInstall() {
     }
     return null;
   });
-  const [isInstalled, setIsInstalled] = useState<boolean>(() => {
+
+  // Check if currently running in standalone installed app mode
+  const checkIsCurrentlyStandalone = (): boolean => {
     if (typeof window === 'undefined') return false;
-    const isStandalone =
+    return (
       window.matchMedia('(display-mode: standalone)').matches ||
       (window.navigator as unknown as { standalone?: boolean }).standalone === true ||
-      document.referrer.includes('android-app://');
-    
-    const storedStatus = localStorage.getItem(PWA_INSTALLED_KEY) === 'true';
-    return isStandalone || storedStatus;
+      document.referrer.includes('android-app://')
+    );
+  };
+
+  const [isInstalled, setIsInstalled] = useState<boolean>(() => {
+    return checkIsCurrentlyStandalone();
   });
-  const [isIOS, setIsIOS] = useState<boolean>(false);
+
+  const [isIOS, setIsIOS] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    const ua = window.navigator.userAgent.toLowerCase();
+    return /iphone|ipad|ipod/.test(ua);
+  });
 
   useEffect(() => {
-    // Check if running as standalone PWA
-    const checkStandalone = async () => {
-      const isStandalone =
-        window.matchMedia('(display-mode: standalone)').matches ||
-        (window.navigator as unknown as { standalone?: boolean }).standalone === true ||
-        document.referrer.includes('android-app://');
-
-      if (isStandalone) {
-        setIsInstalled(true);
-        localStorage.setItem(PWA_INSTALLED_KEY, 'true');
-        return;
-      }
-
-      // Check modern navigator.getInstalledRelatedApps API if available
-      if ('getInstalledRelatedApps' in navigator) {
-        try {
-          const relatedApps = await (navigator as any).getInstalledRelatedApps();
-          if (Array.isArray(relatedApps) && relatedApps.length > 0) {
-            setIsInstalled(true);
-            localStorage.setItem(PWA_INSTALLED_KEY, 'true');
-          }
-        } catch {
-          // Ignore
-        }
-      }
+    const updateInstallStatus = () => {
+      const standalone = checkIsCurrentlyStandalone();
+      setIsInstalled(standalone);
     };
 
-    checkStandalone();
+    updateInstallStatus();
 
     // Detect iOS
     const ua = window.navigator.userAgent.toLowerCase();
-    const isIosDevice = /iphone|ipad|ipod/.test(ua);
-    setIsIOS(isIosDevice);
+    setIsIOS(/iphone|ipad|ipod/.test(ua));
 
     if ((window as any).__deferredPWAInstallPrompt) {
       setDeferredPrompt((window as any).__deferredPWAInstallPrompt);
@@ -89,10 +73,24 @@ export function usePWAInstall() {
     window.addEventListener('pwa_prompt_ready', handlePromptReady);
     window.addEventListener('appinstalled', handleAppInstalled);
 
+    // Also listen to display-mode media query change (when user launches from home screen)
+    const matchMediaStandalone = window.matchMedia('(display-mode: standalone)');
+    const handleMediaChange = (e: MediaQueryListEvent) => {
+      if (e.matches) {
+        setIsInstalled(true);
+      }
+    };
+    if (matchMediaStandalone.addEventListener) {
+      matchMediaStandalone.addEventListener('change', handleMediaChange);
+    }
+
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('pwa_prompt_ready', handlePromptReady);
       window.removeEventListener('appinstalled', handleAppInstalled);
+      if (matchMediaStandalone.removeEventListener) {
+        matchMediaStandalone.removeEventListener('change', handleMediaChange);
+      }
     };
   }, []);
 
@@ -107,7 +105,6 @@ export function usePWAInstall() {
       if (choiceResult.outcome === 'accepted') {
         setIsInstalled(true);
         setDeferredPrompt(null);
-        localStorage.setItem(PWA_INSTALLED_KEY, 'true');
         return true;
       }
       return false;
@@ -118,10 +115,11 @@ export function usePWAInstall() {
   }, [deferredPrompt]);
 
   return {
-    isInstallable: !!deferredPrompt || isIOS,
+    isInstallable: true,
     hasNativePrompt: !!deferredPrompt,
     isInstalled,
     isIOS,
     install,
   };
 }
+
