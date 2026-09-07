@@ -93,6 +93,7 @@ export const PassportSection: React.FC<PassportSectionProps> = ({
   // Modal State for Adding New Documents (Hotel / Teleférico / Metro)
   const [isAddDocModalOpen, setIsAddDocModalOpen] = useState<boolean>(false);
   const [modalCategory, setModalCategory] = useState<'hotel' | 'teleferico' | 'metro'>('hotel');
+  const [docTripType, setDocTripType] = useState<'ida' | 'regreso' | 'general'>('ida');
   const [docTitle, setDocTitle] = useState<string>('');
   const [docReference, setDocReference] = useState<string>('');
   const [docTravelerId, setDocTravelerId] = useState<string>('group');
@@ -165,10 +166,15 @@ export const PassportSection: React.FC<PassportSectionProps> = ({
   };
 
   // Open Add Document Modal
-  const handleOpenAddDoc = (category: 'hotel' | 'teleferico' | 'metro') => {
+  const handleOpenAddDoc = (
+    category: 'hotel' | 'teleferico' | 'metro',
+    travelerId?: string,
+    tripType: 'ida' | 'regreso' | 'general' = 'ida'
+  ) => {
     setModalCategory(category);
     setDocUploadedFile(null);
-    setDocTravelerId('group');
+    setDocTravelerId(travelerId || (category === 'metro' && selectedTravelerId ? selectedTravelerId : 'group'));
+    setDocTripType(tripType);
     setDocNotes('');
 
     if (category === 'hotel') {
@@ -186,12 +192,21 @@ export const PassportSection: React.FC<PassportSectionProps> = ({
       setDocDateEnd('');
       setDocNotes('Pase de Ida y Vuelta - Cabina panorámica hacia Casa de Campo.');
     } else {
-      setDocTitle('Tarjeta Multi Transporte Metro Madrid');
+      const targetTravId = travelerId || (selectedTravelerId !== 'group' ? selectedTravelerId : undefined);
+      const trav = targetTravId && targetTravId !== 'group' ? safeTravelers.find((t) => t.id === targetTravId) : null;
+      const travName = trav ? trav.name : '';
+      if (tripType === 'ida') {
+        setDocTitle(travName ? `Ticket Metro Ida - ${travName}` : 'Ticket Metro Ida');
+      } else if (tripType === 'regreso') {
+        setDocTitle(travName ? `Ticket Metro Regreso - ${travName}` : 'Ticket Metro Regreso');
+      } else {
+        setDocTitle(travName ? `Tarjeta Metro - ${travName}` : 'Tarjeta Multi Transporte Metro');
+      }
       setDocLocation('Red de Metro y Autobuses EMT Madrid');
       setDocReference('MTR-' + Math.floor(100000 + Math.random() * 900000));
       setDocDateStart('');
       setDocDateEnd('');
-      setDocNotes('Tarjeta de 10 viajes / Abono turístico Zona A válido para Metro.');
+      setDocNotes(tripType === 'ida' ? 'Boleto / Trayecto de Ida' : tripType === 'regreso' ? 'Boleto / Trayecto de Regreso' : 'Tarjeta de 10 viajes / Abono turístico');
     }
 
     setIsAddDocModalOpen(true);
@@ -245,6 +260,7 @@ export const PassportSection: React.FC<PassportSectionProps> = ({
       fileSize: docUploadedFile?.fileSize || 'Digital',
       referenceNumber: docReference.trim(),
       travelerId: docTravelerId === 'group' ? undefined : docTravelerId,
+      seatOrSection: modalCategory === 'metro' ? docTripType : undefined,
       departureTime: docDateStart || undefined,
       arrivalTime: docDateEnd || undefined,
       origin: docLocation.trim() || undefined,
@@ -979,145 +995,282 @@ export const PassportSection: React.FC<PassportSectionProps> = ({
       )}
 
       {/* ========================================================================= */}
-      {/* SUB-TAB 4: TICKETS DEL METRO */}
+      {/* SUB-TAB 4: TICKETS DEL METRO (ORGANIZADOS POR VIAJERO) */}
       {/* ========================================================================= */}
       {activeSubTab === 'metro' && (
         <div className="space-y-4 animate-in fade-in duration-200">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-rose-200/80 shadow-xs">
             <div>
               <h3 className="text-base font-bold text-stone-900 flex items-center gap-2">
                 <Train className="w-5 h-5 text-rose-600" />
-                Tickets y Tarjetas del Metro
+                Tickets del Metro por Viajero
               </h3>
               <p className="text-xs text-stone-500">
-                Almacena fotos de tu Tarjeta Multi, billetes de 10 viajes y abonos de transporte
+                Billetes asignados individualmente: <strong>Ticket de Ida</strong> y <strong>Ticket de Regreso</strong> para cada integrante.
               </p>
             </div>
             <button
               type="button"
               onClick={() => handleOpenAddDoc('metro')}
-              className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition shadow-xs flex items-center gap-1.5 cursor-pointer"
+              className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition shadow-xs flex items-center gap-1.5 cursor-pointer self-start sm:self-auto"
             >
               <Plus className="w-4 h-4" />
               <span>Subir Ticket Metro</span>
             </button>
           </div>
 
-          {metroDocs.length === 0 ? (
-            <div className="text-center py-12 px-4 bg-white rounded-2xl border-2 border-dashed border-rose-200/80 shadow-xs space-y-3">
-              <div className="w-14 h-14 mx-auto rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center text-2xl shadow-xs">
-                🚇
-              </div>
-              <h4 className="text-base font-bold text-stone-800">Aún no hay billetes de metro subidos</h4>
-              <p className="text-xs text-stone-500 max-w-md mx-auto">
-                Toma una foto a tu Tarjeta Multi de Metro Madrid o sube el comprobante digital para llevar el control de tus viajes.
-              </p>
-              <button
-                type="button"
-                onClick={() => handleOpenAddDoc('metro')}
-                className="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-xs transition cursor-pointer"
-              >
-                ➕ Subir Billete o Tarjeta Multi
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {metroDocs.map((doc) => {
-                const assignedTraveler = doc.travelerId ? safeTravelers.find((t) => t.id === doc.travelerId) : null;
-                return (
-                  <div
-                    key={doc.id}
-                    className="bg-white rounded-2xl border border-stone-200 p-4 shadow-xs hover:border-rose-400 transition-all flex flex-col justify-between gap-3 relative group"
-                  >
-                    <div>
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-2.5">
-                          <div className="w-10 h-10 rounded-xl bg-rose-600 text-white flex items-center justify-center font-bold shrink-0 shadow-xs">
-                            <Train className="w-5 h-5" />
-                          </div>
-                          <div>
-                            <span className="text-[10px] uppercase font-bold text-rose-800 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
-                              Transporte Metro
-                            </span>
-                            <h4 className="text-sm font-bold text-stone-900 mt-0.5">{doc.title}</h4>
-                          </div>
-                        </div>
+          <div className="space-y-4">
+            {safeTravelers.map((traveler) => {
+              const travelerDocs = metroDocs.filter((d) => d.travelerId === traveler.id);
+              const idaDoc = travelerDocs.find((d) => d.seatOrSection === 'ida' || d.title.toLowerCase().includes('ida'));
+              const regresoDoc = travelerDocs.find((d) => d.seatOrSection === 'regreso' || d.title.toLowerCase().includes('regreso'));
+              const otherDocs = travelerDocs.filter((d) => d.id !== idaDoc?.id && d.id !== regresoDoc?.id);
 
-                        <button
-                          type="button"
-                          onClick={() => setItemToDelete({ id: doc.id, title: doc.title, type: 'doc' })}
-                          className="text-stone-400 hover:text-red-600 p-1 rounded-lg transition-colors cursor-pointer"
-                          title="Eliminar ticket (Código 8888)"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+              return (
+                <div
+                  key={traveler.id}
+                  className="bg-white rounded-2xl border border-stone-200/90 shadow-xs p-4 sm:p-5 hover:border-rose-300/80 transition-all"
+                >
+                  {/* Traveler Header */}
+                  <div className="flex items-center justify-between gap-3 pb-3.5 border-b border-stone-100">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-white text-base shadow-xs"
+                        style={{ backgroundColor: traveler.avatarColor }}
+                      >
+                        {traveler.name.charAt(0)}
                       </div>
-
-                      <div className="mt-3 space-y-1.5 text-xs text-stone-600">
-                        {doc.origin && (
-                          <div className="flex items-center gap-1.5 text-stone-700 font-medium">
-                            <MapPin className="w-3.5 h-3.5 text-rose-600 shrink-0" />
-                            <span className="truncate">{doc.origin}</span>
-                          </div>
-                        )}
-
-                        <div className="flex items-center gap-2 pt-1 flex-wrap">
-                          <span className="bg-stone-100 text-stone-700 px-2 py-0.5 rounded-md font-mono text-[11px] font-bold">
-                            Nº Serie: {formatCleanReference(doc.referenceNumber)}
-                          </span>
-                          <span className="bg-rose-50 text-rose-800 px-2 py-0.5 rounded-md text-[11px] font-semibold flex items-center gap-1">
-                            <Users className="w-3 h-3 text-rose-600" />
-                            {assignedTraveler ? assignedTraveler.name : 'Pase Grupal (5 Pax)'}
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h4 className="text-base font-extrabold text-stone-900">{traveler.name}</h4>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-stone-100 text-stone-600">
+                            Viajero
                           </span>
                         </div>
-
-                        {doc.notes && (
-                          <p className="text-[11px] text-stone-500 bg-stone-50 p-2 rounded-lg border border-stone-100 mt-2">
-                            {doc.notes}
-                          </p>
-                        )}
+                        <p className="text-xs text-stone-500 font-medium mt-0.5">
+                          {travelerDocs.length === 0 ? 'Sin tickets asignados' : `${travelerDocs.length} ${travelerDocs.length === 1 ? 'ticket asignado' : 'tickets asignados'}`}
+                        </p>
                       </div>
                     </div>
 
-                    {/* Actions */}
-                    <div className="pt-3 border-t border-stone-100 flex items-center justify-between gap-2">
-                      <span className="text-[10px] text-stone-400 font-medium truncate">
-                        {doc.fileName || 'Tarjeta digital'}
-                      </span>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenAddDoc('metro', traveler.id, 'ida')}
+                        className="px-3 py-1.5 text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-xl border border-rose-200 transition flex items-center gap-1 cursor-pointer"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>Subir Ticket</span>
+                      </button>
+                    </div>
+                  </div>
 
-                      <div className="flex items-center gap-1.5">
+                  {/* 2 Main Slots: Ticket Ida & Ticket Regreso */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 mt-3.5">
+                    {/* SLOT 1: TICKET IDA */}
+                    {idaDoc ? (
+                      <div className="p-3.5 rounded-xl border border-emerald-200/90 bg-emerald-50/30 flex flex-col justify-between gap-3">
+                        <div>
+                          <div className="flex items-center justify-between gap-2 mb-1.5">
+                            <span className="text-[10px] uppercase font-black tracking-wider text-emerald-800 bg-emerald-100/90 px-2 py-0.5 rounded-md border border-emerald-300/80 flex items-center gap-1">
+                              <span>🟢</span> Ticket de Ida
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setItemToDelete({ id: idaDoc.id, title: idaDoc.title, type: 'doc' })}
+                              className="text-stone-400 hover:text-red-600 p-1 rounded-lg transition-colors cursor-pointer"
+                              title="Eliminar ticket (Código 8888)"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                          <h5 className="text-xs sm:text-sm font-bold text-stone-900 line-clamp-1">{idaDoc.title}</h5>
+                          <p className="text-[11px] font-mono text-stone-500 mt-1">Ref: {formatCleanReference(idaDoc.referenceNumber)}</p>
+                          {idaDoc.notes && <p className="text-[11px] text-stone-600 mt-1 line-clamp-1">{idaDoc.notes}</p>}
+                        </div>
+
+                        <div className="pt-2 border-t border-emerald-100 flex items-center justify-between gap-2">
+                          <span className="text-[10px] text-stone-400 truncate">{idaDoc.fileName || 'Ticket digital'}</span>
+                          <div className="flex items-center gap-1.5">
+                            {idaDoc.dataUrl && (
+                              <button
+                                type="button"
+                                onClick={() => setPreviewDoc({ url: idaDoc.dataUrl, title: idaDoc.title, type: idaDoc.fileType })}
+                                className="px-2.5 py-1 text-xs font-bold text-emerald-800 bg-white hover:bg-emerald-100/60 rounded-lg border border-emerald-300 transition flex items-center gap-1 cursor-pointer"
+                              >
+                                <Eye className="w-3 h-3" /> Ver
+                              </button>
+                            )}
+                            {idaDoc.dataUrl && (
+                              <a
+                                href={idaDoc.dataUrl}
+                                download={idaDoc.fileName || `${idaDoc.title}.png`}
+                                className="p-1 text-stone-500 hover:text-stone-900 bg-white hover:bg-stone-100 rounded-lg border border-stone-200 transition"
+                                title="Descargar"
+                              >
+                                <Download className="w-3 h-3" />
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div
+                        onClick={() => handleOpenAddDoc('metro', traveler.id, 'ida')}
+                        className="p-4 rounded-xl border-2 border-dashed border-stone-200 hover:border-emerald-400 bg-stone-50/50 hover:bg-emerald-50/20 transition-all flex flex-col items-center justify-center text-center cursor-pointer min-h-[120px] group"
+                      >
+                        <span className="text-xl mb-1 opacity-70 group-hover:scale-110 transition-transform">🟢</span>
+                        <p className="text-xs font-bold text-stone-700">Ticket de Ida</p>
+                        <p className="text-[10px] text-stone-400 mt-0.5">Pendiente de subir para {traveler.name}</p>
+                        <span className="mt-2 inline-flex items-center gap-1 text-[11px] font-extrabold text-emerald-700 bg-emerald-100/80 group-hover:bg-emerald-200/90 px-2.5 py-1 rounded-lg transition">
+                          <Plus className="w-3 h-3" /> Subir Ticket Ida
+                        </span>
+                      </div>
+                    )}
+
+                    {/* SLOT 2: TICKET REGRESO */}
+                    {regresoDoc ? (
+                      <div className="p-3.5 rounded-xl border border-blue-200/90 bg-blue-50/30 flex flex-col justify-between gap-3">
+                        <div>
+                          <div className="flex items-center justify-between gap-2 mb-1.5">
+                            <span className="text-[10px] uppercase font-black tracking-wider text-blue-800 bg-blue-100/90 px-2 py-0.5 rounded-md border border-blue-300/80 flex items-center gap-1">
+                              <span>🔵</span> Ticket de Regreso
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setItemToDelete({ id: regresoDoc.id, title: regresoDoc.title, type: 'doc' })}
+                              className="text-stone-400 hover:text-red-600 p-1 rounded-lg transition-colors cursor-pointer"
+                              title="Eliminar ticket (Código 8888)"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                          <h5 className="text-xs sm:text-sm font-bold text-stone-900 line-clamp-1">{regresoDoc.title}</h5>
+                          <p className="text-[11px] font-mono text-stone-500 mt-1">Ref: {formatCleanReference(regresoDoc.referenceNumber)}</p>
+                          {regresoDoc.notes && <p className="text-[11px] text-stone-600 mt-1 line-clamp-1">{regresoDoc.notes}</p>}
+                        </div>
+
+                        <div className="pt-2 border-t border-blue-100 flex items-center justify-between gap-2">
+                          <span className="text-[10px] text-stone-400 truncate">{regresoDoc.fileName || 'Ticket digital'}</span>
+                          <div className="flex items-center gap-1.5">
+                            {regresoDoc.dataUrl && (
+                              <button
+                                type="button"
+                                onClick={() => setPreviewDoc({ url: regresoDoc.dataUrl, title: regresoDoc.title, type: regresoDoc.fileType })}
+                                className="px-2.5 py-1 text-xs font-bold text-blue-800 bg-white hover:bg-blue-100/60 rounded-lg border border-blue-300 transition flex items-center gap-1 cursor-pointer"
+                              >
+                                <Eye className="w-3 h-3" /> Ver
+                              </button>
+                            )}
+                            {regresoDoc.dataUrl && (
+                              <a
+                                href={regresoDoc.dataUrl}
+                                download={regresoDoc.fileName || `${regresoDoc.title}.png`}
+                                className="p-1 text-stone-500 hover:text-stone-900 bg-white hover:bg-stone-100 rounded-lg border border-stone-200 transition"
+                                title="Descargar"
+                              >
+                                <Download className="w-3 h-3" />
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div
+                        onClick={() => handleOpenAddDoc('metro', traveler.id, 'regreso')}
+                        className="p-4 rounded-xl border-2 border-dashed border-stone-200 hover:border-blue-400 bg-stone-50/50 hover:bg-blue-50/20 transition-all flex flex-col items-center justify-center text-center cursor-pointer min-h-[120px] group"
+                      >
+                        <span className="text-xl mb-1 opacity-70 group-hover:scale-110 transition-transform">🔵</span>
+                        <p className="text-xs font-bold text-stone-700">Ticket de Regreso</p>
+                        <p className="text-[10px] text-stone-400 mt-0.5">Pendiente de subir para {traveler.name}</p>
+                        <span className="mt-2 inline-flex items-center gap-1 text-[11px] font-extrabold text-blue-700 bg-blue-100/80 group-hover:bg-blue-200/90 px-2.5 py-1 rounded-lg transition">
+                          <Plus className="w-3 h-3" /> Subir Ticket Regreso
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Other tickets for this traveler */}
+                  {otherDocs.length > 0 && (
+                    <div className="mt-3 pt-3 border-t border-stone-100">
+                      <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider block mb-2">
+                        Otros Billetes / Tarjetas de {traveler.name}:
+                      </span>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {otherDocs.map((doc) => (
+                          <div key={doc.id} className="p-3 rounded-xl border border-stone-200 bg-stone-50 flex items-center justify-between gap-2">
+                            <div className="truncate">
+                              <span className="text-[10px] font-bold text-stone-600 bg-white px-1.5 py-0.5 rounded border border-stone-200">
+                                {doc.seatOrSection || 'General'}
+                              </span>
+                              <h6 className="text-xs font-bold text-stone-800 truncate mt-0.5">{doc.title}</h6>
+                              <p className="text-[10px] font-mono text-stone-500">Ref: {formatCleanReference(doc.referenceNumber)}</p>
+                            </div>
+                            <div className="flex items-center gap-1 shrink-0">
+                              {doc.dataUrl && (
+                                <button
+                                  type="button"
+                                  onClick={() => setPreviewDoc({ url: doc.dataUrl, title: doc.title, type: doc.fileType })}
+                                  className="p-1.5 text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg transition"
+                                >
+                                  <Eye className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => setItemToDelete({ id: doc.id, title: doc.title, type: 'doc' })}
+                                className="p-1.5 text-stone-400 hover:text-red-600 rounded-lg transition"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            {/* UNASSIGNED METRO TICKETS */}
+            {metroDocs.filter((d) => !d.travelerId || d.travelerId === 'group').length > 0 && (
+              <div className="bg-white rounded-2xl border border-dashed border-rose-200 shadow-xs p-4 sm:p-5">
+                <div className="flex items-center gap-2 pb-3 border-b border-stone-100">
+                  <Train className="w-5 h-5 text-rose-600" />
+                  <h4 className="text-sm font-bold text-stone-800">Billetes Grupales / Sin Asignar</h4>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 mt-3">
+                  {metroDocs.filter((d) => !d.travelerId || d.travelerId === 'group').map((doc) => (
+                    <div key={doc.id} className="p-3.5 rounded-xl border border-stone-200 bg-stone-50 flex items-center justify-between gap-2">
+                      <div className="truncate">
+                        <h5 className="text-xs font-bold text-stone-800 truncate">{doc.title}</h5>
+                        <p className="text-[10px] font-mono text-stone-500">Ref: {formatCleanReference(doc.referenceNumber)}</p>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
                         {doc.dataUrl && (
                           <button
                             type="button"
-                            onClick={() => setPreviewDoc({
-                              url: doc.dataUrl,
-                              title: doc.title,
-                              type: doc.fileType,
-                            })}
-                            className="px-2.5 py-1.5 text-xs font-bold text-rose-800 bg-rose-50 hover:bg-rose-100 rounded-lg border border-rose-200 transition flex items-center gap-1 cursor-pointer"
+                            onClick={() => setPreviewDoc({ url: doc.dataUrl, title: doc.title, type: doc.fileType })}
+                            className="p-1.5 text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg transition"
                           >
                             <Eye className="w-3.5 h-3.5" />
-                            <span>Ver Billete</span>
                           </button>
                         )}
-
-                        {doc.dataUrl && (
-                          <a
-                            href={doc.dataUrl}
-                            download={doc.fileName || `${doc.title}.png`}
-                            className="px-2.5 py-1.5 text-xs font-bold text-stone-700 bg-stone-100 hover:bg-stone-200 rounded-lg border border-stone-200 transition flex items-center gap-1 cursor-pointer"
-                          >
-                            <Download className="w-3.5 h-3.5" />
-                            <span>Descargar</span>
-                          </a>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() => setItemToDelete({ id: doc.id, title: doc.title, type: 'doc' })}
+                          className="p-1.5 text-stone-400 hover:text-red-600 rounded-lg transition"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
                       </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -1152,19 +1305,7 @@ export const PassportSection: React.FC<PassportSectionProps> = ({
             </div>
 
             <div className="space-y-3.5">
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider text-stone-700 mb-1">
-                  Título o Nombre:
-                </label>
-                <input
-                  type="text"
-                  value={docTitle}
-                  onChange={(e) => setDocTitle(e.target.value)}
-                  placeholder="Ej. Hotel Riu Plaza España / Teleférico Madrid"
-                  className="w-full text-xs font-semibold px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
-
+              {/* Asignar a Viajero */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-bold uppercase tracking-wider text-stone-700 mb-1">
@@ -1185,7 +1326,21 @@ export const PassportSection: React.FC<PassportSectionProps> = ({
                   </label>
                   <select
                     value={docTravelerId}
-                    onChange={(e) => setDocTravelerId(e.target.value)}
+                    onChange={(e) => {
+                      const newTravId = e.target.value;
+                      setDocTravelerId(newTravId);
+                      if (modalCategory === 'metro') {
+                        const trav = newTravId !== 'group' ? safeTravelers.find((t) => t.id === newTravId) : null;
+                        const travName = trav ? trav.name : '';
+                        if (docTripType === 'ida') {
+                          setDocTitle(travName ? `Ticket Metro Ida - ${travName}` : 'Ticket Metro Ida');
+                        } else if (docTripType === 'regreso') {
+                          setDocTitle(travName ? `Ticket Metro Regreso - ${travName}` : 'Ticket Metro Regreso');
+                        } else {
+                          setDocTitle(travName ? `Tarjeta Metro - ${travName}` : 'Tarjeta Multi Transporte Metro');
+                        }
+                      }
+                    }}
                     className="w-full text-xs font-semibold px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="group">Pase Grupal (5 Viajeros)</option>
@@ -1196,6 +1351,80 @@ export const PassportSection: React.FC<PassportSectionProps> = ({
                     ))}
                   </select>
                 </div>
+              </div>
+
+              {/* Metro Trip Type Selection */}
+              {modalCategory === 'metro' && (
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-stone-700 mb-1">
+                    Tipo de Trayecto:
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDocTripType('ida');
+                        const trav = docTravelerId !== 'group' ? safeTravelers.find((t) => t.id === docTravelerId) : null;
+                        setDocTitle(trav ? `Ticket Metro Ida - ${trav.name}` : 'Ticket Metro Ida');
+                      }}
+                      className={`py-2 px-2 text-xs font-bold rounded-xl border transition cursor-pointer flex items-center justify-center gap-1 ${
+                        docTripType === 'ida'
+                          ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
+                          : 'bg-stone-50 text-stone-700 border-stone-200 hover:bg-stone-100'
+                      }`}
+                    >
+                      <span>🟢</span>
+                      <span>Ticket Ida</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDocTripType('regreso');
+                        const trav = docTravelerId !== 'group' ? safeTravelers.find((t) => t.id === docTravelerId) : null;
+                        setDocTitle(trav ? `Ticket Metro Regreso - ${trav.name}` : 'Ticket Metro Regreso');
+                      }}
+                      className={`py-2 px-2 text-xs font-bold rounded-xl border transition cursor-pointer flex items-center justify-center gap-1 ${
+                        docTripType === 'regreso'
+                          ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                          : 'bg-stone-50 text-stone-700 border-stone-200 hover:bg-stone-100'
+                      }`}
+                    >
+                      <span>🔵</span>
+                      <span>Ticket Regreso</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDocTripType('general');
+                        const trav = docTravelerId !== 'group' ? safeTravelers.find((t) => t.id === docTravelerId) : null;
+                        setDocTitle(trav ? `Tarjeta Metro - ${trav.name}` : 'Tarjeta Multi Metro');
+                      }}
+                      className={`py-2 px-2 text-xs font-bold rounded-xl border transition cursor-pointer flex items-center justify-center gap-1 ${
+                        docTripType === 'general'
+                          ? 'bg-rose-600 text-white border-rose-600 shadow-xs'
+                          : 'bg-stone-50 text-stone-700 border-stone-200 hover:bg-stone-100'
+                      }`}
+                    >
+                      <span>🚇</span>
+                      <span>General</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-stone-700 mb-1">
+                  Título o Nombre:
+                </label>
+                <input
+                  type="text"
+                  value={docTitle}
+                  onChange={(e) => setDocTitle(e.target.value)}
+                  placeholder="Ej. Ticket Metro Ida - Jessica"
+                  className="w-full text-xs font-semibold px-3 py-2 bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
               </div>
 
               {modalCategory === 'hotel' ? (
