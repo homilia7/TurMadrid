@@ -41,7 +41,7 @@ export const INITIAL_TOURS: Tour[] = [
     durationHours: 10.5,
     alertHoursBefore: 4,
     alertEnabled: true,
-    visitedByUserIds: ['u1', 'u2', 'u3', 'u4', 'u5'],
+    visitedByUserIds: [],
     notes: 'Llevar pasaportes vigentes y formularios migratorios en mano.',
     tickets: [
       {
@@ -80,7 +80,7 @@ export const INITIAL_TOURS: Tour[] = [
     durationHours: 3,
     alertHoursBefore: 3,
     alertEnabled: true,
-    visitedByUserIds: ['u1', 'u2', 'u3', 'u4', 'u5'],
+    visitedByUserIds: [],
     notes: 'Recogida de equipaje y traslado al hotel.',
     tickets: [],
   },
@@ -99,7 +99,7 @@ export const INITIAL_TOURS: Tour[] = [
     durationHours: 6,
     alertHoursBefore: 2,
     alertEnabled: true,
-    visitedByUserIds: ['u1', 'u2'],
+    visitedByUserIds: [],
     notes: 'Llevar calzado cómodo para caminar.',
     tickets: [],
   },
