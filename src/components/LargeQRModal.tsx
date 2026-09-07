@@ -5,18 +5,12 @@ import {
   Download,
   Maximize2,
   Minimize2,
-  Calendar,
-  MapPin,
-  Clock,
-  User,
-  ShieldCheck,
-  Image as ImageIcon,
   ZoomIn,
   ZoomOut,
   RotateCw
 } from 'lucide-react';
-import { formatDateWithDay } from '../utils/dateUtils';
 import { downloadFile } from '../utils/ticketGenerator';
+import { generateLargeQR } from '../utils/qrReader';
 
 interface LargeQRModalProps {
   isOpen: boolean;
@@ -40,19 +34,12 @@ export const LargeQRModal: React.FC<LargeQRModalProps> = ({
   qrPayload,
   ticketImage,
   qrCropUrl,
-  travelerName,
-  date,
-  time,
-  location,
   referenceNumber,
-  seatOrSection,
 }) => {
-  // Always use the real authentic ticket image / crop from "Ver Ticket"
-  const hasCrop = Boolean(qrCropUrl && qrCropUrl.trim().length > 0);
-  const [selectedView, setSelectedView] = useState<'crop' | 'full'>(hasCrop ? 'crop' : 'full');
   const [zoom, setZoom] = useState<number>(1);
   const [rotation, setRotation] = useState<number>(0);
   const [isFullScreen, setIsFullScreen] = useState<boolean>(false);
+  const [renderedQrUrl, setRenderedQrUrl] = useState<string>('');
 
   // Multi-touch pinch zoom & drag refs
   const touchStartDistRef = useRef<number | null>(null);
@@ -63,19 +50,46 @@ export const LargeQRModal: React.FC<LargeQRModalProps> = ({
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const lastTapRef = useRef<number>(0);
 
+  // Generate crisp QR code fallback if payload exists and no crop is available
   useEffect(() => {
+    let isMounted = true;
+    const computeQR = async () => {
+      if (qrCropUrl) {
+        setRenderedQrUrl(qrCropUrl);
+        return;
+      }
+      const rawText = qrPayload || referenceNumber;
+      if (rawText) {
+        try {
+          const generated = await generateLargeQR(rawText, 600);
+          if (isMounted) {
+            setRenderedQrUrl(generated || ticketImage || '');
+          }
+        } catch {
+          if (isMounted) {
+            setRenderedQrUrl(ticketImage || '');
+          }
+        }
+      } else {
+        setRenderedQrUrl(ticketImage || '');
+      }
+    };
+
     if (isOpen) {
-      setSelectedView(hasCrop ? 'crop' : 'full');
       setZoom(1);
       setRotation(0);
       setPosition({ x: 0, y: 0 });
+      computeQR();
     }
-  }, [isOpen, hasCrop]);
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen, qrCropUrl, qrPayload, referenceNumber, ticketImage]);
 
   if (!isOpen) return null;
 
-  // Active authentic image to show (always from the uploaded ticket!)
-  const activeImage = selectedView === 'crop' && qrCropUrl ? qrCropUrl : (ticketImage || qrCropUrl || '');
+  const activeImage = renderedQrUrl || qrCropUrl || ticketImage || '';
 
   const handleZoomIn = () => setZoom((prev) => Math.min(prev + 0.35, 4.5));
   const handleZoomOut = () => setZoom((prev) => Math.max(prev - 0.35, 0.7));
@@ -150,45 +164,43 @@ export const LargeQRModal: React.FC<LargeQRModalProps> = ({
 
   const handleDownloadActiveQR = () => {
     if (!activeImage) return;
-    const filename = `QR_Oficial_${title.substring(0, 20).replace(/\s+/g, '_')}.png`;
+    const filename = `QR_${title.substring(0, 20).replace(/\s+/g, '_')}.png`;
     downloadFile(activeImage, filename);
   };
 
   return (
     <div
       id="large-qr-modal-backdrop"
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/85 backdrop-blur-md transition-all animate-in fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/90 backdrop-blur-md transition-all animate-in fade-in"
       onClick={onClose}
     >
       <div
         id="large-qr-modal-card"
-        className={`bg-stone-900 border border-stone-700 text-white rounded-3xl shadow-2xl overflow-hidden flex flex-col transition-all max-h-[96vh] w-full ${
-          isFullScreen ? 'max-w-2xl' : 'max-w-md'
+        className={`bg-stone-900 border border-stone-800 text-white rounded-3xl shadow-2xl overflow-hidden flex flex-col transition-all max-h-[96vh] w-full ${
+          isFullScreen ? 'max-w-2xl' : 'max-w-sm'
         }`}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Top Header */}
-        <div className="p-4 sm:p-5 bg-stone-950/90 border-b border-stone-800 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-amber-500 text-stone-950 flex items-center justify-center font-bold shadow-md shadow-amber-500/20">
-              <QrCode className="w-5 h-5" />
+        {/* Top Header - Minimalist */}
+        <div className="px-4 py-3 sm:px-5 sm:py-4 bg-stone-950/90 border-b border-stone-800 flex items-center justify-between">
+          <div className="flex items-center gap-2.5 min-w-0 pr-2">
+            <div className="w-8 h-8 rounded-xl bg-amber-500 text-stone-950 flex items-center justify-center font-bold shrink-0 shadow-xs">
+              <QrCode className="w-4 h-4" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] uppercase tracking-wider font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
-                  QR Oficial de la Entrada
-                </span>
-              </div>
-              <h3 className="text-base sm:text-lg font-bold text-white truncate max-w-xs sm:max-w-sm mt-0.5">
+            <div className="min-w-0 flex-1">
+              <span className="text-[10px] uppercase tracking-wider font-bold text-amber-400 block leading-none mb-0.5">
+                Código QR de la Entrada
+              </span>
+              <h3 className="text-sm font-bold text-white truncate" title={title}>
                 {title}
               </h3>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1 shrink-0">
             <button
               onClick={() => setIsFullScreen(!isFullScreen)}
-              className="p-2 text-stone-400 hover:text-white hover:bg-stone-800 rounded-xl transition cursor-pointer"
+              className="p-1.5 text-stone-400 hover:text-white hover:bg-stone-800 rounded-lg transition cursor-pointer"
               title={isFullScreen ? 'Reducir' : 'Ampliar'}
             >
               {isFullScreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
@@ -196,86 +208,43 @@ export const LargeQRModal: React.FC<LargeQRModalProps> = ({
             <button
               id="close-qr-modal-btn"
               onClick={onClose}
-              className="p-2 text-stone-400 hover:text-white hover:bg-stone-800 rounded-xl transition cursor-pointer"
+              className="p-1.5 text-stone-400 hover:text-white hover:bg-stone-800 rounded-lg transition cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
         </div>
 
-        {/* Modal Body */}
-        <div className="p-4 sm:p-5 overflow-y-auto flex flex-col items-center text-center space-y-3.5">
-          {/* Scanner instruction banner */}
-          <div className="w-full bg-emerald-950/60 border border-emerald-500/30 text-emerald-300 px-3.5 py-2 rounded-xl text-xs flex items-center justify-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-            <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            <span className="font-semibold">Listo para Escanear en Molinete / Acceso</span>
-          </div>
-
-          {/* Toggle between Focused QR and Full Ticket Image if both available */}
-          {hasCrop && ticketImage && (
-            <div className="flex items-center bg-stone-950 p-1 rounded-xl border border-stone-800 text-xs">
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedView('crop');
-                  handleResetZoom();
-                }}
-                className={`px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 ${
-                  selectedView === 'crop'
-                    ? 'bg-amber-500 text-stone-950 shadow-xs'
-                    : 'text-stone-400 hover:text-white'
-                }`}
-              >
-                <QrCode className="w-3.5 h-3.5" />
-                <span>🎯 QR Enfocado del Boleto</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedView('full');
-                  handleResetZoom();
-                }}
-                className={`px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 ${
-                  selectedView === 'full'
-                    ? 'bg-amber-500 text-stone-950 shadow-xs'
-                    : 'text-stone-400 hover:text-white'
-                }`}
-              >
-                <ImageIcon className="w-3.5 h-3.5" />
-                <span>📄 Entrada Completa</span>
-              </button>
-            </div>
-          )}
-
+        {/* Modal Body: Only QR code and zoom controls */}
+        <div className="p-4 sm:p-5 overflow-y-auto flex flex-col items-center text-center space-y-3">
           {/* Zoom and Controls Toolbar */}
-          <div className="flex items-center gap-2 bg-stone-950 px-3 py-1.5 rounded-xl border border-stone-800 text-xs">
+          <div className="flex items-center gap-2 bg-stone-950 px-3 py-1 rounded-xl border border-stone-800 text-xs">
             <button
               type="button"
               onClick={handleZoomOut}
               disabled={zoom <= 0.7}
-              className="p-1 text-stone-400 hover:text-white disabled:opacity-40 transition"
+              className="p-1 text-stone-400 hover:text-white disabled:opacity-40 transition cursor-pointer"
               title="Reducir"
             >
-              <ZoomOut className="w-4 h-4" />
+              <ZoomOut className="w-3.5 h-3.5" />
             </button>
-            <span className="font-mono font-bold text-amber-400 text-[11px] min-w-[45px]">
+            <span className="font-mono font-bold text-amber-400 text-[11px] min-w-[42px]">
               {Math.round(zoom * 100)}%
             </span>
             <button
               type="button"
               onClick={handleZoomIn}
               disabled={zoom >= 4.5}
-              className="p-1 text-stone-400 hover:text-white disabled:opacity-40 transition"
+              className="p-1 text-stone-400 hover:text-white disabled:opacity-40 transition cursor-pointer"
               title="Aumentar"
             >
-              <ZoomIn className="w-4 h-4" />
+              <ZoomIn className="w-3.5 h-3.5" />
             </button>
             <span className="text-stone-700">|</span>
             <button
               type="button"
               onClick={handleRotate}
-              className="p-1 text-stone-400 hover:text-white transition"
+              className="p-1 text-stone-400 hover:text-white transition cursor-pointer"
               title="Girar 90 grados"
             >
               <RotateCw className="w-3.5 h-3.5" />
@@ -283,16 +252,16 @@ export const LargeQRModal: React.FC<LargeQRModalProps> = ({
             <button
               type="button"
               onClick={handleResetZoom}
-              className="text-[10px] text-stone-400 hover:text-amber-400 font-bold transition ml-1"
+              className="text-[10px] text-stone-400 hover:text-amber-400 font-bold transition ml-0.5 cursor-pointer"
             >
               100%
             </button>
           </div>
 
-          {/* Large Authentic QR Code Card with Touch Pinch & Drag */}
-          <div className="bg-white p-3 sm:p-5 rounded-3xl shadow-2xl border-4 border-amber-400/80 flex flex-col items-center justify-center w-full max-w-xs sm:max-w-sm overflow-hidden">
+          {/* Clean Focused QR Box */}
+          <div className="bg-white p-3 sm:p-4 rounded-2xl shadow-2xl border-2 border-stone-200 flex flex-col items-center justify-center w-full overflow-hidden">
             <div
-              className="w-full flex items-center justify-center overflow-hidden touch-none relative min-h-[220px] max-h-[340px]"
+              className="w-full flex items-center justify-center overflow-hidden touch-none relative min-h-[220px] max-h-[360px]"
               onTouchStart={handleTouchStart}
               onTouchMove={handleTouchMove}
               onTouchEnd={handleTouchEnd}
@@ -304,113 +273,38 @@ export const LargeQRModal: React.FC<LargeQRModalProps> = ({
                     transition: isDragging ? 'none' : 'transform 0.15s ease-out',
                     transformOrigin: 'center center',
                   }}
-                  className="flex items-center justify-center"
+                  className="flex items-center justify-center w-full h-full p-2"
                 >
                   <img
                     src={activeImage}
-                    alt={`Código QR exacto de la entrada ${title}`}
+                    alt={`Código QR de la entrada ${title}`}
                     draggable={false}
-                    className="max-h-[300px] w-auto max-w-full object-contain rounded-xl select-none shadow-xs"
+                    className="max-h-[320px] w-auto max-w-full object-contain rounded-lg select-none"
                   />
                 </div>
               ) : (
                 <div className="p-8 text-center text-stone-500 text-xs">
                   <QrCode className="w-12 h-12 mx-auto text-stone-300 mb-2" />
-                  <span>No se encontró imagen de la entrada</span>
+                  <span>No se encontró código QR</span>
                 </div>
               )}
             </div>
-
-            <span className="text-[10px] text-stone-500 font-semibold mt-2 block">
-              Imagen original del boleto • Puedes ampliar con dos dedos o doble toque
-            </span>
-
-            {/* Reference Badge */}
-            {(qrPayload || referenceNumber) && (
-              <div className="mt-2.5 pt-2 border-t border-stone-200 w-full flex flex-col items-center justify-center text-stone-700 text-xs">
-                <span className="font-semibold text-stone-500 text-[10px] uppercase tracking-wider">
-                  Código / Referencia:
-                </span>
-                <div className="mt-1 px-3 py-1 bg-stone-100 rounded-xl border border-stone-200/90 w-full overflow-hidden text-center">
-                  <p 
-                    className="font-mono font-bold text-stone-900 text-[11px] break-all line-clamp-2 select-all leading-snug" 
-                    title={qrPayload || referenceNumber}
-                  >
-                    {qrPayload || referenceNumber}
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Ticket Details Box */}
-          <div className="w-full bg-stone-950/80 rounded-2xl p-4 border border-stone-800 text-xs text-left space-y-2.5">
-            {travelerName && (
-              <div className="flex items-center justify-between pb-2 border-b border-stone-800/80">
-                <span className="text-stone-400 flex items-center gap-1.5">
-                  <User className="w-3.5 h-3.5 text-amber-400" />
-                  Titular / Asignado:
-                </span>
-                <span className="font-bold text-sky-300">{travelerName}</span>
-              </div>
-            )}
-
-            {date && (
-              <div className="flex items-center justify-between pb-2 border-b border-stone-800/80">
-                <span className="text-stone-400 flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-amber-400" />
-                  Día y Fecha:
-                </span>
-                <span className="font-bold text-amber-300">
-                  {formatDateWithDay(date)}
-                </span>
-              </div>
-            )}
-
-            {time && (
-              <div className="flex items-center justify-between pb-2 border-b border-stone-800/80">
-                <span className="text-stone-400 flex items-center gap-1.5">
-                  <Clock className="w-3.5 h-3.5 text-amber-400" />
-                  Hora:
-                </span>
-                <span className="font-semibold text-white">{time}</span>
-              </div>
-            )}
-
-            {location && (
-              <div className="flex items-start justify-between gap-2">
-                <span className="text-stone-400 flex items-center gap-1.5 shrink-0">
-                  <MapPin className="w-3.5 h-3.5 text-amber-400" />
-                  Lugar:
-                </span>
-                <span className="font-medium text-stone-200 text-right truncate">
-                  {location}
-                </span>
-              </div>
-            )}
-
-            {seatOrSection && (
-              <div className="flex items-center justify-between pt-1 text-[11px] text-stone-400">
-                <span>Acceso:</span>
-                <span className="text-stone-300 font-semibold">{seatOrSection}</span>
-              </div>
-            )}
           </div>
         </div>
 
         {/* Modal Footer */}
-        <div className="p-4 bg-stone-950 border-t border-stone-800 flex items-center justify-between gap-3">
+        <div className="px-4 py-3 bg-stone-950 border-t border-stone-800 flex items-center justify-between gap-3">
           <button
             onClick={handleDownloadActiveQR}
-            className="px-4 py-2.5 rounded-xl bg-stone-800 hover:bg-stone-700 text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
+            className="px-3 py-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-200 text-xs font-semibold transition flex items-center gap-1.5 cursor-pointer"
           >
-            <Download className="w-4 h-4 text-amber-400" />
-            Descargar Imagen QR
+            <Download className="w-3.5 h-3.5 text-amber-400" />
+            Descargar QR
           </button>
 
           <button
             onClick={onClose}
-            className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 text-xs font-bold transition shadow-md shadow-amber-500/20 cursor-pointer"
+            className="px-5 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 text-xs font-bold transition shadow-xs cursor-pointer"
           >
             Cerrar
           </button>
