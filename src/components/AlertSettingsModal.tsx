@@ -170,29 +170,43 @@ export const AlertSettingsModal: React.FC<AlertSettingsModalProps> = ({
 
           {/* Sound alert and Browser notifications */}
           <div className="space-y-3 pt-2 border-t border-stone-100">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-xl border border-stone-200 bg-stone-50">
               <div className="flex items-center gap-2.5">
                 <div className={`p-2 rounded-lg ${soundEnabled ? 'bg-amber-100 text-amber-700' : 'bg-stone-100 text-stone-400'}`}>
                   {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
                 </div>
                 <div>
-                  <div className="text-xs font-semibold text-stone-800">Sonido de Campana</div>
-                  <div className="text-[11px] text-stone-500">Chime suave al activarse la alerta</div>
+                  <div className="text-xs font-semibold text-stone-800">Sonido de Campana (Alerta)</div>
+                  <div className="text-[11px] text-stone-500">Chime acústico para avisos de tours</div>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={() => {
-                  const next = !soundEnabled;
-                  onToggleSound(next);
-                  if (next) playChimeSound();
-                }}
-                className={`text-xs px-3 py-1.5 rounded-lg font-semibold transition-colors ${
-                  soundEnabled ? 'bg-amber-500 text-white' : 'bg-stone-200 text-stone-700'
-                }`}
-              >
-                {soundEnabled ? 'Activado' : 'Silenciado'}
-              </button>
+
+              <div className="flex items-center gap-2 self-end sm:self-auto">
+                <button
+                  id="btn-listen-sound-preview"
+                  type="button"
+                  onClick={() => playChimeSound()}
+                  className="text-xs px-3 py-1.5 rounded-lg font-bold bg-amber-500 hover:bg-amber-400 active:bg-amber-600 text-stone-950 transition-colors flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                  title="Reproducir y escuchar el sonido de la alerta ahora"
+                >
+                  <Volume2 className="w-3.5 h-3.5" />
+                  <span>🔊 Escuchar Sonido</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = !soundEnabled;
+                    onToggleSound(next);
+                    if (next) playChimeSound();
+                  }}
+                  className={`text-xs px-3 py-1.5 rounded-lg font-semibold transition-colors cursor-pointer ${
+                    soundEnabled ? 'bg-stone-800 text-white' : 'bg-stone-200 text-stone-700'
+                  }`}
+                >
+                  {soundEnabled ? 'Activado' : 'Silenciado'}
+                </button>
+              </div>
             </div>
 
             {/* Native browser notifications permission button */}

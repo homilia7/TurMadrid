@@ -13,7 +13,10 @@ import {
   Users,
   ChevronDown,
   Calendar,
-  QrCode
+  QrCode,
+  Lock,
+  AlertTriangle,
+  X
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { formatDateShortWithDay } from '../utils/dateUtils';
@@ -42,6 +45,10 @@ export const TourCard: React.FC<TourCardProps> = ({
 }) => {
   const [showAlertMenu, setShowAlertMenu] = useState(false);
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [deletePin, setDeletePin] = useState('');
+  const [pinError, setPinError] = useState(false);
+
   const safeTravelers = Array.isArray(travelers) ? travelers : [];
   const activeTraveler = safeTravelers.find((t) => t.id === activeTravelerId);
   const visitedList = Array.isArray(tour.visitedByUserIds) ? tour.visitedByUserIds : [];
@@ -173,12 +180,12 @@ export const TourCard: React.FC<TourCardProps> = ({
             <button
               type="button"
               onClick={() => {
-                if (window.confirm(`¿Deseas eliminar el tour "${tour.title}"?`)) {
-                  onDeleteTour(tour.id);
-                }
+                setDeletePin('');
+                setPinError(false);
+                setIsDeleteModalOpen(true);
               }}
-              className="p-1.5 rounded-lg text-stone-400 hover:text-red-600 hover:bg-stone-100 transition-colors"
-              title="Eliminar tour"
+              className="p-1.5 rounded-lg text-stone-400 hover:text-red-600 hover:bg-stone-100 transition-colors cursor-pointer"
+              title="Eliminar tour (requiere código de 4 dígitos)"
             >
               <Trash2 className="w-3.5 h-3.5" />
             </button>
@@ -330,6 +337,96 @@ export const TourCard: React.FC<TourCardProps> = ({
           referenceNumber={primaryTicket.referenceNumber}
           seatOrSection={primaryTicket.seatOrSection}
         />
+      )}
+
+      {/* 4-Digit PIN Confirmation Modal for Deleting Tour (Security Code: 8888) */}
+      {isDeleteModalOpen && (
+        <div
+          id="delete-tour-modal-backdrop"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs animate-in fade-in duration-150"
+          onClick={() => setIsDeleteModalOpen(false)}
+        >
+          <div
+            id="delete-tour-modal-card"
+            className="w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl border border-red-200 text-center relative overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-12 h-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-3 shadow-xs">
+              <Lock className="w-6 h-6" />
+            </div>
+
+            <h3 className="text-base font-black text-stone-900">
+              Confirmar Borrado de Tour
+            </h3>
+            <p className="text-xs text-stone-600 mt-1">
+              Para eliminar <strong className="text-stone-900">"{tour.title}"</strong>, introduce el código de seguridad de 4 dígitos:
+            </p>
+
+            <div className="my-4">
+              <input
+                id="input-delete-tour-pin"
+                type="password"
+                maxLength={4}
+                autoFocus
+                value={deletePin}
+                onChange={(e) => {
+                  setDeletePin(e.target.value);
+                  setPinError(false);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    if (deletePin.trim() === '8888') {
+                      setIsDeleteModalOpen(false);
+                      onDeleteTour(tour.id);
+                    } else {
+                      setPinError(true);
+                    }
+                  }
+                }}
+                placeholder="••••"
+                className={`w-36 text-center text-2xl font-mono font-black tracking-widest py-2 px-3 rounded-xl border ${
+                  pinError
+                    ? 'border-red-500 bg-red-50 text-red-600 ring-2 ring-red-300'
+                    : 'border-stone-300 bg-stone-50 text-stone-900 focus:border-red-500 focus:bg-white focus:ring-2 focus:ring-red-200'
+                } focus:outline-none transition-all`}
+              />
+
+              {pinError && (
+                <p className="text-xs text-red-600 font-bold mt-2 flex items-center justify-center gap-1">
+                  <AlertTriangle className="w-3.5 h-3.5" />
+                  Código incorrecto.
+                </p>
+              )}
+            </div>
+
+            <div className="flex items-center justify-center gap-2 pt-2 border-t border-stone-100">
+              <button
+                type="button"
+                onClick={() => setIsDeleteModalOpen(false)}
+                className="px-4 py-2 text-xs font-bold text-stone-600 hover:text-stone-800 hover:bg-stone-100 rounded-xl transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+
+              <button
+                id="btn-confirm-delete-tour"
+                type="button"
+                onClick={() => {
+                  if (deletePin.trim() === '8888') {
+                    setIsDeleteModalOpen(false);
+                    onDeleteTour(tour.id);
+                  } else {
+                    setPinError(true);
+                  }
+                }}
+                className="px-5 py-2 text-xs font-black text-white bg-red-600 hover:bg-red-700 rounded-xl transition-all shadow-md shadow-red-600/20 cursor-pointer flex items-center gap-1.5"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Eliminar Tour
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
