@@ -21,12 +21,14 @@ import {
   AlertTriangle,
   ZoomIn,
   Users,
-  Upload
+  Upload,
+  Camera,
+  RefreshCw,
 } from 'lucide-react';
 import { generateDigitalTicketSvg, downloadFile } from '../utils/ticketGenerator';
 import { formatDateWithDay, getDayOfWeek } from '../utils/dateUtils';
 import { decodeQRFromImage } from '../utils/qrReader';
-import { deleteDocumentFromCloud } from '../utils/cloudSync';
+import { deleteDocumentFromCloud, uploadDocumentToCloud } from '../utils/cloudSync';
 import { optimizeImageForUpload } from '../utils/imageUtils';
 import { LargeQRModal } from './LargeQRModal';
 import { ImageLightboxModal } from './ImageLightboxModal';
@@ -59,6 +61,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string>('');
   const [isScanningQR, setIsScanningQR] = useState<boolean>(false);
+  const [isChangingImage, setIsChangingImage] = useState<boolean>(false);
 
   // 4-digit PIN deletion modal state for tickets (code: 8888)
   const [ticketToDelete, setTicketToDelete] = useState<Ticket | null>(null);
@@ -93,6 +96,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
     qrPayload: undefined,
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const changeFileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
 
@@ -144,6 +148,64 @@ export const TicketModal: React.FC<TicketModalProps> = ({
       }
       if (detectedQR && !seatOrRef.trim()) {
         setSeatOrRef(detectedQR);
+      }
+    };
+
+    reader.readAsDataURL(file);
+  };
+
+  const handleChangeTicketFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    const currentActive = selectedTicket || ticketsList[0];
+    if (!file || !currentActive) return;
+
+    const reader = new FileReader();
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    const isImage = file.type.startsWith('image/');
+
+    setIsChangingImage(true);
+    reader.onload = async (event) => {
+      let dataUrl = event.target?.result as string;
+      let finalFileSize = `${(file.size / 1024).toFixed(1)} KB`;
+      let detectedQR: string | undefined = currentActive.qrCodeText;
+      let qrCropUrl: string | undefined = currentActive.qrCropUrl;
+
+      if (isImage) {
+        try {
+          const qrResult = await decodeQRFromImage(dataUrl);
+          if (qrResult && qrResult.text) {
+            detectedQR = qrResult.text;
+            qrCropUrl = qrResult.cropDataUrl;
+            console.log('✅ Nuevo código QR detectado al cambiar imagen:', qrResult.text);
+          }
+          const optimized = await optimizeImageForUpload(dataUrl);
+          dataUrl = optimized.dataUrl;
+          finalFileSize = optimized.fileSize;
+        } catch (err) {
+          console.warn('Error optimizando nueva imagen:', err);
+        }
+      }
+
+      const updatedTicket: Ticket = {
+        ...currentActive,
+        fileName: file.name,
+        fileType: isPdf ? 'pdf' : isImage ? 'image' : 'digital',
+        dataUrl,
+        fileSize: finalFileSize,
+        qrCodeText: detectedQR || currentActive.qrCodeText,
+        qrCropUrl: qrCropUrl || currentActive.qrCropUrl,
+        referenceNumber: detectedQR || currentActive.referenceNumber,
+      };
+
+      const updatedList = ticketsList.map((t) => (t.id === currentActive.id ? updatedTicket : t));
+      await onUpdateTourTickets(tour.id, updatedList);
+      setSelectedTicket(updatedTicket);
+      setIsChangingImage(false);
+      setSaveSuccessMsg('¡Imagen de la entrada cambiada con éxito!');
+      setTimeout(() => setSaveSuccessMsg(''), 3000);
+
+      if (changeFileInputRef.current) {
+        changeFileInputRef.current.value = '';
       }
     };
 
@@ -254,6 +316,15 @@ export const TicketModal: React.FC<TicketModalProps> = ({
 
   return (
     <div id="ticket-modal-backdrop" className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/75 backdrop-blur-xs">
+      {/* Hidden input for replacing existing ticket image/file */}
+      <input
+        type="file"
+        ref={changeFileInputRef}
+        onChange={handleChangeTicketFile}
+        accept="image/*,.pdf"
+        className="hidden"
+      />
+
       <div id="ticket-modal-card" className="bg-white rounded-2xl max-w-4xl w-full shadow-2xl border border-stone-200 overflow-hidden flex flex-col max-h-[94vh]">
         {/* Top Header */}
         <div className="p-4 sm:p-5 border-b border-stone-100 flex items-center justify-between bg-stone-50">
@@ -606,6 +677,27 @@ export const TicketModal: React.FC<TicketModalProps> = ({
 
                   <div className="flex items-center gap-2">
                     <button
+                      id="btn-change-ticket-image"
+                      type="button"
+                      disabled={isChangingImage}
+                      onClick={() => changeFileInputRef.current?.click()}
+                      className="text-xs font-bold px-3 py-1.5 rounded-lg bg-amber-50 hover:bg-amber-100 active:bg-amber-200 text-amber-900 transition-colors flex items-center gap-1.5 border border-amber-300 cursor-pointer shadow-2xs"
+                      title="Cambiar o reemplazar la foto o PDF de esta entrada"
+                    >
+                      {isChangingImage ? (
+                        <>
+                          <div className="w-3.5 h-3.5 border-2 border-amber-800 border-t-transparent rounded-full animate-spin"></div>
+                          <span>Cambiando...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Camera className="w-3.5 h-3.5 text-amber-700" />
+                          <span>Cambiar Imagen</span>
+                        </>
+                      )}
+                    </button>
+
+                    <button
                       id="zoom-ticket-image-btn"
                       type="button"
                       onClick={() => setIsLightboxOpen(true)}
@@ -613,7 +705,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                       title="Agrandar y hacer zoom en pantalla completa"
                     >
                       <Maximize2 className="w-3.5 h-3.5 text-amber-600" />
-                      <span>Agrandar Foto</span>
+                      <span>Agrandar</span>
                     </button>
 
                     <button
@@ -646,7 +738,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                       id="download-ticket-btn"
                       type="button"
                       onClick={() => handleDownload(activeTicket)}
-                      className="text-xs font-bold px-3.5 py-1.5 rounded-lg bg-amber-500 text-white hover:bg-amber-600 transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
+                      className="text-xs font-bold px-3 py-1.5 rounded-lg bg-amber-500 text-white hover:bg-amber-600 transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
                     >
                       <Download className="w-3.5 h-3.5" />
                       Descargar
@@ -664,15 +756,39 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                   </div>
                 </div>
 
+                {saveSuccessMsg && (
+                  <div className="w-full p-2.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold flex items-center justify-center gap-1.5 animate-in fade-in">
+                    <Check className="w-4 h-4 text-emerald-600" />
+                    {saveSuccessMsg}
+                  </div>
+                )}
+
                 {/* Ticket Display Canvas */}
                 <div
                   className="w-full bg-stone-950 p-2 sm:p-4 rounded-2xl shadow-xl flex items-center justify-center overflow-hidden border border-stone-800 relative group cursor-pointer"
                   onClick={() => setIsLightboxOpen(true)}
                   title="Haz clic para agrandar en pantalla completa"
                 >
+                  {/* Floating Change Image button inside canvas */}
+                  <div className="absolute top-3 left-3 z-10">
+                    <button
+                      type="button"
+                      disabled={isChangingImage}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        changeFileInputRef.current?.click();
+                      }}
+                      className="bg-black/75 hover:bg-black/90 backdrop-blur-xs text-amber-300 hover:text-amber-200 text-[11px] font-bold px-2.5 py-1 rounded-lg border border-amber-400/40 flex items-center gap-1.5 transition cursor-pointer shadow-md"
+                      title="Cambiar foto o archivo de esta entrada"
+                    >
+                      <Camera className="w-3.5 h-3.5 text-amber-400" />
+                      <span>{isChangingImage ? 'Procesando...' : '📷 Cambiar Foto'}</span>
+                    </button>
+                  </div>
+
                   <div className="absolute top-3 right-3 z-10 bg-black/70 hover:bg-black/90 backdrop-blur-xs text-white text-[11px] font-bold px-2.5 py-1 rounded-lg border border-white/20 opacity-90 group-hover:opacity-100 flex items-center gap-1.5 transition">
                     <Maximize2 className="w-3.5 h-3.5 text-amber-400" />
-                    <span>🔍 Clic para Agrandar</span>
+                    <span>🔍 Agrandar</span>
                   </div>
 
                   {activeTicket.fileType === 'pdf' ? (
