@@ -12,10 +12,12 @@ import {
   Trash2,
   Users,
   ChevronDown,
-  Calendar
+  Calendar,
+  QrCode
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { formatDateShortWithDay } from '../utils/dateUtils';
+import { LargeQRModal } from './LargeQRModal';
 
 interface TourCardProps {
   tour: Tour;
@@ -39,6 +41,7 @@ export const TourCard: React.FC<TourCardProps> = ({
   onQuickChangeAlert,
 }) => {
   const [showAlertMenu, setShowAlertMenu] = useState(false);
+  const [isQRModalOpen, setIsQRModalOpen] = useState(false);
   const safeTravelers = Array.isArray(travelers) ? travelers : [];
   const activeTraveler = safeTravelers.find((t) => t.id === activeTravelerId);
   const visitedList = Array.isArray(tour.visitedByUserIds) ? tour.visitedByUserIds : [];
@@ -47,6 +50,7 @@ export const TourCard: React.FC<TourCardProps> = ({
   const isVisitedByActive = visitedList.includes(activeTravelerId);
   const visitedCount = visitedList.length;
   const isAllVisited = visitedCount === 5;
+  const primaryTicket = ticketList.length > 0 ? ticketList[0] : null;
 
   const handleActiveToggle = () => {
     onToggleVisit(tour.id, activeTravelerId);
@@ -219,23 +223,37 @@ export const TourCard: React.FC<TourCardProps> = ({
 
         {/* Tickets button & 5 Users Visit Marking Section */}
         <div className="mt-4 pt-3 border-t border-stone-100 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-          <button
-            type="button"
-            onClick={() => onOpenTickets(tour)}
-            className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-center sm:justify-start gap-2 transition-all ${
-              ticketList.length > 0
-                ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-xs'
-                : 'bg-stone-100 hover:bg-stone-200 text-stone-700'
-            }`}
-            title="Ver, subir o descargar entradas de este tour"
-          >
-            <TicketIcon className="w-4 h-4" />
-            <span>
-              {ticketList.length > 0
-                ? `Entradas (${ticketList.length}) - Ver / Descargar`
-                : 'Subir Entradas del Tour'}
-            </span>
-          </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={() => onOpenTickets(tour)}
+              className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-center sm:justify-start gap-2 transition-all ${
+                ticketList.length > 0
+                  ? 'bg-amber-500 hover:bg-amber-600 text-white shadow-xs'
+                  : 'bg-stone-100 hover:bg-stone-200 text-stone-700'
+              }`}
+              title="Ver, subir o descargar entradas de este tour"
+            >
+              <TicketIcon className="w-4 h-4" />
+              <span>
+                {ticketList.length > 0
+                  ? `Entradas (${ticketList.length})`
+                  : 'Subir Entradas'}
+              </span>
+            </button>
+
+            {ticketList.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setIsQRModalOpen(true)}
+                className="px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 bg-stone-900 hover:bg-stone-800 text-amber-400 transition-all shadow-xs border border-stone-700 cursor-pointer"
+                title="Abrir Código QR en grande para escaneo en acceso"
+              >
+                <QrCode className="w-4 h-4 text-amber-400" />
+                <span>Entrada QR</span>
+              </button>
+            )}
+          </div>
 
           <div className="flex items-center justify-between sm:justify-end gap-2 bg-stone-50 p-1.5 rounded-xl border border-stone-200/70">
             <div className="text-[11px] font-bold text-stone-500 pl-1 flex items-center gap-1">
@@ -293,6 +311,24 @@ export const TourCard: React.FC<TourCardProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Large QR Modal when accessed directly from TourCard */}
+      {primaryTicket && (
+        <LargeQRModal
+          isOpen={isQRModalOpen}
+          onClose={() => setIsQRModalOpen(false)}
+          title={primaryTicket.title || tour.title}
+          qrPayload={primaryTicket.qrCodeText || primaryTicket.referenceNumber || `TICKET-${primaryTicket.id}`}
+          travelerName={
+            safeTravelers.find((tr) => tr.id === primaryTicket.travelerId)?.name || 'Pase Grupal (5 Viajeros)'
+          }
+          date={tour.date}
+          time={tour.time}
+          location={tour.location}
+          referenceNumber={primaryTicket.referenceNumber}
+          seatOrSection={primaryTicket.seatOrSection}
+        />
+      )}
     </div>
   );
 };

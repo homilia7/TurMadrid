@@ -8,9 +8,11 @@ import {
   MapPin, 
   Search, 
   X, 
-  Users
+  Users,
+  QrCode
 } from 'lucide-react';
 import { formatDateWithDay, getDayOfWeek } from '../utils/dateUtils';
+import { LargeQRModal } from './LargeQRModal';
 
 interface TicketsHubSectionProps {
   tours: Tour[];
@@ -27,6 +29,21 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCity, setSelectedCity] = useState<string>('all');
   const [previewDoc, setPreviewDoc] = useState<{ url: string; title: string; type: string } | null>(null);
+  const [qrModalData, setQrModalData] = useState<{
+    isOpen: boolean;
+    title: string;
+    qrPayload: string;
+    travelerName?: string;
+    date?: string;
+    time?: string;
+    location?: string;
+    referenceNumber?: string;
+    seatOrSection?: string;
+  }>({
+    isOpen: false,
+    title: '',
+    qrPayload: '',
+  });
 
   const safeTours = Array.isArray(tours) ? tours : [];
   const safeTravelers = Array.isArray(travelers) ? travelers : [];
@@ -163,14 +180,31 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
                   Ver en Tour ➜
                 </button>
 
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                  <button
+                    onClick={() => setQrModalData({
+                      isOpen: true,
+                      title: ticket.title,
+                      qrPayload: ticket.qrCodeText || ticket.referenceNumber || `TICKET-${ticket.id}`,
+                      travelerName: assignedTraveler ? assignedTraveler.name : 'Pase Grupal (5 Viajeros)',
+                      date: tour.date,
+                      time: tour.time,
+                      location: tour.location,
+                      referenceNumber: ticket.referenceNumber,
+                      seatOrSection: ticket.seatOrSection,
+                    })}
+                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-amber-950 bg-amber-400 hover:bg-amber-300 rounded-lg transition shadow-xs cursor-pointer"
+                  >
+                    <QrCode className="w-3.5 h-3.5" /> Entrada QR
+                  </button>
+
                   <button
                     onClick={() => setPreviewDoc({
                       url: ticket.dataUrl,
                       title: ticket.title,
                       type: ticket.fileType,
                     })}
-                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-amber-900 bg-amber-100 hover:bg-amber-200 rounded-lg transition"
+                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-stone-700 bg-stone-100 hover:bg-stone-200 rounded-lg transition"
                   >
                     <Eye className="w-3.5 h-3.5" /> Ver Ticket
                   </button>
@@ -238,6 +272,20 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
           </div>
         </div>
       )}
+
+      {/* Large QR Scanner Modal */}
+      <LargeQRModal
+        isOpen={qrModalData.isOpen}
+        onClose={() => setQrModalData((prev) => ({ ...prev, isOpen: false }))}
+        title={qrModalData.title}
+        qrPayload={qrModalData.qrPayload}
+        travelerName={qrModalData.travelerName}
+        date={qrModalData.date}
+        time={qrModalData.time}
+        location={qrModalData.location}
+        referenceNumber={qrModalData.referenceNumber}
+        seatOrSection={qrModalData.seatOrSection}
+      />
     </div>
   );
 };

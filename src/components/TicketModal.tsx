@@ -19,6 +19,8 @@ import {
 } from 'lucide-react';
 import { generateDigitalTicketSvg, downloadFile } from '../utils/ticketGenerator';
 import { formatDateWithDay, getDayOfWeek } from '../utils/dateUtils';
+import { decodeQRFromImage } from '../utils/qrReader';
+import { LargeQRModal } from './LargeQRModal';
 
 interface TicketModalProps {
   isOpen: boolean;
@@ -44,6 +46,21 @@ export const TicketModal: React.FC<TicketModalProps> = ({
   const [ticketTitle, setTicketTitle] = useState<string>('');
   const [travelerId, setTravelerId] = useState<string>('group');
   const [seatOrRef, setSeatOrRef] = useState<string>('');
+  const [qrModalData, setQrModalData] = useState<{
+    isOpen: boolean;
+    title: string;
+    qrPayload: string;
+    travelerName?: string;
+    date?: string;
+    time?: string;
+    location?: string;
+    referenceNumber?: string;
+    seatOrSection?: string;
+  }>({
+    isOpen: false,
+    title: '',
+    qrPayload: '',
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
@@ -56,8 +73,25 @@ export const TicketModal: React.FC<TicketModalProps> = ({
     const isPdf = file.type === 'application/pdf' || file.name.endsWith('.pdf');
     const isImage = file.type.startsWith('image/');
 
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       const dataUrl = event.target?.result as string;
+      let detectedQR: string | undefined = undefined;
+
+      // Automatically attempt to scan and decode QR code from uploaded image
+      if (isImage) {
+        try {
+          const qrResult = await decodeQRFromImage(dataUrl);
+          if (qrResult) {
+            detectedQR = qrResult;
+            console.log('✅ QR Code detectado automáticamente en la entrada:', qrResult);
+          }
+        } catch (err) {
+          console.warn('Error escaneando QR:', err);
+        }
+      }
+
+      const refCode = detectedQR || seatOrRef.trim() || 'REF-' + Math.floor(100000 + Math.random() * 900000);
+
       const newTicket: Ticket = {
         id: `ticket-${Date.now()}`,
         tourId: tour.id,
@@ -69,7 +103,8 @@ export const TicketModal: React.FC<TicketModalProps> = ({
         uploadedAt: new Date().toISOString().split('T')[0],
         travelerId: travelerId === 'group' ? undefined : travelerId,
         seatOrSection: seatOrRef.trim() || undefined,
-        referenceNumber: 'REF-' + Math.floor(100000 + Math.random() * 900000),
+        referenceNumber: refCode,
+        qrCodeText: detectedQR || refCode,
       };
 
       const updated = [...ticketsList, newTicket];
@@ -392,13 +427,40 @@ export const TicketModal: React.FC<TicketModalProps> = ({
 
                   <div className="flex items-center gap-2">
                     <button
+                      id="open-large-qr-btn"
+                      type="button"
+                      onClick={() =>
+                        setQrModalData({
+                          isOpen: true,
+                          title: activeTicket.title,
+                          qrPayload:
+                            activeTicket.qrCodeText ||
+                            activeTicket.referenceNumber ||
+                            `TICKET-${activeTicket.id}`,
+                          travelerName:
+                            safeTravelers.find((tr) => tr.id === activeTicket.travelerId)?.name ||
+                            'Pase Grupal (5 Viajeros)',
+                          date: tour.date,
+                          time: tour.time,
+                          location: tour.location,
+                          referenceNumber: activeTicket.referenceNumber,
+                          seatOrSection: activeTicket.seatOrSection,
+                        })
+                      }
+                      className="text-xs font-bold px-3 py-1.5 rounded-lg bg-stone-900 hover:bg-stone-800 text-amber-400 transition-colors flex items-center gap-1.5 shadow-xs border border-stone-700 cursor-pointer"
+                    >
+                      <QrCode className="w-4 h-4 text-amber-400" />
+                      Entrada QR
+                    </button>
+
+                    <button
                       id="download-ticket-btn"
                       type="button"
                       onClick={() => handleDownload(activeTicket)}
-                      className="text-xs font-bold px-3.5 py-1.5 rounded-lg bg-amber-500 text-white hover:bg-amber-600 transition-colors flex items-center gap-1.5 shadow-xs"
+                      className="text-xs font-bold px-3.5 py-1.5 rounded-lg bg-amber-500 text-white hover:bg-amber-600 transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
                     >
                       <Download className="w-3.5 h-3.5" />
-                      Descargar Entrada
+                      Descargar
                     </button>
                   </div>
                 </div>
@@ -480,12 +542,26 @@ export const TicketModal: React.FC<TicketModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2 text-xs sm:text-sm font-semibold text-stone-700 hover:text-stone-900 bg-stone-200/70 hover:bg-stone-300 rounded-xl transition-colors ml-auto"
+            className="px-5 py-2 text-xs sm:text-sm font-semibold text-stone-700 hover:text-stone-900 bg-stone-200/70 hover:bg-stone-300 rounded-xl transition-colors ml-auto cursor-pointer"
           >
             Cerrar Visor
           </button>
         </div>
       </div>
+
+      {/* Large QR Scanner Modal */}
+      <LargeQRModal
+        isOpen={qrModalData.isOpen}
+        onClose={() => setQrModalData((prev) => ({ ...prev, isOpen: false }))}
+        title={qrModalData.title}
+        qrPayload={qrModalData.qrPayload}
+        travelerName={qrModalData.travelerName}
+        date={qrModalData.date}
+        time={qrModalData.time}
+        location={qrModalData.location}
+        referenceNumber={qrModalData.referenceNumber}
+        seatOrSection={qrModalData.seatOrSection}
+      />
     </div>
   );
 };
