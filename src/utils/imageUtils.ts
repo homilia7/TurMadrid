@@ -61,3 +61,59 @@ export async function optimizeImageForUpload(
     img.src = dataUrl;
   });
 }
+
+/**
+ * Takes a crisp screenshot/crop of the framed region inside a container/viewfinder
+ */
+export async function captureFramedArea(
+  imgElement: HTMLImageElement,
+  frameElement: HTMLElement,
+  outputSize = 700
+): Promise<string> {
+  return new Promise((resolve) => {
+    try {
+      const imgRect = imgElement.getBoundingClientRect();
+      const frameRect = frameElement.getBoundingClientRect();
+
+      // Determine the crop coordinates relative to the rendered image element
+      const scaleX = imgElement.naturalWidth / imgRect.width;
+      const scaleY = imgElement.naturalHeight / imgRect.height;
+
+      const cropX = Math.max(0, (frameRect.left - imgRect.left) * scaleX);
+      const cropY = Math.max(0, (frameRect.top - imgRect.top) * scaleY);
+      const cropWidth = Math.min(imgElement.naturalWidth - cropX, Math.max(10, frameRect.width * scaleX));
+      const cropHeight = Math.min(imgElement.naturalHeight - cropY, Math.max(10, frameRect.height * scaleY));
+
+      const canvas = document.createElement('canvas');
+      canvas.width = outputSize;
+      canvas.height = outputSize;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        return resolve('');
+      }
+
+      // White background for optimal QR contrast
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, outputSize, outputSize);
+
+      ctx.drawImage(
+        imgElement,
+        cropX,
+        cropY,
+        cropWidth,
+        cropHeight,
+        0,
+        0,
+        outputSize,
+        outputSize
+      );
+
+      const croppedUrl = canvas.toDataURL('image/png');
+      resolve(croppedUrl);
+    } catch (err) {
+      console.error('Error capturing framed area:', err);
+      resolve('');
+    }
+  });
+}
+

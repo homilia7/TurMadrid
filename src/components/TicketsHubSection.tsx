@@ -39,10 +39,17 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCity, setSelectedCity] = useState<string>('all');
   const [isSelectTourModalOpen, setIsSelectTourModalOpen] = useState<boolean>(false);
-  const [previewDoc, setPreviewDoc] = useState<{ url: string; title: string; type: string } | null>(null);
+  const [previewDoc, setPreviewDoc] = useState<{
+    url: string;
+    title: string;
+    type: string;
+    ticket?: DocumentItem;
+    tour?: Tour;
+  } | null>(null);
   
   // 4-digit PIN deletion modal state for tickets in Hub (code: 8888)
   const [ticketToDelete, setTicketToDelete] = useState<{ ticket: DocumentItem; tour: Tour } | null>(null);
+  const [activeTicketItem, setActiveTicketItem] = useState<{ ticket: DocumentItem; tour: Tour } | null>(null);
   const [deletePin, setDeletePin] = useState<string>('');
   const [pinError, setPinError] = useState<boolean>(false);
 
@@ -136,6 +143,29 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
     setTicketToDelete(null);
     setDeletePin('');
     setPinError(false);
+  };
+
+  const handleSaveCrop = async (croppedDataUrl: string, detectedQR?: string) => {
+    if (!activeTicketItem) return;
+    const { ticket, tour } = activeTicketItem;
+    const updatedTicket: DocumentItem = {
+      ...ticket,
+      qrCropUrl: croppedDataUrl,
+      qrCodeText: detectedQR || ticket.qrCodeText,
+      referenceNumber: detectedQR || ticket.referenceNumber,
+    };
+
+    const currentTourTickets = Array.isArray(tour.tickets) ? tour.tickets : [];
+    const updatedTickets = currentTourTickets.map((t) => (t.id === ticket.id ? updatedTicket : t));
+    if (onUpdateTourTickets) {
+      await onUpdateTourTickets(tour.id, updatedTickets);
+    }
+    setActiveTicketItem({ ticket: updatedTicket, tour });
+    setQrModalData((prev) => ({
+      ...prev,
+      qrCropUrl: croppedDataUrl,
+      qrPayload: detectedQR || prev.qrPayload,
+    }));
   };
 
   return (
@@ -397,7 +427,8 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
 
                 <div className="flex items-center gap-1.5 flex-wrap justify-end">
                   <button
-                    onClick={() =>
+                    onClick={() => {
+                      setActiveTicketItem({ ticket, tour });
                       setQrModalData({
                         isOpen: true,
                         title: ticket.title,
@@ -410,8 +441,8 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
                         location: tour.location,
                         referenceNumber: ticket.referenceNumber,
                         seatOrSection: ticket.seatOrSection,
-                      })
-                    }
+                      });
+                    }}
                     className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-amber-950 bg-amber-400 hover:bg-amber-300 rounded-lg transition shadow-xs cursor-pointer"
                   >
                     <QrCode className="w-3.5 h-3.5" /> Entrada QR
@@ -423,6 +454,8 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
                         url: ticket.dataUrl,
                         title: ticket.title,
                         type: ticket.fileType,
+                        ticket,
+                        tour,
                       })
                     }
                     className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-stone-700 bg-stone-100 hover:bg-stone-200 rounded-lg transition cursor-pointer"
@@ -474,6 +507,26 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
           imageUrl={previewDoc.url}
           title={previewDoc.title}
           fileType={previewDoc.type as any}
+          onSaveCrop={
+            previewDoc.ticket && previewDoc.tour
+              ? async (croppedDataUrl, detectedQR) => {
+                  if (!previewDoc.ticket || !previewDoc.tour) return;
+                  const updatedTicket: DocumentItem = {
+                    ...previewDoc.ticket,
+                    qrCropUrl: croppedDataUrl,
+                    qrCodeText: detectedQR || previewDoc.ticket.qrCodeText,
+                    referenceNumber: detectedQR || previewDoc.ticket.referenceNumber,
+                  };
+                  const currentTourTickets = Array.isArray(previewDoc.tour.tickets) ? previewDoc.tour.tickets : [];
+                  const updatedTickets = currentTourTickets.map((t) =>
+                    t.id === previewDoc.ticket?.id ? updatedTicket : t
+                  );
+                  if (onUpdateTourTickets) {
+                    await onUpdateTourTickets(previewDoc.tour.id, updatedTickets);
+                  }
+                }
+              : undefined
+          }
         />
       )}
 
@@ -491,6 +544,7 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
         location={qrModalData.location}
         referenceNumber={qrModalData.referenceNumber}
         seatOrSection={qrModalData.seatOrSection}
+        onSaveCrop={handleSaveCrop}
       />
 
       {/* 4-Digit PIN Security Modal for Deleting Tickets in Hub (Code: 8888) */}

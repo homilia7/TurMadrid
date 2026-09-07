@@ -14,6 +14,7 @@ interface DaySectionProps {
   onDeleteTour: (tourId: string) => void;
   onQuickChangeAlert: (tourId: string, hours: number) => void;
   onAddNewTourToDay: (dayNumber: number) => void;
+  onUpdateTourTickets?: (tourId: string, tickets: any[]) => void;
 }
 
 export const DaySection: React.FC<DaySectionProps> = ({
@@ -27,6 +28,7 @@ export const DaySection: React.FC<DaySectionProps> = ({
   onDeleteTour,
   onQuickChangeAlert,
   onAddNewTourToDay,
+  onUpdateTourTickets,
 }) => {
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
   const safeTours = Array.isArray(tours) ? tours : [];
@@ -148,6 +150,7 @@ export const DaySection: React.FC<DaySectionProps> = ({
                 onEditTour={onEditTour}
                 onDeleteTour={onDeleteTour}
                 onQuickChangeAlert={onQuickChangeAlert}
+                onUpdateTourTickets={onUpdateTourTickets}
               />
             ))
           )}

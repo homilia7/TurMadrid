@@ -615,6 +615,7 @@ export default function App() {
                         setSelectedDayForNewTour(dayNumber);
                         setIsAddTourModalOpen(true);
                       }}
+                      onUpdateTourTickets={handleUpdateTourTickets}
                     />
                   );
                 })

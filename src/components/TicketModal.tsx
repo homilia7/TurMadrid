@@ -212,6 +212,29 @@ export const TicketModal: React.FC<TicketModalProps> = ({
     reader.readAsDataURL(file);
   };
 
+  const handleSaveCrop = async (croppedDataUrl: string, detectedQR?: string) => {
+    const currentActive = selectedTicket || ticketsList[0];
+    if (!currentActive) return;
+
+    const updatedTicket: Ticket = {
+      ...currentActive,
+      qrCropUrl: croppedDataUrl,
+      qrCodeText: detectedQR || currentActive.qrCodeText,
+      referenceNumber: detectedQR || currentActive.referenceNumber,
+    };
+
+    const updatedList = ticketsList.map((t) => (t.id === currentActive.id ? updatedTicket : t));
+    await onUpdateTourTickets(tour.id, updatedList);
+    setSelectedTicket(updatedTicket);
+    setQrModalData((prev) => ({
+      ...prev,
+      qrCropUrl: croppedDataUrl,
+      qrPayload: detectedQR || prev.qrPayload,
+    }));
+    setSaveSuccessMsg('¡Recorte QR guardado exitosamente como imagen oficial!');
+    setTimeout(() => setSaveSuccessMsg(''), 4000);
+  };
+
   const handleGenerateDigitalTicket = () => {
     const assignedTraveler = safeTravelers.find((t) => t.id === travelerId);
     const travelerLabel = assignedTraveler ? assignedTraveler.name : 'Pase Grupal (5 Viajeros)';
@@ -891,6 +914,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
         location={qrModalData.location}
         referenceNumber={qrModalData.referenceNumber}
         seatOrSection={qrModalData.seatOrSection}
+        onSaveCrop={handleSaveCrop}
       />
 
       {/* High-Resolution Image Zoom / Lightbox Modal */}
@@ -902,6 +926,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
           title={activeTicket.title}
           fileType={activeTicket.fileType}
           fileName={activeTicket.fileName}
+          onSaveCrop={handleSaveCrop}
         />
       )}
 

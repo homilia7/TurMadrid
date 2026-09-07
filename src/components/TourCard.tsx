@@ -31,6 +31,7 @@ interface TourCardProps {
   onEditTour: (tour: Tour) => void;
   onDeleteTour: (tourId: string) => void;
   onQuickChangeAlert: (tourId: string, hours: number) => void;
+  onUpdateTourTickets?: (tourId: string, tickets: any[]) => void;
 }
 
 export const TourCard: React.FC<TourCardProps> = ({
@@ -42,6 +43,7 @@ export const TourCard: React.FC<TourCardProps> = ({
   onEditTour,
   onDeleteTour,
   onQuickChangeAlert,
+  onUpdateTourTickets,
 }) => {
   const [showAlertMenu, setShowAlertMenu] = useState(false);
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
@@ -336,6 +338,22 @@ export const TourCard: React.FC<TourCardProps> = ({
           location={tour.location}
           referenceNumber={primaryTicket.referenceNumber}
           seatOrSection={primaryTicket.seatOrSection}
+          onSaveCrop={
+            onUpdateTourTickets
+              ? async (croppedDataUrl, detectedQR) => {
+                  const updatedTicket = {
+                    ...primaryTicket,
+                    qrCropUrl: croppedDataUrl,
+                    qrCodeText: detectedQR || primaryTicket.qrCodeText,
+                    referenceNumber: detectedQR || primaryTicket.referenceNumber,
+                  };
+                  const updatedTickets = ticketList.map((t) =>
+                    t.id === primaryTicket.id ? updatedTicket : t
+                  );
+                  onUpdateTourTickets(tour.id, updatedTickets);
+                }
+              : undefined
+          }
         />
       )}
 
