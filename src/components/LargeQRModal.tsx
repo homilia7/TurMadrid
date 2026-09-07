@@ -312,7 +312,7 @@ export const LargeQRModal: React.FC<LargeQRModalProps> = ({
       <div
         id="large-qr-modal-card"
         className={`bg-stone-900 border border-stone-800 text-white rounded-3xl shadow-2xl overflow-hidden flex flex-col transition-all max-h-[96vh] w-full ${
-          isFullScreen ? 'max-w-2xl' : 'max-w-lg'
+          isFullScreen ? 'max-w-3xl' : 'max-w-xl sm:max-w-2xl'
         }`}
         onClick={(e) => e.stopPropagation()}
         onMouseMove={handleMouseMove}
@@ -376,21 +376,42 @@ export const LargeQRModal: React.FC<LargeQRModalProps> = ({
           </div>
         </div>
 
-        {/* MULTI-TICKET / PERSON SELECTOR BAR (Shown when more than 1 ticket exists) */}
+        {/* MULTI-TICKET / PERSON SELECTOR (Shown when more than 1 ticket exists - fully visible without scrolling) */}
         {localTickets.length > 1 && (
-          <div className="bg-stone-950 px-3 py-2.5 border-b border-stone-800/80 space-y-1.5">
-            <div className="flex items-center justify-between text-[11px] text-stone-400 font-semibold px-1">
-              <span className="flex items-center gap-1 text-amber-400 font-bold">
-                <Users className="w-3.5 h-3.5" />
-                Selecciona persona para recortar su QR ({localTickets.length} entradas):
-              </span>
-              <span className="text-[10px] text-stone-500 font-mono">
-                {selectedTicketIndex + 1}/{localTickets.length}
-              </span>
+          <div className="bg-stone-950/95 px-3.5 py-2.5 border-b border-stone-800/90 space-y-2">
+            <div className="flex items-center justify-between text-xs px-0.5">
+              <div className="flex items-center gap-1.5 text-amber-400 font-bold">
+                <Users className="w-3.5 h-3.5 shrink-0" />
+                <span>Entradas por Persona:</span>
+                <span className="text-stone-400 font-normal">({localTickets.length} viajeros)</span>
+              </div>
+              <div className="text-[11px] font-semibold">
+                {localTickets.filter((t) => t.qrCropUrl).length === localTickets.length ? (
+                  <span className="text-emerald-400 flex items-center gap-1">
+                    <Check className="w-3 h-3" /> Todos listos
+                  </span>
+                ) : (
+                  <span className="text-stone-400">
+                    <strong className="text-emerald-400">{localTickets.filter((t) => t.qrCropUrl).length}</strong>/{localTickets.length} con QR
+                  </span>
+                )}
+              </div>
             </div>
 
-            {/* Horizontal Scrollable Person Pills */}
-            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
+            {/* Responsive Grid of all Traveler Buttons - NO scrolling */}
+            <div
+              className={`grid gap-1.5 sm:gap-2 ${
+                localTickets.length === 2
+                  ? 'grid-cols-2'
+                  : localTickets.length === 3
+                  ? 'grid-cols-3'
+                  : localTickets.length === 4
+                  ? 'grid-cols-2 sm:grid-cols-4'
+                  : localTickets.length === 5
+                  ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-5'
+                  : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6'
+              }`}
+            >
               {localTickets.map((t, idx) => {
                 const tr = t.travelerId ? travelers.find((trav) => trav.id === t.travelerId) : null;
                 const name = tr ? tr.name : t.seatOrSection || t.title || `Entrada ${idx + 1}`;
@@ -402,15 +423,15 @@ export const LargeQRModal: React.FC<LargeQRModalProps> = ({
                     key={t.id || idx}
                     type="button"
                     onClick={() => handleSelectTicket(idx)}
-                    className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border ${
+                    className={`p-1.5 sm:p-2 rounded-xl text-left transition-all flex items-center gap-1.5 sm:gap-2 cursor-pointer border ${
                       isSelected
-                        ? 'bg-amber-400 text-stone-950 border-amber-300 shadow-md ring-2 ring-amber-400/30'
-                        : 'bg-stone-900 hover:bg-stone-800 text-stone-300 border-stone-800 hover:border-stone-700'
+                        ? 'bg-amber-400 text-stone-950 border-amber-300 shadow-md ring-2 ring-amber-400/40 font-bold scale-[1.02]'
+                        : 'bg-stone-900/90 hover:bg-stone-800/90 text-stone-200 border-stone-800 hover:border-stone-700'
                     }`}
                   >
                     {/* Traveler avatar circle */}
                     <div
-                      className={`w-5 h-5 rounded-full text-[10px] font-black flex items-center justify-center shrink-0 ${
+                      className={`w-6 h-6 rounded-full text-[11px] font-black flex items-center justify-center shrink-0 shadow-xs ${
                         isSelected ? 'text-white' : 'text-white'
                       }`}
                       style={{ backgroundColor: tr?.avatarColor || (isSelected ? '#78350f' : '#44403c') }}
@@ -418,32 +439,40 @@ export const LargeQRModal: React.FC<LargeQRModalProps> = ({
                       {name.substring(0, 1).toUpperCase()}
                     </div>
 
-                    <span className="truncate max-w-[110px]">{name}</span>
-
-                    {/* QR Status Tag */}
-                    {isCropped ? (
-                      <span
-                        className={`text-[9px] px-1.5 py-0.2 rounded font-black flex items-center gap-0.5 ${
-                          isSelected
-                            ? 'bg-stone-950/80 text-emerald-300'
-                            : 'bg-emerald-950/80 text-emerald-400 border border-emerald-800/50'
+                    {/* Name & Status */}
+                    <div className="min-w-0 flex-1">
+                      <div
+                        className={`text-xs font-bold leading-tight truncate ${
+                          isSelected ? 'text-stone-950 font-black' : 'text-stone-200'
                         }`}
-                        title="Código QR ya recortado y guardado"
+                        title={name}
                       >
-                        ✓ Listo
-                      </span>
-                    ) : (
-                      <span
-                        className={`text-[9px] px-1.5 py-0.2 rounded font-black ${
-                          isSelected
-                            ? 'bg-amber-950/70 text-amber-200'
-                            : 'bg-amber-950/40 text-amber-400 border border-amber-800/40'
-                        }`}
-                        title="Pendiente de recortar código QR"
-                      >
-                        Recortar
-                      </span>
-                    )}
+                        {name}
+                      </div>
+                      <div className="flex items-center gap-1 mt-0.5">
+                        {isCropped ? (
+                          <span
+                            className={`text-[9px] font-extrabold px-1 py-0.2 rounded-md inline-flex items-center gap-0.5 leading-none ${
+                              isSelected
+                                ? 'bg-stone-950 text-emerald-300'
+                                : 'bg-emerald-950/90 text-emerald-400 border border-emerald-800/50'
+                            }`}
+                          >
+                            ✓ QR Listo
+                          </span>
+                        ) : (
+                          <span
+                            className={`text-[9px] font-extrabold px-1 py-0.2 rounded-md inline-flex items-center gap-0.5 leading-none ${
+                              isSelected
+                                ? 'bg-stone-950/80 text-amber-200'
+                                : 'bg-amber-950/60 text-amber-400 border border-amber-800/50'
+                            }`}
+                          >
+                            ✂ Recortar
+                          </span>
+                        )}
+                      </div>
+                    </div>
                   </button>
                 );
               })}
