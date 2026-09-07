@@ -1529,7 +1529,14 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
         isOpen={qrModalData.isOpen}
         onClose={() => setQrModalData((prev) => ({ ...prev, isOpen: false }))}
         title={activeTicketItem?.tour.title || qrModalData.title}
-        tickets={activeTicketItem ? (activeTicketItem.tour.tickets || [activeTicketItem.ticket]) : undefined}
+        tickets={
+          activeTicketItem
+            ? (tourGroups.find((g) => g.tour.id === activeTicketItem.tour.id)?.tickets ||
+               (activeTicketItem.tour.tickets && activeTicketItem.tour.tickets.length > 0
+                 ? activeTicketItem.tour.tickets
+                 : [activeTicketItem.ticket]))
+            : undefined
+        }
         travelers={safeTravelers}
         initialTicketId={activeTicketItem?.ticket.id}
         qrPayload={qrModalData.qrPayload}

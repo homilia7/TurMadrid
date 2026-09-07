@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Tour, Traveler, Ticket } from '../types';
 import {
   X,
@@ -97,6 +97,23 @@ export const TicketModal: React.FC<TicketModalProps> = ({
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const changeFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Synchronize selectedTicket whenever modal opens or tour/tickets change
+  useEffect(() => {
+    if (isOpen) {
+      const list = Array.isArray(tour.tickets) ? tour.tickets : [];
+      if (list.length > 0) {
+        setSelectedTicket((prev) => {
+          if (prev && list.some((t) => t.id === prev.id)) {
+            return list.find((t) => t.id === prev.id) || list[0];
+          }
+          return list[0];
+        });
+      } else {
+        setSelectedTicket(null);
+      }
+    }
+  }, [isOpen, tour.id, tour.tickets]);
 
   if (!isOpen) return null;
 

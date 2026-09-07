@@ -502,6 +502,40 @@ export default function App() {
       ? safeDays.filter((d) => matchingDayNumbers.has(d.dayNumber))
       : safeDays;
 
+  // Open tickets modal with merged tickets from tour and documents state
+  const handleOpenTourTickets = (tour: Tour) => {
+    const currentTour = tours.find((t) => t.id === tour.id) || tour;
+    const currentDocs = Array.isArray(documents) ? documents : [];
+    const tourDocs = currentDocs.filter(
+      (d) => d.tourId === tour.id && (d.category === 'entrada' || !d.category)
+    );
+    const combinedMap = new Map<string, Ticket>();
+    (currentTour.tickets || []).forEach((t) => combinedMap.set(t.id, t));
+    tourDocs.forEach((d) => {
+      combinedMap.set(d.id, {
+        id: d.id,
+        tourId: d.tourId || tour.id,
+        category: 'entrada',
+        title: d.title,
+        fileName: d.fileName || 'ticket.png',
+        fileType: d.fileType || 'image',
+        dataUrl: d.dataUrl,
+        fileSize: d.fileSize || '100 KB',
+        uploadedAt: d.uploadedAt || new Date().toISOString(),
+        travelerId: d.travelerId,
+        seatOrSection: d.seatOrSection,
+        referenceNumber: d.referenceNumber,
+        qrCodeText: d.qrCodeText,
+        qrCropUrl: d.qrCropUrl,
+      });
+    });
+    const mergedTickets = Array.from(combinedMap.values());
+    setActiveTicketTour({
+      ...currentTour,
+      tickets: mergedTickets,
+    });
+  };
+
   const passportCount = safeTravelers.filter((t) => Boolean(t.passportDocUrl || t.passportNumber)).length;
   const flightCount = safeDocs.filter((d) => d.category === 'vuelo').length;
   const ticketCount = safeTours.reduce((acc, t) => acc + (t.tickets?.length || 0), 0);
@@ -541,7 +575,7 @@ export default function App() {
               tours={tours}
               defaultAlertHours={defaultAlertHours}
               onOpenAlertSettings={() => setIsAlertModalOpen(true)}
-              onOpenTickets={(tour) => setActiveTicketTour(tour)}
+              onOpenTickets={handleOpenTourTickets}
             />
 
             {/* 5 Travelers Group Progress Dashboard */}
@@ -637,7 +671,7 @@ export default function App() {
                         setIsAddTourModalOpen(true);
                       }}
                       onDeleteTour={handleDeleteTour}
-                      onOpenTickets={(tour) => setActiveTicketTour(tour)}
+                      onOpenTickets={handleOpenTourTickets}
                       onQuickChangeAlert={handleQuickChangeAlert}
                       onAddNewTourToDay={(dayNumber) => {
                         setEditingTour(null);
@@ -715,7 +749,7 @@ export default function App() {
               tours={tours}
               travelers={travelers}
               documents={documents}
-              onOpenTourTickets={(tour) => setActiveTicketTour(tour)}
+              onOpenTourTickets={handleOpenTourTickets}
               onUpdateTourTickets={handleUpdateTourTickets}
               onAddDocument={handleAddDocument}
               onDeleteDocument={handleDeleteDocument}
