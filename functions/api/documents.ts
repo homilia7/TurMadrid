@@ -1,4 +1,4 @@
-﻿interface Env {
+interface Env {
   DB: D1Database;
 }
 
@@ -62,8 +62,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
     }
 
     await db.prepare(`
-      INSERT INTO documents (id, travelerId, tourId, category, title, fileName, fileType, dataUrl, fileSize, referenceNumber, seatOrSection, airline, flightNumber, terminal, gate, departureTime, arrivalTime, origin, destination, qrCodeText, notes)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO documents (id, travelerId, tourId, category, title, fileName, fileType, dataUrl, fileSize, referenceNumber, seatOrSection, airline, flightNumber, terminal, gate, departureTime, arrivalTime, origin, destination, qrCodeText, qrCropUrl, notes)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         travelerId = excluded.travelerId,
         tourId = excluded.tourId,
@@ -84,6 +84,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         origin = excluded.origin,
         destination = excluded.destination,
         qrCodeText = excluded.qrCodeText,
+        qrCropUrl = excluded.qrCropUrl,
         notes = excluded.notes
     `).bind(
       doc.id,
@@ -106,6 +107,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       doc.origin || '',
       doc.destination || '',
       doc.qrCodeText || '',
+      doc.qrCropUrl || '',
       doc.notes || ''
     ).run();
 

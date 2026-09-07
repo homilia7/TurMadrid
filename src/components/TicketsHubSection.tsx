@@ -17,7 +17,7 @@ import {
   AlertTriangle
 } from 'lucide-react';
 import { formatDateWithDay, getDayOfWeek } from '../utils/dateUtils';
-import { deleteDocumentFromCloud } from '../utils/cloudSync';
+import { deleteDocumentFromCloud, uploadDocumentToCloud } from '../utils/cloudSync';
 import { LargeQRModal } from './LargeQRModal';
 import { ImageLightboxModal } from './ImageLightboxModal';
 
@@ -157,6 +157,7 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
 
     const currentTourTickets = Array.isArray(tour.tickets) ? tour.tickets : [];
     const updatedTickets = currentTourTickets.map((t) => (t.id === ticket.id ? updatedTicket : t));
+    await uploadDocumentToCloud(updatedTicket);
     if (onUpdateTourTickets) {
       await onUpdateTourTickets(tour.id, updatedTickets);
     }

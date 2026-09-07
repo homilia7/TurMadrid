@@ -117,12 +117,21 @@ export default function App() {
         const cloudDocs = Array.isArray(cloudData.documents) ? cloudData.documents : [];
         const localDocs = loadDocuments();
         
-        // Merge cloud documents and any unsynced local documents by id
+        // Merge cloud documents and any local documents by id, preserving latest qrCropUrl
         const docsMap = new Map<string, DocumentItem>();
         cloudDocs.forEach((d) => docsMap.set(d.id, d));
         localDocs.forEach((d) => {
           if (!docsMap.has(d.id)) {
             docsMap.set(d.id, d);
+          } else {
+            const existing = docsMap.get(d.id)!;
+            docsMap.set(d.id, {
+              ...existing,
+              ...d,
+              qrCropUrl: d.qrCropUrl || existing.qrCropUrl,
+              qrCodeText: d.qrCodeText || existing.qrCodeText,
+              dataUrl: d.dataUrl || existing.dataUrl,
+            });
           }
         });
         const mergedDocs = Array.from(docsMap.values());
@@ -130,13 +139,26 @@ export default function App() {
         saveDocuments(mergedDocs);
 
         if (Array.isArray(cloudData.tours) && cloudData.tours.length > 0) {
+          const localTours = loadTours() || [];
           const hydratedTours = cloudData.tours.map((t) => {
             const tourDocs = mergedDocs.filter(
               (d) => d.tourId === t.id && (d.category === 'entrada' || !d.category)
             );
+            const localMatchingTour = localTours.find((lt) => lt.id === t.id);
+            const localMatchingTickets = localMatchingTour?.tickets || [];
+
+            const finalTickets = (tourDocs.length > 0 ? tourDocs : (t.tickets || [])).map((tick) => {
+              const localT = localMatchingTickets.find((lt) => lt.id === tick.id);
+              return {
+                ...tick,
+                qrCropUrl: tick.qrCropUrl || localT?.qrCropUrl,
+                qrCodeText: tick.qrCodeText || localT?.qrCodeText,
+              };
+            });
+
             return {
               ...t,
-              tickets: tourDocs.length > 0 ? tourDocs : (t.tickets || []),
+              tickets: finalTickets,
             };
           });
           setTours(hydratedTours);

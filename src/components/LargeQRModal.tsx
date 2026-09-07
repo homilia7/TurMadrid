@@ -11,8 +11,10 @@ import {
   Camera,
   Check,
   Crop,
+  Edit2,
   Sparkles,
-  RefreshCw
+  RefreshCw,
+  RotateCcw
 } from 'lucide-react';
 import { downloadFile } from '../utils/ticketGenerator';
 import { decodeQRFromImage } from '../utils/qrReader';
@@ -82,13 +84,13 @@ export const LargeQRModal: React.FC<LargeQRModalProps> = ({
 
   const handleMouseUp = () => setIsDragging(false);
 
-  // Initialize modal state on open: show real ticket image or saved real crop
+  // Initialize modal state on open
   useEffect(() => {
     if (isOpen) {
       setZoom(1);
       setRotation(0);
       setPosition({ x: 0, y: 0 });
-      setIsFramingMode(false);
+      setIsFramingMode(!qrCropUrl && Boolean(ticketImage));
       setCaptureToast('');
       setActiveCropUrl(qrCropUrl);
     }
@@ -109,6 +111,19 @@ export const LargeQRModal: React.FC<LargeQRModalProps> = ({
     setRotation(0);
   };
   const handleRotate = () => setRotation((prev) => (prev + 90) % 360);
+
+  // Start editing existing capture / re-framing
+  const handleStartEditing = () => {
+    setIsFramingMode(true);
+    setZoom(1.6);
+    setPosition({ x: 0, y: 0 });
+    setRotation(0);
+  };
+
+  const handleCancelEditing = () => {
+    setIsFramingMode(false);
+    handleResetZoom();
+  };
 
   // Touch handlers for pinch-to-zoom & pan
   const getTouchDistance = (touches: React.TouchList) => {
@@ -201,7 +216,7 @@ export const LargeQRModal: React.FC<LargeQRModalProps> = ({
         setActiveCropUrl(croppedDataUrl);
         setIsFramingMode(false);
         handleResetZoom();
-        setCaptureToast('¡Captura guardada con éxito! Ahora esta imagen del QR aparecerá siempre al ingresar.');
+        setCaptureToast('¡Captura guardada con éxito! Esta imagen del QR quedará guardada permanentemente.');
         setTimeout(() => setCaptureToast(''), 4500);
       }
     } catch (err) {
@@ -242,27 +257,28 @@ export const LargeQRModal: React.FC<LargeQRModalProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-1 shrink-0">
-            {ticketImage && (
+          <div className="flex items-center gap-1.5 shrink-0">
+            {/* Header Edit Button when Crop is already active */}
+            {ticketImage && !isFramingMode && (
               <button
                 type="button"
-                onClick={() => {
-                  setIsFramingMode(!isFramingMode);
-                  if (!isFramingMode) {
-                    setZoom(1.8);
-                  } else {
-                    handleResetZoom();
-                  }
-                }}
-                className={`px-2.5 py-1 text-xs font-bold rounded-xl border flex items-center gap-1 transition cursor-pointer ${
-                  isFramingMode
-                    ? 'bg-amber-500 text-stone-950 border-amber-400 shadow-sm'
-                    : 'bg-stone-800 text-amber-300 border-stone-700 hover:bg-stone-700'
-                }`}
-                title="Ajustar encuadre y capturar cuadro del QR"
+                onClick={handleStartEditing}
+                className="px-2.5 py-1 text-xs font-bold rounded-xl border bg-stone-800 text-amber-300 border-stone-700 hover:bg-stone-700 hover:text-amber-200 flex items-center gap-1 transition cursor-pointer shadow-xs"
+                title="Editar encuadre y tomar una nueva captura del QR"
               >
-                <Crop className="w-3.5 h-3.5" />
-                <span>{isFramingMode ? 'Encuadrando...' : 'Reencuadrar QR'}</span>
+                <Edit2 className="w-3.5 h-3.5 text-amber-400" />
+                <span>Editar Captura</span>
+              </button>
+            )}
+
+            {isFramingMode && activeCropUrl && (
+              <button
+                type="button"
+                onClick={handleCancelEditing}
+                className="px-2.5 py-1 text-xs font-bold rounded-xl border bg-stone-800 text-stone-300 border-stone-700 hover:bg-stone-700 flex items-center gap-1 transition cursor-pointer"
+                title="Volver a la captura guardada"
+              >
+                <span>Cancelar</span>
               </button>
             )}
 
@@ -371,32 +387,35 @@ export const LargeQRModal: React.FC<LargeQRModalProps> = ({
                 </div>
               )}
 
-              {/* Viewfinder Corner Framing Target Marks */}
-              <div className="absolute inset-2 border-2 border-dashed border-amber-500/50 rounded-xl pointer-events-none flex flex-col justify-between p-2">
-                <div className="flex justify-between">
-                  <div className="w-4 h-4 border-t-3 border-l-3 border-amber-500 rounded-tl-md"></div>
-                  <div className="w-4 h-4 border-t-3 border-r-3 border-amber-500 rounded-tr-md"></div>
+              {/* Viewfinder Corner Framing Target Marks (Shown in Framing/Edit mode) */}
+              {isFramingMode && (
+                <div className="absolute inset-2 border-2 border-dashed border-amber-500/60 rounded-xl pointer-events-none flex flex-col justify-between p-2">
+                  <div className="flex justify-between">
+                    <div className="w-4 h-4 border-t-3 border-l-3 border-amber-500 rounded-tl-md"></div>
+                    <div className="w-4 h-4 border-t-3 border-r-3 border-amber-500 rounded-tr-md"></div>
+                  </div>
+                  <div className="flex justify-between">
+                    <div className="w-4 h-4 border-b-3 border-l-3 border-amber-500 rounded-bl-md"></div>
+                    <div className="w-4 h-4 border-b-3 border-r-3 border-amber-500 rounded-br-md"></div>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <div className="w-4 h-4 border-b-3 border-l-3 border-amber-500 rounded-bl-md"></div>
-                  <div className="w-4 h-4 border-b-3 border-r-3 border-amber-500 rounded-br-md"></div>
-                </div>
-              </div>
+              )}
             </div>
           </div>
 
           {/* Quick Helper Label */}
           <div className="text-[11px] text-stone-400">
             {activeCropUrl && !isFramingMode ? (
-              <span className="text-emerald-400 font-medium">
-                ✓ Mostrando la captura guardada de tu código QR real. Si deseas reajustarlo, pulsa "Reencuadrar QR".
+              <span className="text-emerald-400 font-medium flex items-center justify-center gap-1">
+                <Check className="w-3.5 h-3.5 text-emerald-400" />
+                Mostrando la captura guardada de tu código QR real. Pulsa <strong>"Editar Captura"</strong> si deseas cambiarla.
               </span>
-            ) : isFramingMode || zoom > 1.1 ? (
+            ) : isFramingMode ? (
               <span className="text-amber-300 font-medium">
-                💡 Amplía y centra el cuadro del QR de tu ticket. Luego pulsa "📸 Guardar Captura del QR" abajo.
+                💡 Modo de Edición: Amplía con zoom y mueve el código QR al centro del recuadro. Luego pulsa "Guardar Captura".
               </span>
             ) : (
-              <span>💡 Mostrando tu ticket real. Haz zoom en el código QR y pulsa "📸 Guardar Captura del QR".</span>
+              <span>💡 Mostrando tu ticket real. Haz zoom en el código QR y pulsa "Guardar Captura del QR".</span>
             )}
           </div>
         </div>
@@ -414,27 +433,43 @@ export const LargeQRModal: React.FC<LargeQRModalProps> = ({
           </div>
 
           <div className="flex items-center gap-2 ml-auto">
-            {/* Direct Screenshot Capture & Save Button */}
-            <button
-              id="btn-capture-qr-screenshot"
-              type="button"
-              disabled={isCapturing}
-              onClick={handleCaptureFramedQR}
-              className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 hover:from-amber-600 hover:to-amber-600 active:scale-95 text-stone-950 text-xs font-black transition-all shadow-md shadow-amber-500/20 flex items-center gap-1.5 cursor-pointer"
-              title="Tomar captura de este encuadre y guardarla para que aparezca siempre aquí"
-            >
-              {isCapturing ? (
-                <>
-                  <div className="w-3.5 h-3.5 border-2 border-stone-950 border-t-transparent rounded-full animate-spin"></div>
-                  <span>Guardando Captura...</span>
-                </>
-              ) : (
-                <>
-                  <Camera className="w-3.5 h-3.5 text-stone-950 stroke-[2.5]" />
-                  <span>📸 Guardar Captura del QR</span>
-                </>
-              )}
-            </button>
+            {/* If crop exists and NOT in framing mode: Show prominent EDIT button */}
+            {activeCropUrl && !isFramingMode && ticketImage && (
+              <button
+                id="btn-edit-qr-crop"
+                type="button"
+                onClick={handleStartEditing}
+                className="px-4 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/50 text-amber-300 hover:text-amber-200 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+                title="Volver a encuadrar y tomar otra captura si quedó mal"
+              >
+                <Edit2 className="w-3.5 h-3.5 text-amber-400" />
+                <span>Editar / Volver a Capturar</span>
+              </button>
+            )}
+
+            {/* If in framing mode or no crop yet: Show SAVE CAPTURE button */}
+            {(isFramingMode || !activeCropUrl) && (
+              <button
+                id="btn-capture-qr-screenshot"
+                type="button"
+                disabled={isCapturing}
+                onClick={handleCaptureFramedQR}
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 hover:from-amber-600 hover:to-amber-600 active:scale-95 text-stone-950 text-xs font-black transition-all shadow-md shadow-amber-500/20 flex items-center gap-1.5 cursor-pointer"
+                title="Tomar captura de este encuadre y guardarla para que aparezca siempre aquí"
+              >
+                {isCapturing ? (
+                  <>
+                    <div className="w-3.5 h-3.5 border-2 border-stone-950 border-t-transparent rounded-full animate-spin"></div>
+                    <span>Guardando Captura...</span>
+                  </>
+                ) : (
+                  <>
+                    <Camera className="w-3.5 h-3.5 text-stone-950 stroke-[2.5]" />
+                    <span>📸 {activeCropUrl ? 'Guardar Nueva Captura' : 'Guardar Captura del QR'}</span>
+                  </>
+                )}
+              </button>
+            )}
 
             <button
               onClick={onClose}

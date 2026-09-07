@@ -1,4 +1,4 @@
-﻿-- Schema for TurMadrid Cloudflare D1 Database
+-- Schema for TurMadrid Cloudflare D1 Database
 
 CREATE TABLE IF NOT EXISTS travelers (
   id TEXT PRIMARY KEY,
@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS documents (
   origin TEXT,
   destination TEXT,
   qrCodeText TEXT,
+  qrCropUrl TEXT,
   notes TEXT,
   uploadedAt DATETIME DEFAULT CURRENT_TIMESTAMP
 );
