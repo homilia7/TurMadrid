@@ -15,7 +15,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { downloadFile } from '../utils/ticketGenerator';
-import { generateLargeQR, decodeQRFromImage } from '../utils/qrReader';
+import { decodeQRFromImage } from '../utils/qrReader';
 import { captureFramedArea } from '../utils/imageUtils';
 
 interface LargeQRModalProps {
@@ -38,16 +38,14 @@ export const LargeQRModal: React.FC<LargeQRModalProps> = ({
   isOpen,
   onClose,
   title,
-  qrPayload,
   ticketImage,
   qrCropUrl,
-  referenceNumber,
   onSaveCrop,
 }) => {
   const [zoom, setZoom] = useState<number>(1);
   const [rotation, setRotation] = useState<number>(0);
   const [isFullScreen, setIsFullScreen] = useState<boolean>(false);
-  const [renderedQrUrl, setRenderedQrUrl] = useState<string>('');
+  const [activeCropUrl, setActiveCropUrl] = useState<string | undefined>(qrCropUrl);
   const [isCapturing, setIsCapturing] = useState<boolean>(false);
   const [captureToast, setCaptureToast] = useState<string>('');
   const [isFramingMode, setIsFramingMode] = useState<boolean>(false);
@@ -84,51 +82,24 @@ export const LargeQRModal: React.FC<LargeQRModalProps> = ({
 
   const handleMouseUp = () => setIsDragging(false);
 
-  // Generate crisp QR code fallback if payload exists and no crop is available
+  // Initialize modal state on open: show real ticket image or saved real crop
   useEffect(() => {
-    let isMounted = true;
-    const computeQR = async () => {
-      if (qrCropUrl) {
-        setRenderedQrUrl(qrCropUrl);
-        return;
-      }
-      const rawText = qrPayload || referenceNumber;
-      if (rawText) {
-        try {
-          const generated = await generateLargeQR(rawText, 600);
-          if (isMounted) {
-            setRenderedQrUrl(generated || ticketImage || '');
-          }
-        } catch {
-          if (isMounted) {
-            setRenderedQrUrl(ticketImage || '');
-          }
-        }
-      } else {
-        setRenderedQrUrl(ticketImage || '');
-      }
-    };
-
     if (isOpen) {
       setZoom(1);
       setRotation(0);
       setPosition({ x: 0, y: 0 });
       setIsFramingMode(false);
       setCaptureToast('');
-      computeQR();
+      setActiveCropUrl(qrCropUrl);
     }
-
-    return () => {
-      isMounted = false;
-    };
-  }, [isOpen, qrCropUrl, qrPayload, referenceNumber, ticketImage]);
+  }, [isOpen, qrCropUrl, ticketImage]);
 
   if (!isOpen) return null;
 
-  // Active image to display in viewfinder
-  const currentImageSource = isFramingMode && ticketImage
-    ? ticketImage
-    : renderedQrUrl || qrCropUrl || ticketImage || '';
+  // Active image to display: ALWAYS the exact ticket image (or its cropped screenshot). No simulated QR!
+  const currentImageSource = isFramingMode
+    ? (ticketImage || activeCropUrl || '')
+    : (activeCropUrl || ticketImage || '');
 
   const handleZoomIn = () => setZoom((prev) => Math.min(prev + 0.35, 6));
   const handleZoomOut = () => setZoom((prev) => Math.max(prev - 0.35, 0.6));
@@ -227,7 +198,7 @@ export const LargeQRModal: React.FC<LargeQRModalProps> = ({
           await onSaveCrop(croppedDataUrl, detectedQRText);
         }
 
-        setRenderedQrUrl(croppedDataUrl);
+        setActiveCropUrl(croppedDataUrl);
         setIsFramingMode(false);
         handleResetZoom();
         setCaptureToast('¡Captura guardada con éxito! Ahora esta imagen del QR aparecerá siempre al ingresar.');
@@ -416,12 +387,16 @@ export const LargeQRModal: React.FC<LargeQRModalProps> = ({
 
           {/* Quick Helper Label */}
           <div className="text-[11px] text-stone-400">
-            {isFramingMode || zoom > 1.1 ? (
+            {activeCropUrl && !isFramingMode ? (
+              <span className="text-emerald-400 font-medium">
+                ✓ Mostrando la captura guardada de tu código QR real. Si deseas reajustarlo, pulsa "Reencuadrar QR".
+              </span>
+            ) : isFramingMode || zoom > 1.1 ? (
               <span className="text-amber-300 font-medium">
-                💡 Amplía y centra el cuadro del QR. Luego pulsa el botón dorado abajo para guardar la captura.
+                💡 Amplía y centra el cuadro del QR de tu ticket. Luego pulsa "📸 Guardar Captura del QR" abajo.
               </span>
             ) : (
-              <span>💡 Amplía con dos dedos o botones y muévelo para encuadrar solo el código QR.</span>
+              <span>💡 Mostrando tu ticket real. Haz zoom en el código QR y pulsa "📸 Guardar Captura del QR".</span>
             )}
           </div>
         </div>
