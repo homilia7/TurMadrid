@@ -10,6 +10,7 @@ import {
   X, 
   Users
 } from 'lucide-react';
+import { formatDateWithDay, getDayOfWeek } from '../utils/dateUtils';
 
 interface TicketsHubSectionProps {
   tours: Tour[];
@@ -109,7 +110,7 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
                   </div>
                   <div>
                     <span className="text-[11px] font-bold uppercase tracking-wider text-amber-800">
-                      Día {tour.dayNumber} • {tour.city}
+                      Día {tour.dayNumber} ({getDayOfWeek(tour.date)}) • {tour.city}
                     </span>
                     <h3 className="text-sm font-bold text-gray-900 leading-tight">{ticket.title}</h3>
                   </div>
@@ -121,13 +122,16 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
               </div>
 
               <div className="p-4 space-y-3 flex-1">
-                <div className="text-xs text-gray-600 space-y-1">
+                <div className="text-xs text-gray-600 space-y-1.5">
                   <div className="flex items-center gap-1.5">
-                    <Calendar className="w-3.5 h-3.5 text-gray-400" />
-                    <span>{tour.date} a las {tour.time} hrs</span>
+                    <Calendar className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                    <span className="font-bold text-amber-950 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                      {formatDateWithDay(tour.date)}
+                    </span>
+                    <span className="font-semibold text-gray-700">• {tour.time} hrs</span>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    <MapPin className="w-3.5 h-3.5 text-gray-400" />
+                    <MapPin className="w-3.5 h-3.5 text-gray-400 shrink-0" />
                     <span className="truncate">{tour.location}</span>
                   </div>
                 </div>

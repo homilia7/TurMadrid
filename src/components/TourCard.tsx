@@ -11,9 +11,11 @@ import {
   Edit2,
   Trash2,
   Users,
-  ChevronDown
+  ChevronDown,
+  Calendar
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { formatDateShortWithDay } from '../utils/dateUtils';
 
 interface TourCardProps {
   tour: Tour;
@@ -93,6 +95,11 @@ export const TourCard: React.FC<TourCardProps> = ({
         {/* Top meta bar */}
         <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-stone-100">
           <div className="flex items-center gap-2 flex-wrap">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-500 text-stone-950 shadow-2xs">
+              <Calendar className="w-3.5 h-3.5 text-stone-950" />
+              {formatDateShortWithDay(tour.date)}
+            </span>
+
             <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-stone-900 text-white">
               <Clock className="w-3.5 h-3.5 text-amber-400" />
               {tour.time}

@@ -1,5 +1,4 @@
-import { Traveler, Tour, ItineraryDay } from '../types';
-import { generateDigitalTicketSvg } from '../utils/ticketGenerator';
+﻿import { Traveler, Tour, ItineraryDay } from '../types';
 
 export const INITIAL_TRAVELERS: Traveler[] = [
   { id: 'u1', name: 'Jessica', avatarColor: '#2563eb', avatarIcon: '👤' },
@@ -17,7 +16,7 @@ export const INITIAL_DAYS: ItineraryDay[] = [
   { dayNumber: 5, date: '2026-09-14', dayName: 'Lunes 14 Sept', city: 'Madrid', title: 'Día Libre en Madrid y Museos' },
   { dayNumber: 6, date: '2026-09-15', dayName: 'Martes 15 Sept', city: 'Toledo', title: 'Excursión Guiada: La Ciudad Imperial de Toledo' },
   { dayNumber: 7, date: '2026-09-16', dayName: 'Miércoles 16 Sept', city: 'Madrid', title: 'Día Libre & Gastronomía en Madrid' },
-  { dayNumber: 8, date: '2026-09-17', dayName: 'Ávila y Segovia', city: 'Ávila & Segovia', title: 'Tour Murallas de Ávila y Acueducto de Segovia' },
+  { dayNumber: 8, date: '2026-09-17', dayName: 'Jueves 17 Sept', city: 'Ávila & Segovia', title: 'Tour Murallas de Ávila y Acueducto de Segovia' },
   { dayNumber: 9, date: '2026-09-18', dayName: 'Viernes 18 Sept', city: 'Madrid', title: 'Día de Descanso en Madrid' },
   { dayNumber: 10, date: '2026-09-19', dayName: 'Sábado 19 Sept', city: 'Barcelona', title: 'Barcelona: Parque Güell & Montjuïc' },
   { dayNumber: 11, date: '2026-09-20', dayName: 'Domingo 20 Sept', city: 'Barcelona / Madrid', title: 'Sagrada Familia & Regreso en AVE' },
@@ -26,7 +25,7 @@ export const INITIAL_DAYS: ItineraryDay[] = [
 ];
 
 export const INITIAL_TOURS: Tour[] = [
-  // Day 1
+  // Día 1
   {
     id: 't-1-flight',
     dayNumber: 1,
@@ -43,29 +42,9 @@ export const INITIAL_TOURS: Tour[] = [
     alertEnabled: true,
     visitedByUserIds: [],
     notes: 'Llevar pasaportes vigentes y formularios migratorios en mano.',
-    tickets: [
-      {
-        id: 'tick-flight-1',
-        tourId: 't-1-flight',
-        title: 'Boarding Pass Vuelo Transatlántico (5 Pasajeros)',
-        fileName: 'Pase_Abordaje_SJO_MAD.svg',
-        fileType: 'digital',
-        uploadedAt: '2026-09-01',
-        referenceNumber: 'IB-6310-GRUPO5',
-        seatOrSection: 'Asientos Grupo 5',
-        dataUrl: generateDigitalTicketSvg({
-          tourTitle: 'Vuelo SJO → Madrid (Iberia / Grupo 5)',
-          travelerName: 'Pase Grupal (5 Pasajeros)',
-          date: '10 Septiembre 2026',
-          time: '23:20',
-          location: 'Aeropuerto SJO Puerta 4',
-          referenceNumber: 'IB-6310-SJO-MAD',
-          meetingPoint: 'Check-in Mostrador Internacional 3h antes',
-        }),
-      },
-    ],
+    tickets: [],
   },
-  // Day 2
+  // Día 2
   {
     id: 't-2-arrival',
     dayNumber: 2,
@@ -84,7 +63,7 @@ export const INITIAL_TOURS: Tour[] = [
     notes: 'Recogida de equipaje y traslado al hotel.',
     tickets: [],
   },
-  // Day 3
+  // Día 3
   {
     id: 't-3-madrid-free',
     dayNumber: 3,
@@ -103,7 +82,7 @@ export const INITIAL_TOURS: Tour[] = [
     notes: 'Llevar calzado cómodo para caminar.',
     tickets: [],
   },
-  // Day 4: Palacio Real
+  // Día 4
   {
     id: 't-4-palacio-real',
     dayNumber: 4,
@@ -120,29 +99,9 @@ export const INITIAL_TOURS: Tour[] = [
     alertEnabled: true,
     visitedByUserIds: [],
     notes: 'Entrada oficial confirmada a las 11:15 AM. Control de seguridad estricto.',
-    tickets: [
-      {
-        id: 'tick-palacio-1',
-        tourId: 't-4-palacio-real',
-        title: 'Entrada Oficial Patrimonio Nacional - Palacio Real',
-        fileName: 'Entrada_Palacio_Real_Madrid.svg',
-        fileType: 'digital',
-        uploadedAt: '2026-09-02',
-        referenceNumber: 'PN-MAD-2026-8841',
-        seatOrSection: 'Acceso Preferente 11:15 AM',
-        dataUrl: generateDigitalTicketSvg({
-          tourTitle: 'Palacio Real de Madrid • Acceso Oficial',
-          travelerName: 'Acceso Grupal (5 Visitantes)',
-          date: '13 Septiembre 2026',
-          time: '11:15 AM (Control 10:55 AM)',
-          location: 'Calle de Bailén s/n, Plaza de la Armería',
-          referenceNumber: 'PN-MAD-884192',
-          meetingPoint: 'Puerta de acceso con control de bolsos',
-        }),
-      },
-    ],
+    tickets: [],
   },
-  // Day 5
+  // Día 5
   {
     id: 't-5-museos',
     dayNumber: 5,
@@ -161,7 +120,7 @@ export const INITIAL_TOURS: Tour[] = [
     notes: 'Posibilidad de adquirir entradas en taquilla o pase combinado.',
     tickets: [],
   },
-  // Day 6: Toledo
+  // Día 6
   {
     id: 't-6-toledo',
     dayNumber: 6,
@@ -178,29 +137,9 @@ export const INITIAL_TOURS: Tour[] = [
     alertEnabled: true,
     visitedByUserIds: [],
     notes: '¡IMPORTANTE! Estar en el punto de encuentro al menos 15 minutos antes (10:45 AM).',
-    tickets: [
-      {
-        id: 'tick-toledo-1',
-        tourId: 't-6-toledo',
-        title: 'Voucher Tour Toledo Día Completo (Yellow Tours)',
-        fileName: 'Voucher_Excursion_Toledo.svg',
-        fileType: 'digital',
-        uploadedAt: '2026-09-02',
-        referenceNumber: 'YT-TOLEDO-49102',
-        seatOrSection: 'Bus Turístico Climatizado',
-        dataUrl: generateDigitalTicketSvg({
-          tourTitle: 'Excursión a Toledo Ciudad Imperial',
-          travelerName: 'Grupo 5 Personas • Yellow Tours',
-          date: '15 Septiembre 2026',
-          time: '11:00 AM Salida',
-          location: 'Toledo Casco Histórico y Mirador',
-          referenceNumber: 'YT-TOL-49102',
-          meetingPoint: 'Calle San Bernardo 5 (Yellow Tours Visitor Centre)',
-        }),
-      },
-    ],
+    tickets: [],
   },
-  // Day 7
+  // Día 7
   {
     id: 't-7-tapas',
     dayNumber: 7,
@@ -218,7 +157,7 @@ export const INITIAL_TOURS: Tour[] = [
     visitedByUserIds: [],
     tickets: [],
   },
-  // Day 8: Ávila y Segovia
+  // Día 8
   {
     id: 't-8-avila-segovia',
     dayNumber: 8,
@@ -235,29 +174,9 @@ export const INITIAL_TOURS: Tour[] = [
     alertEnabled: true,
     visitedByUserIds: [],
     notes: 'Madrugar: Check-in a las 07:45 AM en Calle San Bernardo 5.',
-    tickets: [
-      {
-        id: 'tick-avila-1',
-        tourId: 't-8-avila-segovia',
-        title: 'Voucher Oficial Ávila & Segovia Día Completo',
-        fileName: 'Voucher_Avila_Segovia_Bus.svg',
-        fileType: 'digital',
-        uploadedAt: '2026-09-02',
-        referenceNumber: 'YT-AV-SEG-7729',
-        seatOrSection: 'Guía Bilingüe Incluido',
-        dataUrl: generateDigitalTicketSvg({
-          tourTitle: 'Tour Ávila & Segovia (Murallas y Acueducto)',
-          travelerName: 'Pase 5 Pasajeros • Yellow Tours',
-          date: '17 Septiembre 2026',
-          time: '08:00 AM Salida (Estar 07:45 AM)',
-          location: 'Murallas de Ávila y Acueducto de Segovia',
-          referenceNumber: 'YT-AVSEG-7729',
-          meetingPoint: 'Calle San Bernardo 5 (Visitor Centre)',
-        }),
-      },
-    ],
+    tickets: [],
   },
-  // Day 9
+  // Día 9
   {
     id: 't-9-descanso',
     dayNumber: 9,
@@ -275,45 +194,7 @@ export const INITIAL_TOURS: Tour[] = [
     visitedByUserIds: [],
     tickets: [],
   },
-  // Day 10: Barcelona AVE y Parque Güell
-  {
-    id: 't-10-ave-bcn',
-    dayNumber: 10,
-    date: '2026-09-19',
-    time: '06:22',
-    title: 'Salida en Tren AVE: Madrid Atocha → Barcelona Sants',
-    city: 'Madrid / Barcelona',
-    category: 'transporte',
-    location: 'Estación de Madrid Puerta de Atocha',
-    meetingPoint: 'Control de escáner AVE en Atocha (Estar 05:45 AM)',
-    description: 'Tren de alta velocidad Renfe AVE con destino a Barcelona Sants (Llegada 09:45 AM). Inicio del emocionante tramo catalán.',
-    durationHours: 3.3,
-    alertHoursBefore: 4,
-    alertEnabled: true,
-    visitedByUserIds: [],
-    notes: 'Salida puntual a las 06:22 AM. Estar en la estación antes de las 05:50 AM.',
-    tickets: [
-      {
-        id: 'tick-ave-mad-bcn',
-        tourId: 't-10-ave-bcn',
-        title: 'Billetes Renfe AVE Madrid Atocha → Barcelona Sants',
-        fileName: 'Renfe_AVE_Madrid_Barcelona.svg',
-        fileType: 'digital',
-        uploadedAt: '2026-09-03',
-        referenceNumber: 'RENFE-AVE-03061',
-        seatOrSection: 'Coche 5 - Asientos 21A-21B-22A-22B-23A',
-        dataUrl: generateDigitalTicketSvg({
-          tourTitle: 'Renfe AVE 03061: Madrid → Barcelona',
-          travelerName: '5 Billetes AVE (Coche 5)',
-          date: '19 Septiembre 2026',
-          time: '06:22 AM (Llegada 09:45 AM)',
-          location: 'Estación Madrid Puerta de Atocha',
-          referenceNumber: 'AVE-MADBCN-03061',
-          meetingPoint: 'Plataforma AVE Atocha Planta 1',
-        }),
-      },
-    ],
-  },
+  // Día 10
   {
     id: 't-10-parque-guell',
     dayNumber: 10,
@@ -330,27 +211,7 @@ export const INITIAL_TOURS: Tour[] = [
     alertEnabled: true,
     visitedByUserIds: [],
     notes: 'Entrada con horario estricto.',
-    tickets: [
-      {
-        id: 'tick-guell-1',
-        tourId: 't-10-parque-guell',
-        title: 'Entrada Monumental Parque Güell (5 Pax)',
-        fileName: 'Entrada_Parque_Guell_Barcelona.svg',
-        fileType: 'digital',
-        uploadedAt: '2026-09-03',
-        referenceNumber: 'PG-BCN-55829',
-        seatOrSection: 'Acceso Zona Monumental 11:30 AM',
-        dataUrl: generateDigitalTicketSvg({
-          tourTitle: 'Parque Güell • Zona Monumental',
-          travelerName: 'Pase 5 Personas',
-          date: '19 Septiembre 2026',
-          time: '11:30 AM Acceso',
-          location: 'Carrer d\'Olot, Barcelona',
-          referenceNumber: 'PG-BCN-55829',
-          meetingPoint: 'Acceso Carrer d\'Olot',
-        }),
-      },
-    ],
+    tickets: [],
   },
   {
     id: 't-10-montjuic',
@@ -369,44 +230,24 @@ export const INITIAL_TOURS: Tour[] = [
     visitedByUserIds: [],
     tickets: [],
   },
-  // Day 11: Sagrada Familia y AVE regreso
+  // Día 11
   {
     id: 't-11-sagrada-familia',
     dayNumber: 11,
     date: '2026-09-20',
-    time: '14:00',
-    title: 'Entrada Oficial a la Basílica de la Sagrada Familia',
+    time: '10:00',
+    title: 'Visita a la Basílica de la Sagrada Familia',
     city: 'Barcelona',
     category: 'cultura',
-    location: 'Carrer de Mallorca, 401, 08013 Barcelona',
-    meetingPoint: 'Acceso Fachada del Nacimiento (Carrer de la Marina)',
-    description: 'Visita guiada a la majestuosa basílica diseñada por Antoni Gaudí, patrimonio de la humanidad. Admiración de vitrales, naves y fachadas.',
-    durationHours: 2,
-    alertHoursBefore: 4,
+    location: 'Carrer de Mallorca 401, 08013 Barcelona',
+    meetingPoint: 'Fachada del Nacimiento (Carrer de la Marina)',
+    description: 'Recorrido por la magna obra maestra de Gaudí. Visita guiada con audioguía oficial por las naves interiores, columnas arbóreas y museo subterráneo.',
+    durationHours: 3,
+    alertHoursBefore: 3,
     alertEnabled: true,
     visitedByUserIds: [],
-    notes: 'Riguroso código de vestimenta respetuoso (hombros cubiertos).',
-    tickets: [
-      {
-        id: 'tick-sagrada-1',
-        tourId: 't-11-sagrada-familia',
-        title: 'Ticket Oficial Basílica Sagrada Familia con Audioguía',
-        fileName: 'Entrada_Sagrada_Familia_BCN.svg',
-        fileType: 'digital',
-        uploadedAt: '2026-09-03',
-        referenceNumber: 'SF-BCN-993821',
-        seatOrSection: 'Acceso Entrada Marina 14:00',
-        dataUrl: generateDigitalTicketSvg({
-          tourTitle: 'Basílica de la Sagrada Família',
-          travelerName: 'Entrada Grupal 5 Personas',
-          date: '20 Septiembre 2026',
-          time: '14:00 Acceso',
-          location: 'Carrer de la Marina, Barcelona',
-          referenceNumber: 'SF-BCN-993821',
-          meetingPoint: 'Fachada del Nacimiento (Entrada Marina)',
-        }),
-      },
-    ],
+    notes: 'Código de vestimenta para templos religiosos.',
+    tickets: [],
   },
   {
     id: 't-11-ave-mad',
@@ -423,29 +264,9 @@ export const INITIAL_TOURS: Tour[] = [
     alertHoursBefore: 3,
     alertEnabled: true,
     visitedByUserIds: [],
-    tickets: [
-      {
-        id: 'tick-ave-bcn-mad',
-        tourId: 't-11-ave-mad',
-        title: 'Billetes Renfe AVE Barcelona Sants → Madrid Atocha',
-        fileName: 'Renfe_AVE_Retorno_Madrid.svg',
-        fileType: 'digital',
-        uploadedAt: '2026-09-03',
-        referenceNumber: 'RENFE-AVE-03210',
-        seatOrSection: 'Coche 7 - Asientos 31A-31B-32A-32B-33A',
-        dataUrl: generateDigitalTicketSvg({
-          tourTitle: 'Renfe AVE: Barcelona Sants → Madrid',
-          travelerName: '5 Billetes Retorno AVE',
-          date: '20 Septiembre 2026',
-          time: '20:20 (Llegada 23:50)',
-          location: 'Estación Barcelona Sants',
-          referenceNumber: 'AVE-BCNMAD-03210',
-          meetingPoint: 'Control AVE Barcelona Sants',
-        }),
-      },
-    ],
+    tickets: [],
   },
-  // Day 12
+  // Día 12
   {
     id: 't-12-madrid-souvenirs',
     dayNumber: 12,
@@ -463,43 +284,40 @@ export const INITIAL_TOURS: Tour[] = [
     visitedByUserIds: [],
     tickets: [],
   },
-  // Day 13: Vuelo de Regreso
+  // Día 13
   {
-    id: 't-13-vuelo-regreso',
+    id: 't-13-hotel-checkout',
     dayNumber: 13,
     date: '2026-09-22',
-    time: '17:20',
-    title: 'Vuelo de Retorno Madrid (MAD) → San José (SJO)',
-    city: 'Madrid / San José',
+    time: '08:00',
+    title: 'Check-out del Hotel y Traslado a Barajas',
+    city: 'Madrid',
+    category: 'transporte',
+    location: 'Hotel en Madrid',
+    meetingPoint: 'Lobby del Hotel',
+    description: 'Entrega de habitaciones, salida con equipaje completo rumbo a la Terminal 4 del Aeropuerto Barajas.',
+    durationHours: 2,
+    alertHoursBefore: 2,
+    alertEnabled: true,
+    visitedByUserIds: [],
+    tickets: [],
+  },
+  {
+    id: 't-13-return-flight',
+    dayNumber: 13,
+    date: '2026-09-22',
+    time: '11:30',
+    title: 'Vuelo de Retorno Internacional: Madrid → San José',
+    city: 'Madrid',
     category: 'vuelo',
-    location: 'Aeropuerto Adolfo Suárez Madrid-Barajas T4S',
-    meetingPoint: 'Mostrador de facturación T4 (Estar a las 13:30 PM)',
-    description: 'Despegue a las 05:20 PM con destino a Costa Rica. Llegada a San José a las 08:10 PM. ¡Fin de esta inolvidable aventura española!',
+    location: 'Aeropuerto Adolfo Suárez Madrid-Barajas (MAD) T4S',
+    meetingPoint: 'Mostradores Internacionales T4 (3.5 horas antes)',
+    description: 'Vuelo de regreso directo cruzando el Atlántico con llegada a Costa Rica en la tarde del mismo día.',
     durationHours: 11,
     alertHoursBefore: 4,
     alertEnabled: true,
     visitedByUserIds: [],
-    notes: 'Facturar maletas con anticipación (mínimo 3.5 horas antes).',
-    tickets: [
-      {
-        id: 'tick-vuelo-regreso-1',
-        tourId: 't-13-vuelo-regreso',
-        title: 'Pase de Abordaje MAD → SJO (5 Pasajeros)',
-        fileName: 'Pase_Abordaje_Madrid_SanJose.svg',
-        fileType: 'digital',
-        uploadedAt: '2026-09-04',
-        referenceNumber: 'IB-6317-MAD-SJO',
-        seatOrSection: 'Asientos Grupo 5',
-        dataUrl: generateDigitalTicketSvg({
-          tourTitle: 'Vuelo Madrid MAD → San José SJO',
-          travelerName: 'Pase Grupal (5 Pasajeros)',
-          date: '22 Septiembre 2026',
-          time: '17:20 (Llegada 20:10 SJO)',
-          location: 'Aeropuerto Adolfo Suárez Madrid T4',
-          referenceNumber: 'IB-6317-RETORNO',
-          meetingPoint: 'Terminal 4 Mostrador Vuelos Transatlánticos',
-        }),
-      },
-    ],
+    notes: 'Estar en T4S con tiempo para control de pasaportes y tren satélite.',
+    tickets: [],
   },
 ];

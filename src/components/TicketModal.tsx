@@ -14,9 +14,11 @@ import {
   ExternalLink,
   ShieldCheck,
   QrCode,
-  Users
+  Users,
+  Calendar
 } from 'lucide-react';
 import { generateDigitalTicketSvg, downloadFile } from '../utils/ticketGenerator';
+import { formatDateWithDay, getDayOfWeek } from '../utils/dateUtils';
 
 interface TicketModalProps {
   isOpen: boolean;
@@ -150,9 +152,16 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                   {ticketsList.length} {ticketsList.length === 1 ? 'entrada' : 'entradas'}
                 </span>
               </div>
-              <p className="text-xs text-stone-500">
-                {tour.city} • {tour.date} a las {tour.time}
-              </p>
+              <div className="flex items-center gap-2 text-xs text-stone-500 mt-0.5">
+                <span>{tour.city}</span>
+                <span>•</span>
+                <span className="font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200/80 flex items-center gap-1">
+                  <Calendar className="w-3 h-3 text-amber-600" />
+                  {formatDateWithDay(tour.date)}
+                </span>
+                <span>•</span>
+                <span className="font-semibold text-stone-700">{tour.time}</span>
+              </div>
             </div>
           </div>
           <button
@@ -433,7 +442,14 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                 </div>
 
                 {/* Ticket Details Summary Bar */}
-                <div className="w-full bg-white p-3.5 rounded-xl border border-stone-200 text-xs flex flex-wrap items-center justify-between gap-2">
+                <div className="w-full bg-white p-3.5 rounded-xl border border-stone-200 text-xs flex flex-wrap items-center justify-between gap-2.5">
+                  <div className="flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-amber-600" />
+                    <span className="text-stone-400 font-medium">Fecha: </span>
+                    <span className="font-bold text-amber-900 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                      {formatDateWithDay(tour.date)}
+                    </span>
+                  </div>
                   <div>
                     <span className="text-stone-400 font-medium">Lugar: </span>
                     <span className="font-semibold text-stone-800">{tour.location}</span>

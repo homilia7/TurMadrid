@@ -14,6 +14,8 @@ import {
   Users
 } from 'lucide-react';
 
+import { formatDateWithDay } from '../utils/dateUtils';
+
 interface FlightSectionProps {
   travelers: Traveler[];
   documents: DocumentItem[];
@@ -21,49 +23,6 @@ interface FlightSectionProps {
   onDeleteDocument: (id: string) => void;
   activeTravelerId: string;
 }
-
-const DEFAULT_FLIGHTS: Partial<DocumentItem>[] = [
-  {
-    id: 'flight-sjo-mad-2026',
-    title: 'Vuelo Internacional: San José (SJO) → Madrid (MAD)',
-    category: 'vuelo',
-    airline: 'Iberia / Avianca',
-    flightNumber: 'IB-6310',
-    origin: 'San José (SJO) - T1',
-    destination: 'Madrid Barajas (MAD) - T4S',
-    departureTime: '2026-09-10 23:20',
-    arrivalTime: '2026-09-11 16:30',
-    terminal: 'T1 (SJO) / T4S (MAD)',
-    gate: 'Puerta 5',
-    seatOrSection: 'Asientos Grupo Familiar',
-    referenceNumber: 'IB-MAD-GRP5-2026',
-    notes: 'Presentarse 3 horas antes en SJO con pasaportes físicos. Incluye equipaje de mano y maleta facturada de 23kg.',
-    fileName: 'BoardingPass_SJO_MAD.pdf',
-    fileType: 'digital',
-    dataUrl: '',
-    uploadedAt: '2026-09-01',
-  },
-  {
-    id: 'flight-mad-sjo-2026',
-    title: 'Vuelo de Retorno: Madrid (MAD) → San José (SJO)',
-    category: 'vuelo',
-    airline: 'Iberia / Avianca',
-    flightNumber: 'IB-6311',
-    origin: 'Madrid Barajas (MAD) - T4S',
-    destination: 'San José (SJO) - T1',
-    departureTime: '2026-09-22 11:30',
-    arrivalTime: '2026-09-22 15:45',
-    terminal: 'T4S (MAD)',
-    gate: 'Por confirmar en pantallas',
-    seatOrSection: 'Asientos Grupo Familiar',
-    referenceNumber: 'IB-SJO-GRP5-RET',
-    notes: 'Llegar con suficiente tiempo a T4S de Madrid (requiere tren subterráneo automático para llegar a la satélite).',
-    fileName: 'BoardingPass_MAD_SJO.pdf',
-    fileType: 'digital',
-    dataUrl: '',
-    uploadedAt: '2026-09-01',
-  }
-];
 
 export const FlightSection: React.FC<FlightSectionProps> = ({
   travelers,
@@ -91,14 +50,7 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
 
   const safeTravelers = Array.isArray(travelers) ? travelers : [];
   const safeDocs = Array.isArray(documents) ? documents : [];
-  const flightDocuments = safeDocs.filter((d) => d.category === 'vuelo');
-
-  const allFlights: DocumentItem[] = [...flightDocuments];
-  DEFAULT_FLIGHTS.forEach((def) => {
-    if (!allFlights.some((f) => f.id === def.id || f.referenceNumber === def.referenceNumber)) {
-      allFlights.unshift(def as DocumentItem);
-    }
-  });
+  const allFlights = safeDocs.filter((d) => d.category === 'vuelo');
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -318,6 +270,22 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
             </div>
           );
         })}
+
+        {allFlights.length === 0 && (
+          <div className="p-8 text-center bg-white rounded-2xl border border-gray-200 shadow-xs">
+            <Plane className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+            <h3 className="text-base font-bold text-gray-800">No hay pasajes de avión registrados aún</h3>
+            <p className="text-xs text-gray-500 mt-1 max-w-sm mx-auto">
+              Sube los boletos de abordar y pasajes de los 5 viajeros con el botón "Agregar Pasaje / Vuelo".
+            </p>
+            <button
+              onClick={() => setIsAddModalOpen(true)}
+              className="mt-4 inline-flex items-center gap-2 px-4 py-2 text-xs font-bold text-sky-950 bg-sky-300 hover:bg-sky-200 rounded-xl transition"
+            >
+              <Plus className="w-4 h-4" /> Agregar Pasaje / Vuelo
+            </button>
+          </div>
+        )}
       </div>
 
       {isAddModalOpen && (

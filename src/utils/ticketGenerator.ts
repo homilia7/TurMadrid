@@ -1,3 +1,5 @@
+import { formatDateWithDay } from './dateUtils';
+
 // Generates elegant SVG/DataURL tickets for tours
 export function generateDigitalTicketSvg({
   tourTitle,
@@ -17,6 +19,7 @@ export function generateDigitalTicketSvg({
   meetingPoint?: string;
 }): string {
   const cleanRef = referenceNumber || 'ESP-' + Math.floor(100000 + Math.random() * 900000);
+  const formattedDate = date.includes(' ') && !date.match(/^\d{4}-\d{2}-\d{2}$/) ? date : formatDateWithDay(date);
   
   const svg = `
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 400" width="800" height="400">
@@ -50,7 +53,7 @@ export function generateDigitalTicketSvg({
     <g transform="translate(40, 140)">
       <!-- Col 1: Fecha y Hora -->
       <text x="0" y="0" fill="#a8a29e" font-family="sans-serif" font-size="11" text-transform="uppercase">FECHA Y HORA</text>
-      <text x="0" y="24" fill="#ffffff" font-family="sans-serif" font-size="17" font-weight="700">${escapeXml(date)} • ${escapeXml(time)}</text>
+      <text x="0" y="24" fill="#ffffff" font-family="sans-serif" font-size="16" font-weight="700">${escapeXml(formattedDate)} • ${escapeXml(time)}</text>
       
       <!-- Col 2: Titular / Viajero -->
       <text x="240" y="0" fill="#a8a29e" font-family="sans-serif" font-size="11" text-transform="uppercase">TITULAR / GRUPO</text>
