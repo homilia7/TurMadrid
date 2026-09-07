@@ -910,17 +910,34 @@ export const TicketModal: React.FC<TicketModalProps> = ({
       <LargeQRModal
         isOpen={qrModalData.isOpen}
         onClose={() => setQrModalData((prev) => ({ ...prev, isOpen: false }))}
-        title={qrModalData.title}
-        qrPayload={qrModalData.qrPayload}
-        ticketImage={qrModalData.ticketImage}
-        qrCropUrl={qrModalData.qrCropUrl}
-        travelerName={qrModalData.travelerName}
-        date={qrModalData.date}
-        time={qrModalData.time}
-        location={qrModalData.location}
-        referenceNumber={qrModalData.referenceNumber}
-        seatOrSection={qrModalData.seatOrSection}
-        onSaveCrop={handleSaveCrop}
+        title={tour.title}
+        tickets={ticketsList}
+        travelers={travelers}
+        initialTicketId={selectedTicket?.id}
+        date={tour.date}
+        time={tour.time}
+        location={tour.location}
+        onSaveCrop={async (croppedDataUrl, detectedQR, targetTicketId) => {
+          const targetId = targetTicketId || selectedTicket?.id || ticketsList[0]?.id;
+          const updatedList = ticketsList.map((t) =>
+            t.id === targetId
+              ? {
+                  ...t,
+                  qrCropUrl: croppedDataUrl,
+                  qrCodeText: detectedQR || t.qrCodeText,
+                  referenceNumber: t.referenceNumber || (detectedQR && detectedQR.length <= 20 && !detectedQR.includes('://') ? detectedQR : 'ESP-GRUPO-5'),
+                }
+              : t
+          );
+          const targetDoc = updatedList.find((t) => t.id === targetId);
+          if (targetDoc) {
+            await uploadDocumentToCloud(targetDoc);
+            setSelectedTicket(targetDoc);
+          }
+          await onUpdateTourTickets(tour.id, updatedList);
+          setSaveSuccessMsg('¡Recorte QR guardado exitosamente!');
+          setTimeout(() => setSaveSuccessMsg(''), 4000);
+        }}
       />
 
       {/* High-Resolution Image Zoom / Lightbox Modal */}

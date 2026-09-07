@@ -322,34 +322,35 @@ export const TourCard: React.FC<TourCardProps> = ({
       </div>
 
       {/* Large QR Modal when accessed directly from TourCard */}
-      {primaryTicket && (
+      {ticketList.length > 0 && (
         <LargeQRModal
           isOpen={isQRModalOpen}
           onClose={() => setIsQRModalOpen(false)}
-          title={primaryTicket.title || tour.title}
-          qrPayload={primaryTicket.qrCodeText || undefined}
-          ticketImage={primaryTicket.dataUrl}
-          qrCropUrl={primaryTicket.qrCropUrl}
-          travelerName={
-            safeTravelers.find((tr) => tr.id === primaryTicket.travelerId)?.name || 'Pase Grupal (5 Viajeros)'
-          }
+          title={tour.title}
+          tickets={ticketList}
+          travelers={safeTravelers}
+          initialTicketId={primaryTicket?.id}
           date={tour.date}
           time={tour.time}
           location={tour.location}
-          referenceNumber={primaryTicket.referenceNumber}
-          seatOrSection={primaryTicket.seatOrSection}
           onSaveCrop={
             onUpdateTourTickets
-              ? async (croppedDataUrl, detectedQR) => {
-                  const updatedTicket = {
-                    ...primaryTicket,
-                    qrCropUrl: croppedDataUrl,
-                    qrCodeText: detectedQR || primaryTicket.qrCodeText,
-                    referenceNumber: detectedQR || primaryTicket.referenceNumber,
-                  };
+              ? async (croppedDataUrl, detectedQR, targetTicketId) => {
+                  const targetId = targetTicketId || primaryTicket?.id;
                   const updatedTickets = ticketList.map((t) =>
-                    t.id === primaryTicket.id ? updatedTicket : t
+                    t.id === targetId
+                      ? {
+                          ...t,
+                          qrCropUrl: croppedDataUrl,
+                          qrCodeText: detectedQR || t.qrCodeText,
+                          referenceNumber: t.referenceNumber || (detectedQR && detectedQR.length <= 20 && !detectedQR.includes('://') ? detectedQR : 'ESP-GRUPO-5'),
+                        }
+                      : t
                   );
+                  const updatedDoc = updatedTickets.find((t) => t.id === targetId);
+                  if (updatedDoc) {
+                    await uploadDocumentToCloud(updatedDoc);
+                  }
                   onUpdateTourTickets(tour.id, updatedTickets);
                 }
               : undefined

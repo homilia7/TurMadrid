@@ -536,7 +536,10 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
       <LargeQRModal
         isOpen={qrModalData.isOpen}
         onClose={() => setQrModalData((prev) => ({ ...prev, isOpen: false }))}
-        title={qrModalData.title}
+        title={activeTicketItem?.tour.title || qrModalData.title}
+        tickets={activeTicketItem ? (activeTicketItem.tour.tickets || [activeTicketItem.ticket]) : undefined}
+        travelers={safeTravelers}
+        initialTicketId={activeTicketItem?.ticket.id}
         qrPayload={qrModalData.qrPayload}
         ticketImage={qrModalData.ticketImage}
         qrCropUrl={qrModalData.qrCropUrl}

@@ -14,11 +14,15 @@ import {
   Edit2,
   Sparkles,
   RefreshCw,
-  RotateCcw
+  RotateCcw,
+  Users,
+  ChevronRight,
+  UserCheck
 } from 'lucide-react';
-import { downloadFile } from '../utils/ticketGenerator';
+import { downloadFile, formatCleanReference } from '../utils/ticketGenerator';
 import { decodeQRFromImage } from '../utils/qrReader';
 import { captureFramedArea } from '../utils/imageUtils';
+import { DocumentItem, Traveler } from '../types';
 
 interface LargeQRModalProps {
   isOpen: boolean;
@@ -33,7 +37,10 @@ interface LargeQRModalProps {
   location?: string;
   referenceNumber?: string;
   seatOrSection?: string;
-  onSaveCrop?: (croppedDataUrl: string, detectedQR?: string) => Promise<void> | void;
+  tickets?: DocumentItem[];
+  travelers?: Traveler[];
+  initialTicketId?: string;
+  onSaveCrop?: (croppedDataUrl: string, detectedQR?: string, ticketId?: string) => Promise<void> | void;
 }
 
 export const LargeQRModal: React.FC<LargeQRModalProps> = ({
@@ -42,15 +49,22 @@ export const LargeQRModal: React.FC<LargeQRModalProps> = ({
   title,
   ticketImage,
   qrCropUrl,
+  travelerName,
+  tickets,
+  travelers = [],
+  initialTicketId,
   onSaveCrop,
 }) => {
   const [zoom, setZoom] = useState<number>(1);
   const [rotation, setRotation] = useState<number>(0);
   const [isFullScreen, setIsFullScreen] = useState<boolean>(false);
-  const [activeCropUrl, setActiveCropUrl] = useState<string | undefined>(qrCropUrl);
   const [isCapturing, setIsCapturing] = useState<boolean>(false);
   const [captureToast, setCaptureToast] = useState<string>('');
   const [isFramingMode, setIsFramingMode] = useState<boolean>(false);
+
+  // Tickets state array to support multiple tickets
+  const [localTickets, setLocalTickets] = useState<DocumentItem[]>([]);
+  const [selectedTicketIndex, setSelectedTicketIndex] = useState<number>(0);
 
   const imageRef = useRef<HTMLImageElement>(null);
   const viewfinderRef = useRef<HTMLDivElement>(null);
@@ -63,6 +77,75 @@ export const LargeQRModal: React.FC<LargeQRModalProps> = ({
   const [position, setPosition] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const lastTapRef = useRef<number>(0);
+
+  // Initialize modal state on open
+  useEffect(() => {
+    if (isOpen) {
+      setZoom(1);
+      setRotation(0);
+      setPosition({ x: 0, y: 0 });
+      setCaptureToast('');
+
+      let ticketArray: DocumentItem[] = [];
+      if (Array.isArray(tickets) && tickets.length > 0) {
+        ticketArray = [...tickets];
+      } else if (ticketImage || qrCropUrl) {
+        ticketArray = [
+          {
+            id: initialTicketId || 'single-ticket',
+            title: title || 'Entrada',
+            fileName: 'ticket.png',
+            fileType: 'image',
+            dataUrl: ticketImage || '',
+            qrCropUrl: qrCropUrl,
+            category: 'entrada',
+            uploadedAt: new Date().toISOString(),
+          },
+        ];
+      }
+
+      setLocalTickets(ticketArray);
+
+      let initialIdx = 0;
+      if (initialTicketId && ticketArray.length > 0) {
+        const foundIdx = ticketArray.findIndex((t) => t.id === initialTicketId);
+        if (foundIdx >= 0) initialIdx = foundIdx;
+      }
+      setSelectedTicketIndex(initialIdx);
+
+      const activeT = ticketArray[initialIdx];
+      setIsFramingMode(!activeT?.qrCropUrl && Boolean(activeT?.dataUrl));
+    }
+  }, [isOpen, tickets, ticketImage, qrCropUrl, initialTicketId, title]);
+
+  if (!isOpen) return null;
+
+  const currentTicket = localTickets[selectedTicketIndex] || localTickets[0] || null;
+  const currentTicketImage = currentTicket?.dataUrl || ticketImage || '';
+  const currentCropUrl = currentTicket?.qrCropUrl;
+
+  const currentTraveler = currentTicket?.travelerId
+    ? travelers.find((tr) => tr.id === currentTicket.travelerId)
+    : null;
+
+  const currentPersonDisplayName = currentTraveler
+    ? currentTraveler.name
+    : currentTicket?.seatOrSection || travelerName || 'Pase Grupal (5 Viajeros)';
+
+  // Active image to display in viewfinder: ALWAYS real ticket image or real crop
+  const currentImageSource = isFramingMode
+    ? (currentTicketImage || currentCropUrl || '')
+    : (currentCropUrl || currentTicketImage || '');
+
+  const handleSelectTicket = (index: number) => {
+    setSelectedTicketIndex(index);
+    setZoom(1);
+    setRotation(0);
+    setPosition({ x: 0, y: 0 });
+    const targetT = localTickets[index];
+    setIsFramingMode(!targetT?.qrCropUrl && Boolean(targetT?.dataUrl));
+    setCaptureToast('');
+  };
 
   // Mouse drag handlers
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -83,25 +166,6 @@ export const LargeQRModal: React.FC<LargeQRModalProps> = ({
   };
 
   const handleMouseUp = () => setIsDragging(false);
-
-  // Initialize modal state on open
-  useEffect(() => {
-    if (isOpen) {
-      setZoom(1);
-      setRotation(0);
-      setPosition({ x: 0, y: 0 });
-      setIsFramingMode(!qrCropUrl && Boolean(ticketImage));
-      setCaptureToast('');
-      setActiveCropUrl(qrCropUrl);
-    }
-  }, [isOpen, qrCropUrl, ticketImage]);
-
-  if (!isOpen) return null;
-
-  // Active image to display: ALWAYS the exact ticket image (or its cropped screenshot). No simulated QR!
-  const currentImageSource = isFramingMode
-    ? (ticketImage || activeCropUrl || '')
-    : (activeCropUrl || ticketImage || '');
 
   const handleZoomIn = () => setZoom((prev) => Math.min(prev + 0.35, 6));
   const handleZoomOut = () => setZoom((prev) => Math.max(prev - 0.35, 0.6));
@@ -187,7 +251,7 @@ export const LargeQRModal: React.FC<LargeQRModalProps> = ({
 
   const handleDownloadActiveQR = () => {
     if (!currentImageSource) return;
-    const filename = `QR_${title.substring(0, 20).replace(/\s+/g, '_')}.png`;
+    const filename = `QR_${currentPersonDisplayName.substring(0, 15)}_${title.substring(0, 15)}.png`.replace(/\s+/g, '_');
     downloadFile(currentImageSource, filename);
   };
 
@@ -209,14 +273,23 @@ export const LargeQRModal: React.FC<LargeQRModalProps> = ({
           console.warn('QR scan on crop failed:', err);
         }
 
+        // Update in parent state & DB
         if (onSaveCrop) {
-          await onSaveCrop(croppedDataUrl, detectedQRText);
+          await onSaveCrop(croppedDataUrl, detectedQRText, currentTicket?.id);
         }
 
-        setActiveCropUrl(croppedDataUrl);
+        // Update local state in modal
+        setLocalTickets((prev) =>
+          prev.map((t, i) =>
+            i === selectedTicketIndex
+              ? { ...t, qrCropUrl: croppedDataUrl, qrCodeText: detectedQRText || t.qrCodeText }
+              : t
+          )
+        );
+
         setIsFramingMode(false);
         handleResetZoom();
-        setCaptureToast('¡Captura guardada con éxito! Esta imagen del QR quedará guardada permanentemente.');
+        setCaptureToast(`¡Captura de ${currentPersonDisplayName} guardada con éxito!`);
         setTimeout(() => setCaptureToast(''), 4500);
       }
     } catch (err) {
@@ -226,23 +299,26 @@ export const LargeQRModal: React.FC<LargeQRModalProps> = ({
     }
   };
 
+  // Find next uncropped ticket if any
+  const nextUncroppedIndex = localTickets.findIndex((t, idx) => idx !== selectedTicketIndex && !t.qrCropUrl);
+
   return (
     <div
       id="large-qr-modal-backdrop"
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/90 backdrop-blur-md transition-all animate-in fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-5 bg-black/90 backdrop-blur-md transition-all animate-in fade-in"
       onClick={onClose}
       onMouseUp={handleMouseUp}
     >
       <div
         id="large-qr-modal-card"
         className={`bg-stone-900 border border-stone-800 text-white rounded-3xl shadow-2xl overflow-hidden flex flex-col transition-all max-h-[96vh] w-full ${
-          isFullScreen ? 'max-w-2xl' : 'max-w-md'
+          isFullScreen ? 'max-w-2xl' : 'max-w-lg'
         }`}
         onClick={(e) => e.stopPropagation()}
         onMouseMove={handleMouseMove}
       >
         {/* Top Header - Minimalist */}
-        <div className="px-4 py-3 sm:px-5 sm:py-3.5 bg-stone-950/90 border-b border-stone-800 flex items-center justify-between">
+        <div className="px-4 py-3 sm:px-5 sm:py-3 bg-stone-950/90 border-b border-stone-800 flex items-center justify-between">
           <div className="flex items-center gap-2.5 min-w-0 pr-2">
             <div className="w-8 h-8 rounded-xl bg-amber-500 text-stone-950 flex items-center justify-center font-bold shrink-0 shadow-xs">
               <QrCode className="w-4 h-4" />
@@ -259,7 +335,7 @@ export const LargeQRModal: React.FC<LargeQRModalProps> = ({
 
           <div className="flex items-center gap-1.5 shrink-0">
             {/* Header Edit Button when Crop is already active */}
-            {ticketImage && !isFramingMode && (
+            {currentTicketImage && !isFramingMode && (
               <button
                 type="button"
                 onClick={handleStartEditing}
@@ -267,11 +343,12 @@ export const LargeQRModal: React.FC<LargeQRModalProps> = ({
                 title="Editar encuadre y tomar una nueva captura del QR"
               >
                 <Edit2 className="w-3.5 h-3.5 text-amber-400" />
-                <span>Editar Captura</span>
+                <span className="hidden sm:inline">Editar Captura</span>
+                <span className="sm:hidden">Editar</span>
               </button>
             )}
 
-            {isFramingMode && activeCropUrl && (
+            {isFramingMode && currentCropUrl && (
               <button
                 type="button"
                 onClick={handleCancelEditing}
@@ -299,6 +376,94 @@ export const LargeQRModal: React.FC<LargeQRModalProps> = ({
           </div>
         </div>
 
+        {/* MULTI-TICKET / PERSON SELECTOR BAR (Shown when more than 1 ticket exists) */}
+        {localTickets.length > 1 && (
+          <div className="bg-stone-950 px-3 py-2.5 border-b border-stone-800/80 space-y-1.5">
+            <div className="flex items-center justify-between text-[11px] text-stone-400 font-semibold px-1">
+              <span className="flex items-center gap-1 text-amber-400 font-bold">
+                <Users className="w-3.5 h-3.5" />
+                Selecciona persona para recortar su QR ({localTickets.length} entradas):
+              </span>
+              <span className="text-[10px] text-stone-500 font-mono">
+                {selectedTicketIndex + 1}/{localTickets.length}
+              </span>
+            </div>
+
+            {/* Horizontal Scrollable Person Pills */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-thin">
+              {localTickets.map((t, idx) => {
+                const tr = t.travelerId ? travelers.find((trav) => trav.id === t.travelerId) : null;
+                const name = tr ? tr.name : t.seatOrSection || t.title || `Entrada ${idx + 1}`;
+                const isSelected = idx === selectedTicketIndex;
+                const isCropped = Boolean(t.qrCropUrl);
+
+                return (
+                  <button
+                    key={t.id || idx}
+                    type="button"
+                    onClick={() => handleSelectTicket(idx)}
+                    className={`shrink-0 px-3 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer border ${
+                      isSelected
+                        ? 'bg-amber-400 text-stone-950 border-amber-300 shadow-md ring-2 ring-amber-400/30'
+                        : 'bg-stone-900 hover:bg-stone-800 text-stone-300 border-stone-800 hover:border-stone-700'
+                    }`}
+                  >
+                    {/* Traveler avatar circle */}
+                    <div
+                      className={`w-5 h-5 rounded-full text-[10px] font-black flex items-center justify-center shrink-0 ${
+                        isSelected ? 'text-white' : 'text-white'
+                      }`}
+                      style={{ backgroundColor: tr?.avatarColor || (isSelected ? '#78350f' : '#44403c') }}
+                    >
+                      {name.substring(0, 1).toUpperCase()}
+                    </div>
+
+                    <span className="truncate max-w-[110px]">{name}</span>
+
+                    {/* QR Status Tag */}
+                    {isCropped ? (
+                      <span
+                        className={`text-[9px] px-1.5 py-0.2 rounded font-black flex items-center gap-0.5 ${
+                          isSelected
+                            ? 'bg-stone-950/80 text-emerald-300'
+                            : 'bg-emerald-950/80 text-emerald-400 border border-emerald-800/50'
+                        }`}
+                        title="Código QR ya recortado y guardado"
+                      >
+                        ✓ Listo
+                      </span>
+                    ) : (
+                      <span
+                        className={`text-[9px] px-1.5 py-0.2 rounded font-black ${
+                          isSelected
+                            ? 'bg-amber-950/70 text-amber-200'
+                            : 'bg-amber-950/40 text-amber-400 border border-amber-800/40'
+                        }`}
+                        title="Pendiente de recortar código QR"
+                      >
+                        Recortar
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Single Ticket Traveler Info Header */}
+        {localTickets.length <= 1 && currentTraveler && (
+          <div className="bg-stone-950/60 px-4 py-1.5 border-b border-stone-800/60 flex items-center gap-2 text-xs font-semibold text-stone-300">
+            <div
+              className="w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center text-white"
+              style={{ backgroundColor: currentTraveler.avatarColor }}
+            >
+              {currentTraveler.name.substring(0, 1)}
+            </div>
+            <span>Entrada de: <strong className="text-white font-bold">{currentTraveler.name}</strong></span>
+          </div>
+        )}
+
         {/* Success Toast */}
         {captureToast && (
           <div className="bg-emerald-600 text-white px-4 py-2 text-xs font-bold text-center flex items-center justify-center gap-2 animate-in fade-in">
@@ -307,7 +472,7 @@ export const LargeQRModal: React.FC<LargeQRModalProps> = ({
           </div>
         )}
 
-        {/* Modal Body: Only QR code and zoom controls */}
+        {/* Modal Body: QR code viewfinder and zoom controls */}
         <div className="p-3 sm:p-4 overflow-y-auto flex flex-col items-center text-center space-y-3">
           {/* Zoom and Controls Toolbar */}
           <div className="flex items-center gap-2 bg-stone-950 px-3 py-1 rounded-xl border border-stone-800 text-xs">
@@ -351,11 +516,11 @@ export const LargeQRModal: React.FC<LargeQRModalProps> = ({
           </div>
 
           {/* Clean Focused Viewfinder Box */}
-          <div className="bg-white p-2.5 sm:p-3.5 rounded-2xl shadow-2xl border-2 border-stone-200 flex flex-col items-center justify-center w-full overflow-hidden relative">
+          <div className="bg-white p-2 sm:p-3 rounded-2xl shadow-2xl border-2 border-stone-200 flex flex-col items-center justify-center w-full overflow-hidden relative">
             {/* Viewfinder Target Container */}
             <div
               ref={viewfinderRef}
-              className={`w-full flex items-center justify-center overflow-hidden touch-none relative min-h-[260px] max-h-[360px] rounded-xl select-none ${
+              className={`w-full flex items-center justify-center overflow-hidden touch-none relative min-h-[260px] max-h-[350px] rounded-xl select-none ${
                 zoom > 1 || isFramingMode ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'
               }`}
               onMouseDown={handleMouseDown}
@@ -375,15 +540,15 @@ export const LargeQRModal: React.FC<LargeQRModalProps> = ({
                   <img
                     ref={imageRef}
                     src={currentImageSource}
-                    alt={`Código QR de la entrada ${title}`}
+                    alt={`Código QR de ${currentPersonDisplayName}`}
                     draggable={false}
-                    className="max-h-[330px] w-auto max-w-full object-contain select-none"
+                    className="max-h-[320px] w-auto max-w-full object-contain select-none"
                   />
                 </div>
               ) : (
                 <div className="p-8 text-center text-stone-500 text-xs">
                   <QrCode className="w-12 h-12 mx-auto text-stone-300 mb-2" />
-                  <span>No se encontró imagen ni código QR</span>
+                  <span>No se encontró imagen de ticket cargada para esta persona</span>
                 </div>
               )}
 
@@ -405,17 +570,17 @@ export const LargeQRModal: React.FC<LargeQRModalProps> = ({
 
           {/* Quick Helper Label */}
           <div className="text-[11px] text-stone-400">
-            {activeCropUrl && !isFramingMode ? (
+            {currentCropUrl && !isFramingMode ? (
               <span className="text-emerald-400 font-medium flex items-center justify-center gap-1">
                 <Check className="w-3.5 h-3.5 text-emerald-400" />
-                Mostrando la captura guardada de tu código QR real. Pulsa <strong>"Editar Captura"</strong> si deseas cambiarla.
+                Mostrando el QR guardado de <strong>{currentPersonDisplayName}</strong>. Pulsa "Editar Captura" si deseas cambiarlo.
               </span>
             ) : isFramingMode ? (
               <span className="text-amber-300 font-medium">
-                💡 Modo de Edición: Amplía con zoom y mueve el código QR al centro del recuadro. Luego pulsa "Guardar Captura".
+                💡 Recortando QR de <strong>{currentPersonDisplayName}</strong>: Amplía con zoom y centra el cuadro del QR. Luego pulsa "Guardar Captura".
               </span>
             ) : (
-              <span>💡 Mostrando tu ticket real. Haz zoom en el código QR y pulsa "Guardar Captura del QR".</span>
+              <span>💡 Mostrando ticket real de {currentPersonDisplayName}. Haz zoom y pulsa "Guardar Captura del QR".</span>
             )}
           </div>
         </div>
@@ -434,12 +599,12 @@ export const LargeQRModal: React.FC<LargeQRModalProps> = ({
 
           <div className="flex items-center gap-2 ml-auto">
             {/* If crop exists and NOT in framing mode: Show prominent EDIT button */}
-            {activeCropUrl && !isFramingMode && ticketImage && (
+            {currentCropUrl && !isFramingMode && currentTicketImage && (
               <button
                 id="btn-edit-qr-crop"
                 type="button"
                 onClick={handleStartEditing}
-                className="px-4 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/50 text-amber-300 hover:text-amber-200 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+                className="px-3.5 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/50 text-amber-300 hover:text-amber-200 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
                 title="Volver a encuadrar y tomar otra captura si quedó mal"
               >
                 <Edit2 className="w-3.5 h-3.5 text-amber-400" />
@@ -448,26 +613,38 @@ export const LargeQRModal: React.FC<LargeQRModalProps> = ({
             )}
 
             {/* If in framing mode or no crop yet: Show SAVE CAPTURE button */}
-            {(isFramingMode || !activeCropUrl) && (
+            {(isFramingMode || !currentCropUrl) && (
               <button
                 id="btn-capture-qr-screenshot"
                 type="button"
                 disabled={isCapturing}
                 onClick={handleCaptureFramedQR}
                 className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 hover:from-amber-600 hover:to-amber-600 active:scale-95 text-stone-950 text-xs font-black transition-all shadow-md shadow-amber-500/20 flex items-center gap-1.5 cursor-pointer"
-                title="Tomar captura de este encuadre y guardarla para que aparezca siempre aquí"
+                title="Tomar captura de este encuadre y guardarla para esta persona"
               >
                 {isCapturing ? (
                   <>
                     <div className="w-3.5 h-3.5 border-2 border-stone-950 border-t-transparent rounded-full animate-spin"></div>
-                    <span>Guardando Captura...</span>
+                    <span>Guardando...</span>
                   </>
                 ) : (
                   <>
                     <Camera className="w-3.5 h-3.5 text-stone-950 stroke-[2.5]" />
-                    <span>📸 {activeCropUrl ? 'Guardar Nueva Captura' : 'Guardar Captura del QR'}</span>
+                    <span>📸 Guardar Captura ({currentPersonDisplayName})</span>
                   </>
                 )}
+              </button>
+            )}
+
+            {/* Next Uncropped Ticket Button */}
+            {nextUncroppedIndex >= 0 && !isFramingMode && (
+              <button
+                type="button"
+                onClick={() => handleSelectTicket(nextUncroppedIndex)}
+                className="px-3 py-2 rounded-xl bg-amber-400 hover:bg-amber-300 text-stone-950 text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+              >
+                <span>Siguiente Entrada</span>
+                <ChevronRight className="w-3.5 h-3.5" />
               </button>
             )}
 
