@@ -16,6 +16,8 @@ import {
   Camera
 } from 'lucide-react';
 
+import { optimizeImageForUpload } from '../utils/imageUtils';
+
 interface PassportSectionProps {
   travelers: Traveler[];
   onUpdateTraveler: (traveler: Traveler) => void;
@@ -86,8 +88,12 @@ export const PassportSection: React.FC<PassportSectionProps> = ({
     const reader = new FileReader();
     const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
 
-    reader.onload = () => {
-      const result = reader.result as string;
+    reader.onload = async () => {
+      let result = reader.result as string;
+      if (!isPdf && result.startsWith('data:image')) {
+        const optimized = await optimizeImageForUpload(result);
+        result = optimized.dataUrl;
+      }
       const updated: Traveler = {
         ...activeTraveler,
         passportDocUrl: result,

@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 
 import { formatDateWithDay } from '../utils/dateUtils';
+import { optimizeImageForUpload } from '../utils/imageUtils';
 
 interface FlightSectionProps {
   travelers: Traveler[];
@@ -59,10 +60,15 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
     const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
     const reader = new FileReader();
 
-    reader.onload = () => {
+    reader.onload = async () => {
+      let result = reader.result as string;
+      if (!isPdf && result.startsWith('data:image')) {
+        const optimized = await optimizeImageForUpload(result);
+        result = optimized.dataUrl;
+      }
       setUploadedFileData({
         name: file.name,
-        url: reader.result as string,
+        url: result,
         type: isPdf ? 'pdf' : 'image',
       });
     };

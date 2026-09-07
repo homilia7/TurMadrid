@@ -20,12 +20,14 @@ import {
   Lock,
   AlertTriangle,
   ZoomIn,
-  Users
+  Users,
+  Upload
 } from 'lucide-react';
 import { generateDigitalTicketSvg, downloadFile } from '../utils/ticketGenerator';
 import { formatDateWithDay, getDayOfWeek } from '../utils/dateUtils';
 import { decodeQRFromImage } from '../utils/qrReader';
 import { deleteDocumentFromCloud } from '../utils/cloudSync';
+import { optimizeImageForUpload } from '../utils/imageUtils';
 import { LargeQRModal } from './LargeQRModal';
 import { ImageLightboxModal } from './ImageLightboxModal';
 
@@ -99,12 +101,13 @@ export const TicketModal: React.FC<TicketModalProps> = ({
     if (!file) return;
 
     const reader = new FileReader();
-    const isPdf = file.type === 'application/pdf' || file.name.endsWith('.pdf');
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
     const isImage = file.type.startsWith('image/');
 
     setIsScanningQR(true);
     reader.onload = async (event) => {
-      const dataUrl = event.target?.result as string;
+      let dataUrl = event.target?.result as string;
+      let finalFileSize = `${(file.size / 1024).toFixed(1)} KB`;
       let detectedQR: string | undefined = undefined;
       let qrCropUrl: string | undefined = undefined;
 
@@ -117,8 +120,12 @@ export const TicketModal: React.FC<TicketModalProps> = ({
             qrCropUrl = qrResult.cropDataUrl;
             console.log('✅ QR Code real detectado en la entrada:', qrResult.text);
           }
+          // Optimize/compress image for storage and fast cloud syncing
+          const optimized = await optimizeImageForUpload(dataUrl);
+          dataUrl = optimized.dataUrl;
+          finalFileSize = optimized.fileSize;
         } catch (err) {
-          console.warn('Error escaneando QR:', err);
+          console.warn('Error optimizando imagen o escaneando QR:', err);
         }
       }
 
@@ -126,7 +133,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
         fileName: file.name,
         fileType: isPdf ? 'pdf' : isImage ? 'image' : 'digital',
         dataUrl,
-        fileSize: `${(file.size / 1024).toFixed(1)} KB`,
+        fileSize: finalFileSize,
         detectedQR,
         qrCropUrl,
       });
