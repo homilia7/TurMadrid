@@ -8,7 +8,12 @@ interface BeforeInstallPromptEvent extends Event {
 const PWA_INSTALLED_KEY = 'pwa_app_installed_status_v1';
 
 export function usePWAInstall() {
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(() => {
+    if (typeof window !== 'undefined' && (window as any).__deferredPWAInstallPrompt) {
+      return (window as any).__deferredPWAInstallPrompt;
+    }
+    return null;
+  });
   const [isInstalled, setIsInstalled] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
     const isStandalone =
@@ -16,8 +21,7 @@ export function usePWAInstall() {
       (window.navigator as unknown as { standalone?: boolean }).standalone === true ||
       document.referrer.includes('android-app://');
     
-    const storedStatus = localStorage.getItem(PWA_INSTALLED_KEY) === 'true';
-    return isStandalone || storedStatus;
+    return isStandalone;
   });
   const [isIOS, setIsIOS] = useState<boolean>(false);
 
@@ -31,7 +35,6 @@ export function usePWAInstall() {
 
       if (isStandalone) {
         setIsInstalled(true);
-        localStorage.setItem(PWA_INSTALLED_KEY, 'true');
       }
     };
 
@@ -42,24 +45,37 @@ export function usePWAInstall() {
     const isIosDevice = /iphone|ipad|ipod/.test(ua);
     setIsIOS(isIosDevice);
 
+    if ((window as any).__deferredPWAInstallPrompt) {
+      setDeferredPrompt((window as any).__deferredPWAInstallPrompt);
+    }
+
     // Listen for browser install prompt
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
+      (window as any).__deferredPWAInstallPrompt = e;
       setDeferredPrompt(e as BeforeInstallPromptEvent);
+    };
+
+    const handlePromptReady = () => {
+      if ((window as any).__deferredPWAInstallPrompt) {
+        setDeferredPrompt((window as any).__deferredPWAInstallPrompt);
+      }
     };
 
     // When the app is successfully installed
     const handleAppInstalled = () => {
       setIsInstalled(true);
       setDeferredPrompt(null);
-      localStorage.setItem(PWA_INSTALLED_KEY, 'true');
+      (window as any).__deferredPWAInstallPrompt = null;
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    window.addEventListener('pwa_prompt_ready', handlePromptReady);
     window.addEventListener('appinstalled', handleAppInstalled);
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+      window.removeEventListener('pwa_prompt_ready', handlePromptReady);
       window.removeEventListener('appinstalled', handleAppInstalled);
     };
   }, []);
