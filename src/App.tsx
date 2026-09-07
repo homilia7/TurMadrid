@@ -401,7 +401,9 @@ export default function App() {
   const handleAddDocument = (newDoc: DocumentItem) => {
     setDocuments((prev) => {
       const updated = [newDoc, ...prev];
+      saveDocuments(updated);
       uploadDocumentToCloud(newDoc);
+      syncToCloud({ documents: updated });
       return updated;
     });
   };
@@ -410,7 +412,9 @@ export default function App() {
   const handleDeleteDocument = (docId: string) => {
     setDocuments((prev) => {
       const updated = prev.filter((d) => d.id !== docId);
+      saveDocuments(updated);
       deleteDocumentFromCloud(docId);
+      syncToCloud({ documents: updated });
       return updated;
     });
   };
@@ -685,7 +689,10 @@ export default function App() {
           <div className="animate-in fade-in duration-200">
             <PassportSection
               travelers={travelers}
+              documents={documents}
               onUpdateTraveler={handleUpdateTraveler}
+              onAddDocument={handleAddDocument}
+              onDeleteDocument={handleDeleteDocument}
               onAddTraveler={(name, color) => {
                 const newT: Traveler = {
                   id: `u-${Date.now()}`,

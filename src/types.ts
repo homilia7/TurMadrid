@@ -13,7 +13,7 @@ export interface Traveler {
   passportDocType?: 'pdf' | 'image' | 'digital';
 }
 
-export type DocumentCategory = 'entrada' | 'vuelo' | 'pasaporte' | 'reserva' | 'seguro' | 'otro';
+export type DocumentCategory = 'entrada' | 'vuelo' | 'pasaporte' | 'reserva' | 'hotel' | 'teleferico' | 'metro' | 'seguro' | 'otro';
 
 export interface DocumentItem {
   id: string;
