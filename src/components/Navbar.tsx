@@ -43,12 +43,18 @@ export const Navbar: React.FC<NavbarProps> = ({
   activeTab,
   onChangeTab,
 }) => {
-  const activeTraveler = travelers.find((t) => t.id === activeTravelerId) || travelers[0];
-  const activeUserVisitedCount = tours.filter((t) =>
+  const safeTravelers = Array.isArray(travelers) && travelers.length > 0 ? travelers : [];
+  const safeTours = Array.isArray(tours) ? tours : [];
+  const activeTraveler =
+    safeTravelers.find((t) => t.id === activeTravelerId) ||
+    safeTravelers[0] ||
+    ({ id: 'u1', name: 'Viajero 1', avatarColor: '#2563eb' } as Traveler);
+
+  const activeUserVisitedCount = safeTours.filter((t) =>
     (t.visitedByUserIds || []).includes(activeTravelerId)
   ).length;
 
-  const totalTours = tours.length;
+  const totalTours = safeTours.length;
   const progressPercent = totalTours > 0 ? Math.round((activeUserVisitedCount / totalTours) * 100) : 0;
 
   return (

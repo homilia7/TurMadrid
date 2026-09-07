@@ -30,11 +30,12 @@ export const AddTourModal: React.FC<AddTourModalProps> = ({
   editingTour = null,
   defaultAlertHours = 3,
 }) => {
+  const safeDays = Array.isArray(days) && days.length > 0 ? days : [{ dayNumber: 1, date: '2026-09-10', city: 'Madrid', title: 'Día 1' }];
   const [dayNumber, setDayNumber] = useState<number>(
     editingTour ? editingTour.dayNumber : initialDayNumber
   );
 
-  const currentDay = days.find((d) => d.dayNumber === dayNumber) || days[0];
+  const currentDay = safeDays.find((d) => d.dayNumber === dayNumber) || safeDays[0];
 
   const [title, setTitle] = useState<string>(editingTour?.title || '');
   const [date, setDate] = useState<string>(editingTour?.date || currentDay?.date || '2026-09-13');
@@ -57,7 +58,7 @@ export const AddTourModal: React.FC<AddTourModalProps> = ({
 
   const handleDaySelect = (selectedDayNum: number) => {
     setDayNumber(selectedDayNum);
-    const matched = days.find((d) => d.dayNumber === selectedDayNum);
+    const matched = safeDays.find((d) => d.dayNumber === selectedDayNum);
     if (matched) {
       setDate(matched.date);
       setCity(matched.city);

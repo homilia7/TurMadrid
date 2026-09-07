@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { Tour, Traveler, DocumentItem } from '../types';
 import { 
   Ticket as TicketIcon, 
@@ -27,8 +27,11 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
   const [selectedCity, setSelectedCity] = useState<string>('all');
   const [previewDoc, setPreviewDoc] = useState<{ url: string; title: string; type: string } | null>(null);
 
+  const safeTours = Array.isArray(tours) ? tours : [];
+  const safeTravelers = Array.isArray(travelers) ? travelers : [];
+
   const allTicketsWithTour: { ticket: DocumentItem; tour: Tour }[] = [];
-  tours.forEach((tour) => {
+  safeTours.forEach((tour) => {
     if (tour.tickets && tour.tickets.length > 0) {
       tour.tickets.forEach((ticket) => {
         allTicketsWithTour.push({ ticket, tour });
@@ -38,15 +41,15 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
 
   const filtered = allTicketsWithTour.filter(({ ticket, tour }) => {
     const matchesSearch =
-      ticket.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      tour.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      ticket.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      tour.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (ticket.referenceNumber && ticket.referenceNumber.toLowerCase().includes(searchQuery.toLowerCase()));
 
-    const matchesCity = selectedCity === 'all' || tour.city.toLowerCase() === selectedCity.toLowerCase();
+    const matchesCity = selectedCity === 'all' || tour.city?.toLowerCase() === selectedCity.toLowerCase();
     return matchesSearch && matchesCity;
   });
 
-  const cities = Array.from(new Set(tours.map((t) => t.city)));
+  const cities = Array.from(new Set(safeTours.map((t) => t.city))).filter(Boolean);
 
   return (
     <div className="space-y-6">
@@ -92,7 +95,7 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {filtered.map(({ ticket, tour }) => {
-          const assignedTraveler = travelers.find((t) => t.id === ticket.travelerId);
+          const assignedTraveler = safeTravelers.find((t) => t.id === ticket.travelerId);
 
           return (
             <div

@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { Tour } from '../types';
 import { Bell, Compass, Ticket, ChevronRight } from 'lucide-react';
 import { calculateTourAlertStatus } from '../utils/alertManager';
@@ -24,8 +24,10 @@ export const AlertBanner: React.FC<AlertBannerProps> = ({
     .filter((status) => !status.isPast)
     .sort((a, b) => a.tourDateTime.getTime() - b.tourDateTime.getTime());
 
-  const activeAlertStatus = sortedUpcoming.find((s) => s.isInAlertWindow);
-  const nextUpcoming = sortedUpcoming[0];
+  const activeAlertStatus = Array.isArray(sortedUpcoming)
+    ? sortedUpcoming.find((s) => s && s.isInAlertWindow)
+    : null;
+  const nextUpcoming = Array.isArray(sortedUpcoming) ? sortedUpcoming[0] : null;
 
   const featured = activeAlertStatus || nextUpcoming;
 

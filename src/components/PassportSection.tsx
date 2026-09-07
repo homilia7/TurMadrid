@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { Traveler } from '../types';
 import { 
   ShieldCheck, 
@@ -29,11 +29,17 @@ export const PassportSection: React.FC<PassportSectionProps> = ({
   onUpdateTraveler,
   activeTravelerId,
 }) => {
-  const [selectedTravelerId, setSelectedTravelerId] = useState<string>(activeTravelerId || travelers[0]?.id || 'u1');
+  const safeTravelers = Array.isArray(travelers) && travelers.length > 0 ? travelers : [];
+  const [selectedTravelerId, setSelectedTravelerId] = useState<string>(
+    activeTravelerId || safeTravelers[0]?.id || 'u1'
+  );
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [previewDoc, setPreviewDoc] = useState<{ url: string; title: string; type: string } | null>(null);
 
-  const activeTraveler = travelers.find((t) => t.id === selectedTravelerId) || travelers[0];
+  const activeTraveler =
+    safeTravelers.find((t) => t.id === selectedTravelerId) ||
+    safeTravelers[0] ||
+    ({ id: 'u1', name: 'Viajero 1', avatarColor: '#2563eb' } as Traveler);
 
   const [formName, setFormName] = useState(activeTraveler?.name || '');
   const [formPassportNumber, setFormPassportNumber] = useState(activeTraveler?.passportNumber || '');
@@ -46,7 +52,7 @@ export const PassportSection: React.FC<PassportSectionProps> = ({
 
   const handleSelectTraveler = (id: string) => {
     setSelectedTravelerId(id);
-    const target = travelers.find((t) => t.id === id);
+    const target = safeTravelers.find((t) => t.id === id);
     if (target) {
       setFormName(target.name);
       setFormPassportNumber(target.passportNumber || '');

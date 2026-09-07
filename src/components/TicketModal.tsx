@@ -33,6 +33,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
   travelers,
   onUpdateTourTickets,
 }) => {
+  const safeTravelers = Array.isArray(travelers) ? travelers : [];
   const ticketsList = Array.isArray(tour?.tickets) ? tour.tickets : [];
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(
     ticketsList.length > 0 ? ticketsList[0] : null
@@ -81,7 +82,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
   };
 
   const handleGenerateDigitalTicket = () => {
-    const assignedTraveler = travelers.find((t) => t.id === travelerId);
+    const assignedTraveler = safeTravelers.find((t) => t.id === travelerId);
     const travelerLabel = assignedTraveler ? assignedTraveler.name : 'Pase Grupal (5 Viajeros)';
     const refCode = 'PASS-' + Math.floor(100000 + Math.random() * 900000);
 
@@ -199,7 +200,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
               <div className="space-y-2">
                 {ticketsList.map((t) => {
                   const isSelected = activeTicket?.id === t.id;
-                  const assigned = travelers.find((tr) => tr.id === t.travelerId);
+                  const assigned = safeTravelers.find((tr) => tr.id === t.travelerId);
                   return (
                     <div
                       key={t.id}

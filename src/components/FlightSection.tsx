@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { Traveler, DocumentItem } from '../types';
 import { 
   Plane, 
@@ -89,9 +89,9 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
   const [flightNotes, setFlightNotes] = useState<string>('');
   const [uploadedFileData, setUploadedFileData] = useState<{ name: string; url: string; type: 'pdf' | 'image' | 'digital' } | null>(null);
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const flightDocuments = documents.filter((d) => d.category === 'vuelo');
+  const safeTravelers = Array.isArray(travelers) ? travelers : [];
+  const safeDocs = Array.isArray(documents) ? documents : [];
+  const flightDocuments = safeDocs.filter((d) => d.category === 'vuelo');
 
   const allFlights: DocumentItem[] = [...flightDocuments];
   DEFAULT_FLIGHTS.forEach((def) => {
@@ -173,7 +173,7 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
 
       <div className="space-y-4">
         {allFlights.map((flight) => {
-          const assignedTraveler = travelers.find((t) => t.id === flight.travelerId);
+          const assignedTraveler = safeTravelers.find((t) => t.id === flight.travelerId);
           const hasFile = Boolean(flight.dataUrl);
 
           return (

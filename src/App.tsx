@@ -65,10 +65,22 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<MainTabType>('itinerary');
 
   // Core State
-  const [travelers, setTravelers] = useState<Traveler[]>(loadTravelers);
-  const [tours, setTours] = useState<Tour[]>(loadTours);
-  const [days, setDays] = useState<ItineraryDay[]>(loadDays);
-  const [documents, setDocuments] = useState<DocumentItem[]>(loadDocuments);
+  const [travelers, setTravelers] = useState<Traveler[]>(() => {
+    const loaded = loadTravelers();
+    return Array.isArray(loaded) && loaded.length > 0 ? loaded : [];
+  });
+  const [tours, setTours] = useState<Tour[]>(() => {
+    const loaded = loadTours();
+    return Array.isArray(loaded) && loaded.length > 0 ? loaded : [];
+  });
+  const [days, setDays] = useState<ItineraryDay[]>(() => {
+    const loaded = loadDays();
+    return Array.isArray(loaded) && loaded.length > 0 ? loaded : [];
+  });
+  const [documents, setDocuments] = useState<DocumentItem[]>(() => {
+    const loaded = loadDocuments();
+    return Array.isArray(loaded) ? loaded : [];
+  });
   const [activeTravelerId, setActiveTravelerId] = useState<string>(loadActiveTravelerId);
   const [defaultAlertHours, setDefaultAlertHours] = useState<number>(loadDefaultAlertHours);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(loadAlertSoundEnabled);
@@ -100,19 +112,21 @@ export default function App() {
       const cloudData = await fetchCloudData();
       if (!isMounted) return;
 
-      if (cloudData && cloudData.tours && cloudData.tours.length > 0) {
-        setTours(cloudData.tours);
-        if (cloudData.travelers && cloudData.travelers.length > 0) {
+      if (cloudData) {
+        if (Array.isArray(cloudData.tours) && cloudData.tours.length > 0) {
+          setTours(cloudData.tours);
+        }
+        if (Array.isArray(cloudData.travelers) && cloudData.travelers.length > 0) {
           setTravelers(cloudData.travelers);
         }
-        if (cloudData.days && cloudData.days.length > 0) {
+        if (Array.isArray(cloudData.days) && cloudData.days.length > 0) {
           setDays(cloudData.days);
         }
-        if (cloudData.documents && cloudData.documents.length > 0) {
+        if (Array.isArray(cloudData.documents)) {
           setDocuments(cloudData.documents);
         }
         setSyncState({ status: 'synced', lastSyncedAt: new Date().toISOString() });
-      } else if (cloudData) {
+      } else {
         const initialTours = loadTours();
         const initialTravelers = loadTravelers();
         const initialDays = loadDays();
@@ -124,8 +138,6 @@ export default function App() {
           documents: initialDocs,
         });
         setSyncState({ status: 'synced', lastSyncedAt: new Date().toISOString() });
-      } else {
-        setSyncState({ status: 'offline' });
       }
     }
 
@@ -336,14 +348,24 @@ export default function App() {
     }
   };
 
+  // Safe arrays
+  const safeTravelers = Array.isArray(travelers) && travelers.length > 0 ? travelers : [];
+  const safeTours = Array.isArray(tours) ? tours : [];
+  const safeDays = Array.isArray(days) ? days : [];
+  const safeDocs = Array.isArray(documents) ? documents : [];
+
   // Active traveler
-  const activeTraveler = travelers.find((t) => t.id === activeTravelerId) || travelers[0];
+  const activeTraveler = safeTravelers.find((t) => t.id === activeTravelerId) || safeTravelers[0] || {
+    id: 'u1',
+    name: 'Viajero 1',
+    avatarColor: '#2563eb',
+  };
 
   // Distinct cities for filter
-  const uniqueCities = Array.from(new Set(tours.map((t) => t.city))).filter(Boolean);
+  const uniqueCities = Array.from(new Set(safeTours.map((t) => t.city))).filter(Boolean);
 
   // Filtered tours and days
-  const filteredTours = tours.filter((tour) => {
+  const filteredTours = safeTours.filter((tour) => {
     if (selectedCity !== 'all' && !tour.city?.toLowerCase().includes(selectedCity.toLowerCase())) {
       return false;
     }
@@ -363,9 +385,9 @@ export default function App() {
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      const matchTitle = tour.title.toLowerCase().includes(q);
-      const matchCity = tour.city.toLowerCase().includes(q);
-      const matchLocation = tour.location.toLowerCase().includes(q);
+      const matchTitle = tour.title?.toLowerCase().includes(q);
+      const matchCity = tour.city?.toLowerCase().includes(q);
+      const matchLocation = tour.location?.toLowerCase().includes(q);
       const matchMeeting = tour.meetingPoint?.toLowerCase().includes(q);
       if (!matchTitle && !matchCity && !matchLocation && !matchMeeting) {
         return false;
@@ -378,12 +400,12 @@ export default function App() {
   const matchingDayNumbers = new Set(filteredTours.map((t) => t.dayNumber));
   const displayedDays =
     searchQuery.trim() || filterStatus !== 'all' || selectedCity !== 'all'
-      ? days.filter((d) => matchingDayNumbers.has(d.dayNumber))
-      : days;
+      ? safeDays.filter((d) => matchingDayNumbers.has(d.dayNumber))
+      : safeDays;
 
-  const passportCount = travelers.filter((t) => Boolean(t.passportDocUrl || t.passportNumber)).length;
-  const flightCount = documents.filter((d) => d.category === 'vuelo').length;
-  const ticketCount = tours.reduce((acc, t) => acc + (t.tickets?.length || 0), 0);
+  const passportCount = safeTravelers.filter((t) => Boolean(t.passportDocUrl || t.passportNumber)).length;
+  const flightCount = safeDocs.filter((d) => d.category === 'vuelo').length;
+  const ticketCount = safeTours.reduce((acc, t) => acc + (t.tickets?.length || 0), 0);
 
   return (
     <div className="min-h-screen flex flex-col bg-stone-100 text-stone-900 font-sans pb-20 md:pb-12">

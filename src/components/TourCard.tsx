@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { Tour, Traveler } from '../types';
 import {
   Clock,
@@ -37,7 +37,8 @@ export const TourCard: React.FC<TourCardProps> = ({
   onQuickChangeAlert,
 }) => {
   const [showAlertMenu, setShowAlertMenu] = useState(false);
-  const activeTraveler = travelers.find((t) => t.id === activeTravelerId);
+  const safeTravelers = Array.isArray(travelers) ? travelers : [];
+  const activeTraveler = safeTravelers.find((t) => t.id === activeTravelerId);
   const visitedList = Array.isArray(tour.visitedByUserIds) ? tour.visitedByUserIds : [];
   const ticketList = Array.isArray(tour.tickets) ? tour.tickets : [];
 
@@ -239,7 +240,7 @@ export const TourCard: React.FC<TourCardProps> = ({
             </div>
 
             <div className="flex items-center gap-1">
-              {travelers.map((traveler) => {
+              {safeTravelers.map((traveler) => {
                 const visited = visitedList.includes(traveler.id);
                 return (
                   <button
