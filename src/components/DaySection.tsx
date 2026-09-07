@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { ItineraryDay, Tour, Traveler } from '../types';
 import { TourCard } from './TourCard';
 import { MapPin, Plus, ChevronDown, ChevronUp } from 'lucide-react';
@@ -28,7 +28,7 @@ export const DaySection: React.FC<DaySectionProps> = ({
   onQuickChangeAlert,
   onAddNewTourToDay,
 }) => {
-  const [isExpanded, setIsExpanded] = useState<boolean>(true);
+  const [isExpanded, setIsExpanded] = useState<boolean>(false);
   const safeTours = Array.isArray(tours) ? tours : [];
 
   const dayTours = safeTours

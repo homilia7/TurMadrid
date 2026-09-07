@@ -1,15 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Tour, ItineraryDay, TourCategory } from '../types';
+import { INITIAL_DAYS } from '../data/initialItinerary';
 import { Calendar, Clock, MapPin, Tag, Plus, Check, X, Bell } from 'lucide-react';
 
 interface AddTourModalProps {
   isOpen: boolean;
   onClose: () => void;
-  days: ItineraryDay[];
+  days?: ItineraryDay[];
   onSaveTour: (tour: Tour) => void;
   initialDayNumber?: number;
+  defaultDayNumber?: number;
   editingTour?: Tour | null;
-  defaultAlertHours: number;
+  defaultAlertHours?: number;
 }
 
 const CATEGORIES: { value: TourCategory; label: string; icon: string }[] = [
@@ -26,21 +28,22 @@ export const AddTourModal: React.FC<AddTourModalProps> = ({
   onClose,
   days,
   onSaveTour,
-  initialDayNumber = 1,
+  initialDayNumber,
+  defaultDayNumber,
   editingTour = null,
   defaultAlertHours = 3,
 }) => {
-  const safeDays = Array.isArray(days) && days.length > 0 ? days : [{ dayNumber: 1, date: '2026-09-10', city: 'Madrid', title: 'Día 1' }];
+  const safeDays = Array.isArray(days) && days.length > 0 ? days : INITIAL_DAYS;
+  const initialDay = initialDayNumber || defaultDayNumber || 1;
+
   const [dayNumber, setDayNumber] = useState<number>(
-    editingTour ? editingTour.dayNumber : initialDayNumber
+    editingTour ? editingTour.dayNumber : initialDay
   );
 
-  const currentDay = safeDays.find((d) => d.dayNumber === dayNumber) || safeDays[0];
-
   const [title, setTitle] = useState<string>(editingTour?.title || '');
-  const [date, setDate] = useState<string>(editingTour?.date || currentDay?.date || '2026-09-13');
+  const [date, setDate] = useState<string>(editingTour?.date || '2026-09-13');
   const [time, setTime] = useState<string>(editingTour?.time || '10:00');
-  const [city, setCity] = useState<string>(editingTour?.city || currentDay?.city || 'Madrid');
+  const [city, setCity] = useState<string>(editingTour?.city || 'Madrid');
   const [category, setCategory] = useState<TourCategory>(editingTour?.category || 'cultura');
   const [location, setLocation] = useState<string>(editingTour?.location || '');
   const [meetingPoint, setMeetingPoint] = useState<string>(editingTour?.meetingPoint || '');
@@ -53,6 +56,41 @@ export const AddTourModal: React.FC<AddTourModalProps> = ({
     editingTour ? editingTour.alertEnabled : true
   );
   const [notes, setNotes] = useState<string>(editingTour?.notes || '');
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    if (editingTour) {
+      setDayNumber(editingTour.dayNumber);
+      setTitle(editingTour.title || '');
+      setDate(editingTour.date || '');
+      setTime(editingTour.time || '10:00');
+      setCity(editingTour.city || 'Madrid');
+      setCategory(editingTour.category || 'cultura');
+      setLocation(editingTour.location || '');
+      setMeetingPoint(editingTour.meetingPoint || '');
+      setDescription(editingTour.description || '');
+      setDurationHours(editingTour.durationHours || 2.5);
+      setAlertHoursBefore(editingTour.alertHoursBefore || defaultAlertHours);
+      setAlertEnabled(editingTour.alertEnabled ?? true);
+      setNotes(editingTour.notes || '');
+    } else {
+      const chosenDay = safeDays.find((d) => d.dayNumber === initialDay) || safeDays[0];
+      setDayNumber(chosenDay ? chosenDay.dayNumber : initialDay);
+      setTitle('');
+      setDate(chosenDay ? chosenDay.date : '2026-09-13');
+      setTime('10:00');
+      setCity(chosenDay ? chosenDay.city : 'Madrid');
+      setCategory('cultura');
+      setLocation('');
+      setMeetingPoint('');
+      setDescription('');
+      setDurationHours(2.5);
+      setAlertHoursBefore(defaultAlertHours);
+      setAlertEnabled(true);
+      setNotes('');
+    }
+  }, [isOpen, editingTour, initialDay, defaultAlertHours]);
 
   if (!isOpen) return null;
 
@@ -127,7 +165,7 @@ export const AddTourModal: React.FC<AddTourModalProps> = ({
               Día del Itinerario:
             </label>
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 max-h-32 overflow-y-auto p-1 bg-stone-50 rounded-xl border border-stone-200">
-              {days.map((d) => (
+              {safeDays.map((d) => (
                 <button
                   key={d.dayNumber}
                   type="button"

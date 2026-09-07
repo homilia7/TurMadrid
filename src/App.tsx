@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Traveler, Tour, ItineraryDay, DocumentItem, CloudSyncState } from './types';
+import { INITIAL_DAYS } from './data/initialItinerary';
 import {
   loadTravelers,
   saveTravelers,
@@ -291,6 +292,7 @@ export default function App() {
       const updated = exists
         ? prev.map((t) => (t.id === savedTour.id ? savedTour : t))
         : [...prev, savedTour];
+      saveTours(updated);
       syncToCloud({ tours: updated });
       return updated;
     });
@@ -300,6 +302,7 @@ export default function App() {
   const handleDeleteTour = (tourId: string) => {
     setTours((prev) => {
       const updated = prev.filter((t) => t.id !== tourId);
+      saveTours(updated);
       syncToCloud({ tours: updated });
       return updated;
     });
@@ -769,9 +772,14 @@ export default function App() {
 
       <AddTourModal
         isOpen={isAddTourModalOpen}
-        onClose={() => setIsAddTourModalOpen(false)}
+        onClose={() => {
+          setIsAddTourModalOpen(false);
+          setEditingTour(null);
+        }}
+        days={days && days.length > 0 ? days : INITIAL_DAYS}
         onSaveTour={handleSaveTour}
         editingTour={editingTour}
+        initialDayNumber={selectedDayForNewTour}
         defaultDayNumber={selectedDayForNewTour}
         defaultAlertHours={defaultAlertHours}
       />

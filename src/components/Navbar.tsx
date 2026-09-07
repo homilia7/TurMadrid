@@ -58,65 +58,36 @@ export const Navbar: React.FC<NavbarProps> = ({
   const progressPercent = totalTours > 0 ? Math.round((activeUserVisitedCount / totalTours) * 100) : 0;
 
   return (
-    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-2.5">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-          {/* Brand & Trip Title */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {/* App Logo */}
-              <div 
-                onClick={() => onChangeTab('itinerary')}
-                className="w-10 h-10 rounded-2xl bg-stone-900 border border-amber-400/40 p-1 flex items-center justify-center text-white shadow-xs overflow-hidden shrink-0 cursor-pointer hover:scale-105 transition-transform"
-              >
-                <img
-                  src="/icon.svg"
-                  alt="Costa Rica a España 2026 Logo"
-                  className="w-full h-full object-contain rounded-xl"
-                  referrerPolicy="no-referrer"
-                />
-              </div>
-
-              <div>
-                <div className="flex items-center gap-2">
-                  <h1 
-                    onClick={() => onChangeTab('itinerary')}
-                    className="text-base sm:text-lg font-extrabold text-stone-900 tracking-tight flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <span>TurMadrid</span>
-                    <span className="text-xs font-normal text-stone-400">🇨🇷✈️🇪🇸</span>
-                  </h1>
-                  <span className="text-[10px] font-bold uppercase tracking-wider bg-amber-100 text-amber-900 px-2 py-0.5 rounded-full border border-amber-200/80">
-                    13 Días • 5 Viajeros
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <p className="text-[11px] text-stone-500 font-medium truncate max-w-[200px] sm:max-w-none">
-                    Madrid, Toledo, Ávila, Segovia & Barcelona
-                  </p>
-                </div>
-              </div>
+    <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200 shadow-2xs">
+      <div className="max-w-6xl mx-auto px-3 sm:px-6 py-2 sm:py-2.5">
+        {/* Top Primary Bar */}
+        <div className="flex items-center justify-between gap-2">
+          {/* Brand & Subtitle */}
+          <div 
+            onClick={() => onChangeTab('itinerary')}
+            className="flex items-center gap-2.5 cursor-pointer group shrink-0"
+          >
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-stone-900 border border-amber-400/50 p-1 flex items-center justify-center shadow-2xs group-hover:scale-105 transition-transform shrink-0">
+              <img
+                src="/icon.svg"
+                alt="TurMadrid Logo"
+                className="w-full h-full object-contain rounded-lg"
+                referrerPolicy="no-referrer"
+              />
             </div>
 
-            {/* Mobile Cloud Status & Quick Buttons */}
-            <div className="flex items-center gap-1.5 md:hidden">
-              <CloudSyncBadge syncState={syncState} onManualSync={onManualSync} />
-              <button
-                type="button"
-                onClick={onOpenAlertSettings}
-                className="p-1.5 rounded-xl text-stone-600 hover:bg-stone-100 relative"
-                title="Alertas"
-              >
-                <Bell className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                onClick={onOpenAddTourModal}
-                className="p-1.5 rounded-xl bg-amber-500 text-white shadow-xs"
-                title="Nuevo Tour"
-              >
-                <Plus className="w-4 h-4" />
-              </button>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <h1 className="text-sm sm:text-base font-black text-stone-900 tracking-tight leading-none">
+                  TurMadrid
+                </h1>
+                <span className="text-[10px] font-bold bg-amber-100 text-amber-900 px-1.5 py-0.5 rounded-full border border-amber-200">
+                  13 Días
+                </span>
+              </div>
+              <p className="text-[10px] text-stone-400 font-medium leading-tight mt-0.5 hidden sm:block">
+                Madrid, Toledo, Ávila, Segovia & Barcelona
+              </p>
             </div>
           </div>
 
@@ -126,7 +97,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={() => onChangeTab('itinerary')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                 activeTab === 'itinerary'
-                  ? 'bg-white text-blue-600 shadow-xs'
+                  ? 'bg-white text-amber-700 shadow-2xs'
                   : 'text-stone-600 hover:text-stone-900'
               }`}
             >
@@ -138,7 +109,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={() => onChangeTab('flights')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                 activeTab === 'flights'
-                  ? 'bg-white text-blue-600 shadow-xs'
+                  ? 'bg-white text-amber-700 shadow-2xs'
                   : 'text-stone-600 hover:text-stone-900'
               }`}
             >
@@ -150,7 +121,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={() => onChangeTab('passports')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                 activeTab === 'passports'
-                  ? 'bg-white text-blue-600 shadow-xs'
+                  ? 'bg-white text-amber-700 shadow-2xs'
                   : 'text-stone-600 hover:text-stone-900'
               }`}
             >
@@ -162,7 +133,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               onClick={() => onChangeTab('tickets')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                 activeTab === 'tickets'
-                  ? 'bg-white text-blue-600 shadow-xs'
+                  ? 'bg-white text-amber-700 shadow-2xs'
                   : 'text-stone-600 hover:text-stone-900'
               }`}
             >
@@ -171,89 +142,83 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           </div>
 
-          {/* Center / Right: Traveler Switcher & Global Controls */}
-          <div className="flex flex-wrap items-center justify-between md:justify-end gap-2">
-            {/* 5 Travelers quick picker */}
-            <div className="flex items-center gap-1 bg-stone-100 p-1 rounded-xl border border-stone-200 overflow-x-auto max-w-full">
-              <div className="text-[11px] font-bold text-stone-500 pl-1.5 pr-1 flex items-center gap-1 shrink-0">
-                <Users className="w-3.5 h-3.5 text-stone-400" />
-                <span className="hidden lg:inline">Viajero:</span>
-              </div>
-
-              {travelers.map((traveler) => {
-                const isSelected = traveler.id === activeTravelerId;
-                return (
-                  <button
-                    key={traveler.id}
-                    type="button"
-                    onClick={() => onSelectActiveTraveler(traveler.id)}
-                    className={`px-2 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all shrink-0 ${
-                      isSelected
-                        ? 'bg-white text-stone-900 shadow-xs ring-1 ring-stone-300 font-bold'
-                        : 'text-stone-600 hover:text-stone-900 hover:bg-stone-200/60'
-                    }`}
-                    title={`Ver y marcar como ${traveler.name}`}
-                  >
-                    <span
-                      className="w-2.5 h-2.5 rounded-full shrink-0"
-                      style={{ backgroundColor: traveler.avatarColor }}
-                    />
-                    <span className="max-w-[70px] sm:max-w-[90px] truncate">{traveler.name}</span>
-                  </button>
-                );
-              })}
-
-              <button
-                type="button"
-                onClick={onOpenTravelersModal}
-                className="p-1 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-200 transition-colors ml-0.5"
-                title="Editar nombres de los 5 viajeros"
-              >
-                <SlidersHorizontal className="w-3.5 h-3.5" />
-              </button>
-            </div>
-
-            {/* Desktop Buttons: Cloudflare Status, PWA, Alertas + Agregar Tour */}
-            <div className="hidden md:flex items-center gap-2">
-              <CloudSyncBadge syncState={syncState} onManualSync={onManualSync} />
+          {/* Action Buttons: Status, Alerts & Add Tour */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            <CloudSyncBadge syncState={syncState} onManualSync={onManualSync} />
+            
+            <div className="hidden sm:block">
               <PWAInstallButton variant="nav" />
-
-              <button
-                type="button"
-                onClick={onOpenAlertSettings}
-                className="px-2.5 py-1.5 text-xs font-bold rounded-xl border border-stone-200 bg-white hover:bg-stone-50 text-stone-700 flex items-center gap-1.5 shadow-2xs transition-colors"
-                title="Configurar avisos antes del tour"
-              >
-                <Bell className="w-3.5 h-3.5 text-amber-600" />
-                <span>Alertas ({defaultAlertHours}h)</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={onOpenAddTourModal}
-                className="px-3 py-1.5 text-xs font-bold rounded-xl bg-amber-500 hover:bg-amber-600 text-white flex items-center gap-1.5 shadow-xs transition-colors"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Agregar</span>
-              </button>
             </div>
+
+            <button
+              type="button"
+              onClick={onOpenAlertSettings}
+              className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 text-stone-700 flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+              title={`Alertas configuradas a ${defaultAlertHours}h antes`}
+            >
+              <Bell className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+              <span className="text-xs font-bold hidden md:inline">Alertas ({defaultAlertHours}h)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={onOpenAddTourModal}
+              className="px-2.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-stone-950 font-bold flex items-center gap-1 shadow-xs transition-colors cursor-pointer text-xs"
+              title="Agregar nueva actividad o tour"
+            >
+              <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+              <span className="hidden sm:inline">Nuevo Tour</span>
+            </button>
           </div>
         </div>
 
-        {/* User Progress Bar */}
-        <div className="mt-2 pt-1.5 border-t border-stone-100 flex items-center justify-between text-xs text-stone-500">
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-stone-800">
-              Progreso de <span style={{ color: activeTraveler.avatarColor }}>{activeTraveler.name}</span>:
+        {/* Second Row: Clean Horizontal Traveler Selector & Mini Progress */}
+        <div className="mt-2 pt-1.5 border-t border-stone-100 flex items-center justify-between gap-2">
+          {/* Scrollable Traveler Pills */}
+          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5 max-w-full">
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400 shrink-0 mr-1 hidden sm:inline">
+              Viajero:
             </span>
-            <span className="font-mono font-bold text-stone-900">
-              {activeUserVisitedCount} de {totalTours} lugares visitados
-            </span>
-            <span className="text-amber-600 font-bold">({progressPercent}%)</span>
+
+            {safeTravelers.map((traveler) => {
+              const isSelected = traveler.id === activeTravelerId;
+              return (
+                <button
+                  key={traveler.id}
+                  type="button"
+                  onClick={() => onSelectActiveTraveler(traveler.id)}
+                  className={`px-2.5 py-1 rounded-lg text-xs flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
+                    isSelected
+                      ? 'bg-stone-900 text-white font-bold shadow-xs'
+                      : 'bg-stone-100/90 text-stone-600 hover:text-stone-900 hover:bg-stone-200/80 font-medium'
+                  }`}
+                  title={`Cambiar a ${traveler.name}`}
+                >
+                  <span
+                    className="w-2 h-2 rounded-full shrink-0"
+                    style={{ backgroundColor: traveler.avatarColor }}
+                  />
+                  <span className="truncate max-w-[80px]">{traveler.name}</span>
+                </button>
+              );
+            })}
+
+            <button
+              type="button"
+              onClick={onOpenTravelersModal}
+              className="p-1 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors shrink-0"
+              title="Editar los 5 viajeros"
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+            </button>
           </div>
 
-          <div className="hidden sm:flex items-center gap-2 w-36">
-            <div className="w-full bg-stone-200 rounded-full h-1.5 overflow-hidden">
+          {/* Quick Progress Badge */}
+          <div className="flex items-center gap-2 shrink-0 text-right">
+            <span className="text-[11px] font-bold text-stone-600 hidden sm:inline">
+              <span className="font-extrabold text-stone-900">{activeUserVisitedCount}</span>/{totalTours} ({progressPercent}%)
+            </span>
+            <div className="w-16 sm:w-20 bg-stone-200 rounded-full h-1.5 overflow-hidden">
               <div
                 className="h-full rounded-full transition-all duration-500"
                 style={{
