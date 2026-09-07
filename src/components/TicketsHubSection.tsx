@@ -60,6 +60,7 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
   const [selectedCity, setSelectedCity] = useState<string>('all');
   
   const [expandedTourIds, setExpandedTourIds] = useState<Set<string>>(new Set());
+  const [expandedMetroTravelerIds, setExpandedMetroTravelerIds] = useState<Set<string>>(new Set());
 
   const [previewDoc, setPreviewDoc] = useState<{
     url: string;
@@ -191,6 +192,28 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
 
   const handleCollapseAll = () => {
     setExpandedTourIds(new Set());
+  };
+
+  const toggleMetroAccordion = (travelerId: string) => {
+    setExpandedMetroTravelerIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(travelerId)) {
+        next.delete(travelerId);
+      } else {
+        next.add(travelerId);
+      }
+      return next;
+    });
+  };
+
+  const handleExpandAllMetro = () => {
+    const allIds = new Set(safeTravelers.map((t) => t.id));
+    allIds.add('group');
+    setExpandedMetroTravelerIds(allIds);
+  };
+
+  const handleCollapseAllMetro = () => {
+    setExpandedMetroTravelerIds(new Set());
   };
 
   const handleOpenAddGenericDoc = (
@@ -1000,37 +1023,59 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
                 Billetes asignados por persona: <strong>Ticket de Ida</strong> y <strong>Ticket de Regreso</strong> para cada integrante.
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => handleOpenAddGenericDoc('metro')}
-              className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition shadow-xs flex items-center gap-1.5 cursor-pointer self-start sm:self-auto"
-            >
-              <Plus className="w-4 h-4" /> Subir Ticket Metro
-            </button>
+
+            <div className="flex items-center gap-2 flex-wrap self-start sm:self-auto">
+              <button
+                type="button"
+                onClick={handleExpandAllMetro}
+                className="px-2.5 py-1.5 text-xs font-semibold text-stone-600 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 rounded-lg transition cursor-pointer"
+              >
+                Expandir Todos
+              </button>
+              <button
+                type="button"
+                onClick={handleCollapseAllMetro}
+                className="px-2.5 py-1.5 text-xs font-semibold text-stone-600 hover:text-stone-900 bg-stone-100 hover:bg-stone-200 rounded-lg transition cursor-pointer"
+              >
+                Colapsar Todos
+              </button>
+              <button
+                type="button"
+                onClick={() => handleOpenAddGenericDoc('metro')}
+                className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold transition shadow-xs flex items-center gap-1.5 cursor-pointer"
+              >
+                <Plus className="w-4 h-4" /> Subir Ticket Metro
+              </button>
+            </div>
           </div>
 
-          <div className="space-y-4">
+          <div className="space-y-3">
             {safeTravelers.map((traveler) => {
               const travelerDocs = metroDocs.filter((d) => d.travelerId === traveler.id);
               const idaDoc = travelerDocs.find((d) => d.seatOrSection === 'ida' || d.title.toLowerCase().includes('ida'));
               const regresoDoc = travelerDocs.find((d) => d.seatOrSection === 'regreso' || d.title.toLowerCase().includes('regreso'));
               const otherDocs = travelerDocs.filter((d) => d.id !== idaDoc?.id && d.id !== regresoDoc?.id);
+              const isExpanded = expandedMetroTravelerIds.has(traveler.id);
 
               return (
                 <div
                   key={traveler.id}
-                  className="bg-white rounded-2xl border border-stone-200/90 shadow-xs p-4 sm:p-5 hover:border-rose-300/80 transition-all"
+                  className="bg-white rounded-2xl border border-stone-200/90 shadow-xs overflow-hidden transition-all hover:border-rose-300/80"
                 >
-                  {/* Traveler Header */}
-                  <div className="flex items-center justify-between gap-3 pb-3.5 border-b border-stone-100">
-                    <div className="flex items-center gap-3">
+                  {/* Traveler Accordion Header */}
+                  <button
+                    type="button"
+                    onClick={() => toggleMetroAccordion(traveler.id)}
+                    className="w-full text-left p-4 bg-stone-50/70 hover:bg-rose-50/40 transition-colors flex items-center justify-between gap-3 cursor-pointer select-none"
+                  >
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
                       <div
-                        className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-white text-base shadow-xs"
+                        className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-white text-base shadow-xs shrink-0"
                         style={{ backgroundColor: traveler.avatarColor }}
                       >
                         {traveler.name.charAt(0)}
                       </div>
-                      <div>
+                      <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <h4 className="text-base font-extrabold text-stone-900">{traveler.name}</h4>
                           <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-stone-100 text-stone-600">
@@ -1038,290 +1083,351 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
                           </span>
                         </div>
                         <p className="text-xs text-stone-500 font-medium mt-0.5">
-                          {travelerDocs.length === 0 ? 'Sin tickets asignados' : `${travelerDocs.length} ${travelerDocs.length === 1 ? 'ticket asignado' : 'tickets asignados'}`}
+                          {travelerDocs.length === 0
+                            ? 'Sin tickets asignados'
+                            : `${travelerDocs.length} ${travelerDocs.length === 1 ? 'ticket asignado' : 'tickets asignados'}`}
                         </p>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleOpenAddGenericDoc('metro', traveler.id, 'ida')}
-                        className="px-3 py-1.5 text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-xl border border-rose-200 transition flex items-center gap-1 cursor-pointer"
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span
+                        className={`text-[11px] font-bold px-2 py-0.5 rounded-md border hidden sm:inline-flex items-center gap-1 ${
+                          idaDoc
+                            ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                            : 'bg-stone-100 text-stone-400 border-stone-200'
+                        }`}
                       >
-                        <Plus className="w-3.5 h-3.5" />
-                        <span>Subir Ticket</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* 2 Main Slots: Ticket Ida & Ticket Regreso */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 mt-3.5">
-                    {/* SLOT 1: TICKET IDA */}
-                    {idaDoc ? (
-                      <div className="p-3.5 rounded-xl border border-emerald-200/90 bg-emerald-50/30 flex flex-col justify-between gap-3">
-                        <div>
-                          <div className="flex items-center justify-between gap-2 mb-1.5">
-                            <span className="text-[10px] uppercase font-black tracking-wider text-emerald-800 bg-emerald-100/90 px-2 py-0.5 rounded-md border border-emerald-300/80 flex items-center gap-1">
-                              <span>🟢</span> Ticket de Ida
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => setItemToDelete({ id: idaDoc.id, title: idaDoc.title, type: 'genericDoc' })}
-                              className="text-stone-400 hover:text-red-600 p-1 rounded-lg transition-colors cursor-pointer"
-                              title="Eliminar ticket (Código 8888)"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                          <h5 className="text-xs sm:text-sm font-bold text-stone-900 break-words">{idaDoc.title}</h5>
-                          
-                          <div className="mt-2 space-y-1 bg-white/90 p-2.5 rounded-xl border border-emerald-200/80 text-xs shadow-2xs">
-                            <div className="flex items-start gap-1.5 flex-wrap">
-                              <span className="font-bold text-stone-700 text-[11px] shrink-0">Nº Referencia / Localizador:</span>
-                              <span className="font-mono font-bold text-emerald-900 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 text-[11px] break-all">
-                                {idaDoc.referenceNumber || 'MTR-IDA'}
-                              </span>
-                            </div>
-                            {idaDoc.notes && (
-                              <p className="text-[11px] text-stone-600 break-words leading-relaxed pt-1 border-t border-emerald-100">
-                                <strong className="text-stone-700">Descripción: </strong>
-                                {idaDoc.notes}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="pt-2 border-t border-emerald-100 flex items-center justify-between gap-2">
-                          <span className="text-[10px] text-stone-400 truncate">{idaDoc.fileName || 'Ticket digital'}</span>
-                          <div className="flex items-center gap-1.5">
-                            {idaDoc.dataUrl && (
-                              <button
-                                type="button"
-                                onClick={() => setPreviewDoc({ url: idaDoc.dataUrl, title: idaDoc.title, type: idaDoc.fileType })}
-                                className="px-2.5 py-1 text-xs font-bold text-emerald-800 bg-white hover:bg-emerald-100/60 rounded-lg border border-emerald-300 transition flex items-center gap-1 cursor-pointer"
-                              >
-                                <Eye className="w-3 h-3" /> Ver
-                              </button>
-                            )}
-                            {idaDoc.dataUrl && (
-                              <a
-                                href={idaDoc.dataUrl}
-                                download={idaDoc.fileName || `${idaDoc.title}.png`}
-                                className="p-1 text-stone-500 hover:text-stone-900 bg-white hover:bg-stone-100 rounded-lg border border-stone-200 transition"
-                                title="Descargar"
-                              >
-                                <Download className="w-3 h-3" />
-                              </a>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div
-                        onClick={() => handleOpenAddGenericDoc('metro', traveler.id, 'ida')}
-                        className="p-4 rounded-xl border-2 border-dashed border-stone-200 hover:border-emerald-400 bg-stone-50/50 hover:bg-emerald-50/20 transition-all flex flex-col items-center justify-center text-center cursor-pointer min-h-[120px] group"
-                      >
-                        <span className="text-xl mb-1 opacity-70 group-hover:scale-110 transition-transform">🟢</span>
-                        <p className="text-xs font-bold text-stone-700">Ticket de Ida</p>
-                        <p className="text-[10px] text-stone-400 mt-0.5">Pendiente de subir para {traveler.name}</p>
-                        <span className="mt-2 inline-flex items-center gap-1 text-[11px] font-extrabold text-emerald-700 bg-emerald-100/80 group-hover:bg-emerald-200/90 px-2.5 py-1 rounded-lg transition">
-                          <Plus className="w-3 h-3" /> Subir Ticket Ida
-                        </span>
-                      </div>
-                    )}
-
-                    {/* SLOT 2: TICKET REGRESO */}
-                    {regresoDoc ? (
-                      <div className="p-3.5 rounded-xl border border-blue-200/90 bg-blue-50/30 flex flex-col justify-between gap-3">
-                        <div>
-                          <div className="flex items-center justify-between gap-2 mb-1.5">
-                            <span className="text-[10px] uppercase font-black tracking-wider text-blue-800 bg-blue-100/90 px-2 py-0.5 rounded-md border border-blue-300/80 flex items-center gap-1">
-                              <span>🔵</span> Ticket de Regreso
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => setItemToDelete({ id: regresoDoc.id, title: regresoDoc.title, type: 'genericDoc' })}
-                              className="text-stone-400 hover:text-red-600 p-1 rounded-lg transition-colors cursor-pointer"
-                              title="Eliminar ticket (Código 8888)"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                          <h5 className="text-xs sm:text-sm font-bold text-stone-900 break-words">{regresoDoc.title}</h5>
-
-                          <div className="mt-2 space-y-1 bg-white/90 p-2.5 rounded-xl border border-blue-200/80 text-xs shadow-2xs">
-                            <div className="flex items-start gap-1.5 flex-wrap">
-                              <span className="font-bold text-stone-700 text-[11px] shrink-0">Nº Referencia / Localizador:</span>
-                              <span className="font-mono font-bold text-blue-900 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200 text-[11px] break-all">
-                                {regresoDoc.referenceNumber || 'MTR-REGRESO'}
-                              </span>
-                            </div>
-                            {regresoDoc.notes && (
-                              <p className="text-[11px] text-stone-600 break-words leading-relaxed pt-1 border-t border-blue-100">
-                                <strong className="text-stone-700">Descripción: </strong>
-                                {regresoDoc.notes}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-
-                        <div className="pt-2 border-t border-blue-100 flex items-center justify-between gap-2">
-                          <span className="text-[10px] text-stone-400 truncate">{regresoDoc.fileName || 'Ticket digital'}</span>
-                          <div className="flex items-center gap-1.5">
-                            {regresoDoc.dataUrl && (
-                              <button
-                                type="button"
-                                onClick={() => setPreviewDoc({ url: regresoDoc.dataUrl, title: regresoDoc.title, type: regresoDoc.fileType })}
-                                className="px-2.5 py-1 text-xs font-bold text-blue-800 bg-white hover:bg-blue-100/60 rounded-lg border border-blue-300 transition flex items-center gap-1 cursor-pointer"
-                              >
-                                <Eye className="w-3 h-3" /> Ver
-                              </button>
-                            )}
-                            {regresoDoc.dataUrl && (
-                              <a
-                                href={regresoDoc.dataUrl}
-                                download={regresoDoc.fileName || `${regresoDoc.title}.png`}
-                                className="p-1 text-stone-500 hover:text-stone-900 bg-white hover:bg-stone-100 rounded-lg border border-stone-200 transition"
-                                title="Descargar"
-                              >
-                                <Download className="w-3 h-3" />
-                              </a>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div
-                        onClick={() => handleOpenAddGenericDoc('metro', traveler.id, 'regreso')}
-                        className="p-4 rounded-xl border-2 border-dashed border-stone-200 hover:border-blue-400 bg-stone-50/50 hover:bg-blue-50/20 transition-all flex flex-col items-center justify-center text-center cursor-pointer min-h-[120px] group"
-                      >
-                        <span className="text-xl mb-1 opacity-70 group-hover:scale-110 transition-transform">🔵</span>
-                        <p className="text-xs font-bold text-stone-700">Ticket de Regreso</p>
-                        <p className="text-[10px] text-stone-400 mt-0.5">Pendiente de subir para {traveler.name}</p>
-                        <span className="mt-2 inline-flex items-center gap-1 text-[11px] font-extrabold text-blue-700 bg-blue-100/80 group-hover:bg-blue-200/90 px-2.5 py-1 rounded-lg transition">
-                          <Plus className="w-3 h-3" /> Subir Ticket Regreso
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Other tickets for this traveler */}
-                  {otherDocs.length > 0 && (
-                    <div className="mt-3 pt-3 border-t border-stone-100">
-                      <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider block mb-2">
-                        Otros Billetes / Tarjetas de {traveler.name}:
+                        <span>🟢 Ida:</span>
+                        <span>{idaDoc ? 'Listo' : 'Pendiente'}</span>
                       </span>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {otherDocs.map((doc) => (
-                          <div key={doc.id} className="p-3.5 rounded-xl border border-stone-200 bg-stone-50 flex flex-col justify-between gap-2.5">
+
+                      <span
+                        className={`text-[11px] font-bold px-2 py-0.5 rounded-md border hidden sm:inline-flex items-center gap-1 ${
+                          regresoDoc
+                            ? 'bg-blue-50 text-blue-800 border-blue-300'
+                            : 'bg-stone-100 text-stone-400 border-stone-200'
+                        }`}
+                      >
+                        <span>🔵 Regreso:</span>
+                        <span>{regresoDoc ? 'Listo' : 'Pendiente'}</span>
+                      </span>
+
+                      <div className="w-7 h-7 rounded-lg bg-stone-200/70 flex items-center justify-center text-stone-600 ml-1">
+                        {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                      </div>
+                    </div>
+                  </button>
+
+                  {/* Traveler Accordion Content */}
+                  {isExpanded && (
+                    <div className="p-4 sm:p-5 border-t border-stone-100 space-y-4 bg-white animate-in fade-in duration-150">
+                      <div className="flex items-center justify-between pb-3 border-b border-stone-100">
+                        <span className="text-xs font-bold text-stone-700">
+                          Billetes de Metro de {traveler.name} (Ida y Vuelta)
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenAddGenericDoc('metro', traveler.id, 'ida')}
+                          className="px-3 py-1.5 text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-xl border border-rose-200 transition flex items-center gap-1 cursor-pointer"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>Subir Billete</span>
+                        </button>
+                      </div>
+
+                      {/* 2 Main Slots: Ticket Ida & Ticket Regreso */}
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                        {/* SLOT 1: TICKET IDA */}
+                        {idaDoc ? (
+                          <div className="p-3.5 rounded-xl border border-emerald-200/90 bg-emerald-50/30 flex flex-col justify-between gap-3">
                             <div>
-                              <div className="flex items-center justify-between gap-2">
-                                <span className="text-[10px] font-bold text-stone-600 bg-white px-1.5 py-0.5 rounded border border-stone-200">
-                                  {doc.seatOrSection || 'General'}
+                              <div className="flex items-center justify-between gap-2 mb-1.5">
+                                <span className="text-[10px] uppercase font-black tracking-wider text-emerald-800 bg-emerald-100/90 px-2 py-0.5 rounded-md border border-emerald-300/80 flex items-center gap-1">
+                                  <span>🟢</span> Ticket de Ida
                                 </span>
-                                <div className="flex items-center gap-1">
-                                  {doc.dataUrl && (
-                                    <button
-                                      type="button"
-                                      onClick={() => setPreviewDoc({ url: doc.dataUrl, title: doc.title, type: doc.fileType })}
-                                      className="p-1.5 text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg transition cursor-pointer"
-                                      title="Ver documento"
-                                    >
-                                      <Eye className="w-3.5 h-3.5" />
-                                    </button>
-                                  )}
-                                  <button
-                                    type="button"
-                                    onClick={() => setItemToDelete({ id: doc.id, title: doc.title, type: 'genericDoc' })}
-                                    className="p-1.5 text-stone-400 hover:text-red-600 rounded-lg transition cursor-pointer"
-                                    title="Eliminar"
-                                  >
-                                    <Trash2 className="w-3.5 h-3.5" />
-                                  </button>
-                                </div>
+                                <button
+                                  type="button"
+                                  onClick={() => setItemToDelete({ id: idaDoc.id, title: idaDoc.title, type: 'genericDoc' })}
+                                  className="text-stone-400 hover:text-red-600 p-1 rounded-lg transition-colors cursor-pointer"
+                                  title="Eliminar"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
                               </div>
-                              <h6 className="text-xs font-bold text-stone-800 mt-1">{doc.title}</h6>
+                              <h5 className="text-xs sm:text-sm font-bold text-stone-900 break-words">{idaDoc.title}</h5>
                               
-                              <div className="mt-2 space-y-1 bg-white p-2 rounded-lg border border-stone-200 text-xs">
-                                <div className="flex items-start gap-1 flex-wrap">
+                              <div className="mt-2 space-y-1 bg-white/90 p-2.5 rounded-xl border border-emerald-200/80 text-xs shadow-2xs">
+                                <div className="flex items-start gap-1.5 flex-wrap">
                                   <span className="font-bold text-stone-700 text-[11px] shrink-0">Nº Referencia / Localizador:</span>
-                                  <span className="font-mono font-bold text-rose-800 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200 text-[11px] break-all">
-                                    {doc.referenceNumber || 'MTR-GENERAL'}
+                                  <span className="font-mono font-bold text-emerald-900 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 text-[11px] break-all">
+                                    {idaDoc.referenceNumber || 'MTR-IDA'}
                                   </span>
                                 </div>
-                                {doc.notes && (
-                                  <p className="text-[11px] text-stone-600 break-words leading-relaxed pt-1 border-t border-stone-100">
+                                {idaDoc.notes && (
+                                  <p className="text-[11px] text-stone-600 break-words leading-relaxed pt-1 border-t border-emerald-100">
                                     <strong className="text-stone-700">Descripción: </strong>
-                                    {doc.notes}
+                                    {idaDoc.notes}
                                   </p>
                                 )}
                               </div>
                             </div>
+
+                            <div className="pt-2 border-t border-emerald-100 flex items-center justify-between gap-2">
+                              <span className="text-[10px] text-stone-400 truncate">{idaDoc.fileName || 'Ticket digital'}</span>
+                              <div className="flex items-center gap-1.5">
+                                {idaDoc.dataUrl && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setPreviewDoc({ url: idaDoc.dataUrl, title: idaDoc.title, type: idaDoc.fileType })}
+                                    className="px-2.5 py-1 text-xs font-bold text-emerald-800 bg-white hover:bg-emerald-100/60 rounded-lg border border-emerald-300 transition flex items-center gap-1 cursor-pointer"
+                                  >
+                                    <Eye className="w-3 h-3" /> Ver
+                                  </button>
+                                )}
+                                {idaDoc.dataUrl && (
+                                  <a
+                                    href={idaDoc.dataUrl}
+                                    download={idaDoc.fileName || `${idaDoc.title}.png`}
+                                    className="p-1 text-stone-500 hover:text-stone-900 bg-white hover:bg-stone-100 rounded-lg border border-stone-200 transition"
+                                    title="Descargar"
+                                  >
+                                    <Download className="w-3 h-3" />
+                                  </a>
+                                )}
+                              </div>
+                            </div>
                           </div>
-                        ))}
+                        ) : (
+                          <div
+                            onClick={() => handleOpenAddGenericDoc('metro', traveler.id, 'ida')}
+                            className="p-4 rounded-xl border-2 border-dashed border-stone-200 hover:border-emerald-400 bg-stone-50/50 hover:bg-emerald-50/20 transition-all flex flex-col items-center justify-center text-center cursor-pointer min-h-[120px] group"
+                          >
+                            <span className="text-xl mb-1 opacity-70 group-hover:scale-110 transition-transform">🟢</span>
+                            <p className="text-xs font-bold text-stone-700">Ticket de Ida</p>
+                            <p className="text-[10px] text-stone-400 mt-0.5">Pendiente de subir para {traveler.name}</p>
+                            <span className="mt-2 inline-flex items-center gap-1 text-[11px] font-extrabold text-emerald-700 bg-emerald-100/80 group-hover:bg-emerald-200/90 px-2.5 py-1 rounded-lg transition">
+                              <Plus className="w-3 h-3" /> Subir Ticket Ida
+                            </span>
+                          </div>
+                        )}
+
+                        {/* SLOT 2: TICKET REGRESO */}
+                        {regresoDoc ? (
+                          <div className="p-3.5 rounded-xl border border-blue-200/90 bg-blue-50/30 flex flex-col justify-between gap-3">
+                            <div>
+                              <div className="flex items-center justify-between gap-2 mb-1.5">
+                                <span className="text-[10px] uppercase font-black tracking-wider text-blue-800 bg-blue-100/90 px-2 py-0.5 rounded-md border border-blue-300/80 flex items-center gap-1">
+                                  <span>🔵</span> Ticket de Regreso
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => setItemToDelete({ id: regresoDoc.id, title: regresoDoc.title, type: 'genericDoc' })}
+                                  className="text-stone-400 hover:text-red-600 p-1 rounded-lg transition-colors cursor-pointer"
+                                  title="Eliminar"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                              <h5 className="text-xs sm:text-sm font-bold text-stone-900 break-words">{regresoDoc.title}</h5>
+
+                              <div className="mt-2 space-y-1 bg-white/90 p-2.5 rounded-xl border border-blue-200/80 text-xs shadow-2xs">
+                                <div className="flex items-start gap-1.5 flex-wrap">
+                                  <span className="font-bold text-stone-700 text-[11px] shrink-0">Nº Referencia / Localizador:</span>
+                                  <span className="font-mono font-bold text-blue-900 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200 text-[11px] break-all">
+                                    {regresoDoc.referenceNumber || 'MTR-REGRESO'}
+                                  </span>
+                                </div>
+                                {regresoDoc.notes && (
+                                  <p className="text-[11px] text-stone-600 break-words leading-relaxed pt-1 border-t border-blue-100">
+                                    <strong className="text-stone-700">Descripción: </strong>
+                                    {regresoDoc.notes}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="pt-2 border-t border-blue-100 flex items-center justify-between gap-2">
+                              <span className="text-[10px] text-stone-400 truncate">{regresoDoc.fileName || 'Ticket digital'}</span>
+                              <div className="flex items-center gap-1.5">
+                                {regresoDoc.dataUrl && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setPreviewDoc({ url: regresoDoc.dataUrl, title: regresoDoc.title, type: regresoDoc.fileType })}
+                                    className="px-2.5 py-1 text-xs font-bold text-blue-800 bg-white hover:bg-blue-100/60 rounded-lg border border-blue-300 transition flex items-center gap-1 cursor-pointer"
+                                  >
+                                    <Eye className="w-3 h-3" /> Ver
+                                  </button>
+                                )}
+                                {regresoDoc.dataUrl && (
+                                  <a
+                                    href={regresoDoc.dataUrl}
+                                    download={regresoDoc.fileName || `${regresoDoc.title}.png`}
+                                    className="p-1 text-stone-500 hover:text-stone-900 bg-white hover:bg-stone-100 rounded-lg border border-stone-200 transition"
+                                    title="Descargar"
+                                  >
+                                    <Download className="w-3 h-3" />
+                                  </a>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <div
+                            onClick={() => handleOpenAddGenericDoc('metro', traveler.id, 'regreso')}
+                            className="p-4 rounded-xl border-2 border-dashed border-stone-200 hover:border-blue-400 bg-stone-50/50 hover:bg-blue-50/20 transition-all flex flex-col items-center justify-center text-center cursor-pointer min-h-[120px] group"
+                          >
+                            <span className="text-xl mb-1 opacity-70 group-hover:scale-110 transition-transform">🔵</span>
+                            <p className="text-xs font-bold text-stone-700">Ticket de Regreso</p>
+                            <p className="text-[10px] text-stone-400 mt-0.5">Pendiente de subir para {traveler.name}</p>
+                            <span className="mt-2 inline-flex items-center gap-1 text-[11px] font-extrabold text-blue-700 bg-blue-100/80 group-hover:bg-blue-200/90 px-2.5 py-1 rounded-lg transition">
+                              <Plus className="w-3 h-3" /> Subir Ticket Regreso
+                            </span>
+                          </div>
+                        )}
                       </div>
+
+                      {/* Other tickets for this traveler */}
+                      {otherDocs.length > 0 && (
+                        <div className="mt-3 pt-3 border-t border-stone-100">
+                          <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider block mb-2">
+                            Otros Billetes / Tarjetas de {traveler.name}:
+                          </span>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {otherDocs.map((doc) => (
+                              <div key={doc.id} className="p-3.5 rounded-xl border border-stone-200 bg-stone-50 flex flex-col justify-between gap-2.5">
+                                <div>
+                                  <div className="flex items-center justify-between gap-2">
+                                    <span className="text-[10px] font-bold text-stone-600 bg-white px-1.5 py-0.5 rounded border border-stone-200">
+                                      {doc.seatOrSection || 'General'}
+                                    </span>
+                                    <div className="flex items-center gap-1">
+                                      {doc.dataUrl && (
+                                        <button
+                                          type="button"
+                                          onClick={() => setPreviewDoc({ url: doc.dataUrl, title: doc.title, type: doc.fileType })}
+                                          className="p-1.5 text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg transition cursor-pointer"
+                                          title="Ver documento"
+                                        >
+                                          <Eye className="w-3.5 h-3.5" />
+                                        </button>
+                                      )}
+                                      <button
+                                        type="button"
+                                        onClick={() => setItemToDelete({ id: doc.id, title: doc.title, type: 'genericDoc' })}
+                                        className="p-1.5 text-stone-400 hover:text-red-600 rounded-lg transition cursor-pointer"
+                                        title="Eliminar"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                  <h6 className="text-xs font-bold text-stone-800 mt-1">{doc.title}</h6>
+                                  
+                                  <div className="mt-2 space-y-1 bg-white p-2 rounded-lg border border-stone-200 text-xs">
+                                    <div className="flex items-start gap-1 flex-wrap">
+                                      <span className="font-bold text-stone-700 text-[11px] shrink-0">Nº Referencia / Localizador:</span>
+                                      <span className="font-mono font-bold text-rose-800 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200 text-[11px] break-all">
+                                        {doc.referenceNumber || 'MTR-GENERAL'}
+                                      </span>
+                                    </div>
+                                    {doc.notes && (
+                                      <p className="text-[11px] text-stone-600 break-words leading-relaxed pt-1 border-t border-stone-100">
+                                        <strong className="text-stone-700">Descripción: </strong>
+                                        {doc.notes}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
               );
             })}
 
-            {/* UNASSIGNED METRO TICKETS */}
-            {metroDocs.filter((d) => !d.travelerId || d.travelerId === 'group').length > 0 && (
-              <div className="bg-white rounded-2xl border border-dashed border-rose-200 shadow-xs p-4 sm:p-5">
-                <div className="flex items-center gap-2 pb-3 border-b border-stone-100">
-                  <Train className="w-5 h-5 text-rose-600" />
-                  <h4 className="text-sm font-bold text-stone-800">Billetes Grupales / Sin Asignar</h4>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 mt-3">
-                  {metroDocs.filter((d) => !d.travelerId || d.travelerId === 'group').map((doc) => (
-                    <div key={doc.id} className="p-3.5 rounded-xl border border-stone-200 bg-stone-50 flex flex-col justify-between gap-2.5">
-                      <div>
-                        <div className="flex items-center justify-between gap-2">
-                          <h5 className="text-xs font-bold text-stone-800">{doc.title}</h5>
-                          <div className="flex items-center gap-1 shrink-0">
-                            {doc.dataUrl && (
-                              <button
-                                type="button"
-                                onClick={() => setPreviewDoc({ url: doc.dataUrl, title: doc.title, type: doc.fileType })}
-                                className="p-1.5 text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg transition"
-                                title="Ver documento"
-                              >
-                                <Eye className="w-3.5 h-3.5" />
-                              </button>
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => setItemToDelete({ id: doc.id, title: doc.title, type: 'genericDoc' })}
-                              className="p-1.5 text-stone-400 hover:text-red-600 rounded-lg transition"
-                              title="Eliminar"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </div>
+            {/* UNASSIGNED METRO TICKETS ACCORDION */}
+            {metroDocs.filter((d) => !d.travelerId || d.travelerId === 'group').length > 0 && (() => {
+              const groupDocs = metroDocs.filter((d) => !d.travelerId || d.travelerId === 'group');
+              const isGroupExpanded = expandedMetroTravelerIds.has('group');
 
-                        <div className="mt-2 space-y-1 bg-white p-2 rounded-lg border border-stone-200 text-xs">
-                          <div className="flex items-start gap-1 flex-wrap">
-                            <span className="font-bold text-stone-700 text-[11px] shrink-0">Nº Referencia / Localizador:</span>
-                            <span className="font-mono font-bold text-rose-800 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200 text-[11px] break-all">
-                              {doc.referenceNumber || 'MTR-GRUPAL'}
-                            </span>
-                          </div>
-                          {doc.notes && (
-                            <p className="text-[11px] text-stone-600 break-words leading-relaxed pt-1 border-t border-stone-100">
-                              <strong className="text-stone-700">Descripción: </strong>
-                              {doc.notes}
-                            </p>
-                          )}
-                        </div>
+              return (
+                <div className="bg-white rounded-2xl border border-dashed border-rose-200 shadow-xs overflow-hidden transition-all">
+                  <button
+                    type="button"
+                    onClick={() => toggleMetroAccordion('group')}
+                    className="w-full text-left p-4 bg-rose-50/40 hover:bg-rose-50/70 transition-colors flex items-center justify-between gap-3 cursor-pointer select-none"
+                  >
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0 shadow-xs">
+                        <Train className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-stone-800">Billetes Grupales / Sin Asignar</h4>
+                        <p className="text-xs text-stone-500">{groupDocs.length} {groupDocs.length === 1 ? 'billete' : 'billetes'}</p>
                       </div>
                     </div>
-                  ))}
+
+                    <div className="w-7 h-7 rounded-lg bg-stone-200/70 flex items-center justify-center text-stone-600 ml-1">
+                      {isGroupExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                    </div>
+                  </button>
+
+                  {isGroupExpanded && (
+                    <div className="p-4 sm:p-5 border-t border-rose-100 grid grid-cols-1 md:grid-cols-2 gap-3.5 bg-white animate-in fade-in duration-150">
+                      {groupDocs.map((doc) => (
+                        <div key={doc.id} className="p-3.5 rounded-xl border border-stone-200 bg-stone-50 flex flex-col justify-between gap-2.5">
+                          <div>
+                            <div className="flex items-center justify-between gap-2">
+                              <h5 className="text-xs font-bold text-stone-800">{doc.title}</h5>
+                              <div className="flex items-center gap-1 shrink-0">
+                                {doc.dataUrl && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setPreviewDoc({ url: doc.dataUrl, title: doc.title, type: doc.fileType })}
+                                    className="p-1.5 text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg transition"
+                                    title="Ver documento"
+                                  >
+                                    <Eye className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                                <button
+                                  type="button"
+                                  onClick={() => setItemToDelete({ id: doc.id, title: doc.title, type: 'genericDoc' })}
+                                  className="p-1.5 text-stone-400 hover:text-red-600 rounded-lg transition"
+                                  title="Eliminar"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+
+                            <div className="mt-2 space-y-1 bg-white p-2 rounded-lg border border-stone-200 text-xs">
+                              <div className="flex items-start gap-1 flex-wrap">
+                                <span className="font-bold text-stone-700 text-[11px] shrink-0">Nº Referencia / Localizador:</span>
+                                <span className="font-mono font-bold text-rose-800 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200 text-[11px] break-all">
+                                  {doc.referenceNumber || 'MTR-GRUPAL'}
+                                </span>
+                              </div>
+                              {doc.notes && (
+                                <p className="text-[11px] text-stone-600 break-words leading-relaxed pt-1 border-t border-stone-100">
+                                  <strong className="text-stone-700">Descripción: </strong>
+                                  {doc.notes}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              </div>
-            )}
+              );
+            })()}
           </div>
         </div>
       )}
