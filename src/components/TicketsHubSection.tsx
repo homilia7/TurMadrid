@@ -323,6 +323,45 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
     setGenericUploadedFile(null);
   };
 
+  const handleDirectUploadPhoto = async (doc: DocumentItem, file: File) => {
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    const reader = new FileReader();
+
+    reader.onload = async () => {
+      try {
+        let result = reader.result as string;
+        let finalSize = `${(file.size / 1024).toFixed(1)} KB`;
+        if (!isPdf && result.startsWith('data:image')) {
+          const optimized = await optimizeImageForUpload(result);
+          result = optimized.dataUrl;
+          finalSize = optimized.fileSize;
+        }
+
+        const updatedDoc: DocumentItem = {
+          ...doc,
+          dataUrl: result,
+          fileName: file.name,
+          fileType: isPdf ? 'pdf' : 'image',
+          fileSize: finalSize,
+          uploadedAt: new Date().toISOString().split('T')[0],
+        };
+
+        if (onAddDocument) {
+          onAddDocument(updatedDoc);
+        }
+        try {
+          await uploadDocumentToCloud(updatedDoc);
+        } catch (err) {
+          console.warn('Could not sync uploaded ticket photo directly to D1:', err);
+        }
+      } catch (err) {
+        console.error('Error procesando foto de billete:', err);
+      }
+    };
+
+    reader.readAsDataURL(file);
+  };
+
   const handleConfirmDelete = async () => {
     if (deletePin.trim() !== '8888') {
       setPinError(true);
@@ -1171,10 +1210,69 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
                                   </p>
                                 )}
                               </div>
+
+                              {/* Direct Photo Thumbnail or Upload Button */}
+                              {idaDoc.dataUrl ? (
+                                <div className="mt-2.5 flex items-center gap-2 p-2 bg-white/90 rounded-xl border border-emerald-200 shadow-2xs">
+                                  <div
+                                    onClick={() => setPreviewDoc({ url: idaDoc.dataUrl, title: idaDoc.title, type: idaDoc.fileType })}
+                                    className="relative w-14 h-12 rounded-lg border border-emerald-200 overflow-hidden bg-stone-100 cursor-pointer shrink-0 group hover:opacity-90 transition"
+                                    title="Clic para ampliar foto"
+                                  >
+                                    {idaDoc.fileType === 'pdf' ? (
+                                      <div className="w-full h-full flex flex-col items-center justify-center bg-rose-50 text-rose-700">
+                                        <FileText className="w-4 h-4" />
+                                        <span className="text-[7px] font-bold">PDF</span>
+                                      </div>
+                                    ) : (
+                                      <img src={idaDoc.dataUrl} alt={idaDoc.title} className="w-full h-full object-cover" />
+                                    )}
+                                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
+                                      <Eye className="w-3.5 h-3.5 text-white drop-shadow-md" />
+                                    </div>
+                                  </div>
+
+                                  <label className="flex-1 flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-lg border border-emerald-300 hover:border-emerald-400 bg-emerald-50/50 hover:bg-emerald-100/60 text-emerald-800 text-[11px] font-bold cursor-pointer transition shadow-2xs text-center">
+                                    <Camera className="w-3.5 h-3.5 shrink-0" />
+                                    <span>Cambiar Foto</span>
+                                    <input
+                                      type="file"
+                                      accept="image/*,application/pdf"
+                                      capture="environment"
+                                      className="hidden"
+                                      onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) {
+                                          handleDirectUploadPhoto(idaDoc, file);
+                                        }
+                                      }}
+                                    />
+                                  </label>
+                                </div>
+                              ) : (
+                                <div className="mt-2.5">
+                                  <label className="w-full flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl border-2 border-dashed border-emerald-300 hover:border-emerald-500 bg-emerald-50/70 hover:bg-emerald-100/70 text-emerald-800 text-xs font-bold cursor-pointer transition shadow-2xs text-center group">
+                                    <Camera className="w-4 h-4 text-emerald-600 group-hover:scale-110 transition-transform shrink-0" />
+                                    <span>Subir / Tomar Foto del Billete</span>
+                                    <input
+                                      type="file"
+                                      accept="image/*,application/pdf"
+                                      capture="environment"
+                                      className="hidden"
+                                      onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) {
+                                          handleDirectUploadPhoto(idaDoc, file);
+                                        }
+                                      }}
+                                    />
+                                  </label>
+                                </div>
+                              )}
                             </div>
 
                             <div className="pt-2 border-t border-emerald-100 flex items-center justify-between gap-2">
-                              <span className="text-[10px] text-stone-400 truncate">{idaDoc.fileName || 'Ticket digital'}</span>
+                              <span className="text-[10px] text-stone-400 truncate">{idaDoc.fileName || (idaDoc.dataUrl ? 'Ticket digital' : 'Sin foto adjunta')}</span>
                               <div className="flex items-center gap-1.5">
                                 {idaDoc.dataUrl && (
                                   <button
@@ -1245,10 +1343,69 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
                                   </p>
                                 )}
                               </div>
+
+                              {/* Direct Photo Thumbnail or Upload Button */}
+                              {regresoDoc.dataUrl ? (
+                                <div className="mt-2.5 flex items-center gap-2 p-2 bg-white/90 rounded-xl border border-blue-200 shadow-2xs">
+                                  <div
+                                    onClick={() => setPreviewDoc({ url: regresoDoc.dataUrl, title: regresoDoc.title, type: regresoDoc.fileType })}
+                                    className="relative w-14 h-12 rounded-lg border border-blue-200 overflow-hidden bg-stone-100 cursor-pointer shrink-0 group hover:opacity-90 transition"
+                                    title="Clic para ampliar foto"
+                                  >
+                                    {regresoDoc.fileType === 'pdf' ? (
+                                      <div className="w-full h-full flex flex-col items-center justify-center bg-rose-50 text-rose-700">
+                                        <FileText className="w-4 h-4" />
+                                        <span className="text-[7px] font-bold">PDF</span>
+                                      </div>
+                                    ) : (
+                                      <img src={regresoDoc.dataUrl} alt={regresoDoc.title} className="w-full h-full object-cover" />
+                                    )}
+                                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
+                                      <Eye className="w-3.5 h-3.5 text-white drop-shadow-md" />
+                                    </div>
+                                  </div>
+
+                                  <label className="flex-1 flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-lg border border-blue-300 hover:border-blue-400 bg-blue-50/50 hover:bg-blue-100/60 text-blue-800 text-[11px] font-bold cursor-pointer transition shadow-2xs text-center">
+                                    <Camera className="w-3.5 h-3.5 shrink-0" />
+                                    <span>Cambiar Foto</span>
+                                    <input
+                                      type="file"
+                                      accept="image/*,application/pdf"
+                                      capture="environment"
+                                      className="hidden"
+                                      onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) {
+                                          handleDirectUploadPhoto(regresoDoc, file);
+                                        }
+                                      }}
+                                    />
+                                  </label>
+                                </div>
+                              ) : (
+                                <div className="mt-2.5">
+                                  <label className="w-full flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl border-2 border-dashed border-blue-300 hover:border-blue-500 bg-blue-50/70 hover:bg-blue-100/70 text-blue-800 text-xs font-bold cursor-pointer transition shadow-2xs text-center group">
+                                    <Camera className="w-4 h-4 text-blue-600 group-hover:scale-110 transition-transform shrink-0" />
+                                    <span>Subir / Tomar Foto del Billete</span>
+                                    <input
+                                      type="file"
+                                      accept="image/*,application/pdf"
+                                      capture="environment"
+                                      className="hidden"
+                                      onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) {
+                                          handleDirectUploadPhoto(regresoDoc, file);
+                                        }
+                                      }}
+                                    />
+                                  </label>
+                                </div>
+                              )}
                             </div>
 
                             <div className="pt-2 border-t border-blue-100 flex items-center justify-between gap-2">
-                              <span className="text-[10px] text-stone-400 truncate">{regresoDoc.fileName || 'Ticket digital'}</span>
+                              <span className="text-[10px] text-stone-400 truncate">{regresoDoc.fileName || (regresoDoc.dataUrl ? 'Ticket digital' : 'Sin foto adjunta')}</span>
                               <div className="flex items-center gap-1.5">
                                 {regresoDoc.dataUrl && (
                                   <button
@@ -1338,6 +1495,60 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
                                       </p>
                                     )}
                                   </div>
+
+                                  {/* Direct Photo Thumbnail or Upload Button for Other Docs */}
+                                  {doc.dataUrl ? (
+                                    <div className="mt-2.5 flex items-center gap-2 p-2 bg-white rounded-lg border border-stone-200 shadow-2xs">
+                                      <div
+                                        onClick={() => setPreviewDoc({ url: doc.dataUrl, title: doc.title, type: doc.fileType })}
+                                        className="relative w-12 h-10 rounded border border-stone-200 overflow-hidden bg-stone-100 cursor-pointer shrink-0 group hover:opacity-90 transition"
+                                        title="Clic para ampliar foto"
+                                      >
+                                        {doc.fileType === 'pdf' ? (
+                                          <div className="w-full h-full flex flex-col items-center justify-center bg-rose-50 text-rose-700">
+                                            <FileText className="w-3.5 h-3.5" />
+                                          </div>
+                                        ) : (
+                                          <img src={doc.dataUrl} alt={doc.title} className="w-full h-full object-cover" />
+                                        )}
+                                      </div>
+                                      <label className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded border border-rose-200 hover:border-rose-300 bg-rose-50/50 hover:bg-rose-100/50 text-rose-800 text-[10px] font-bold cursor-pointer transition text-center">
+                                        <Camera className="w-3 h-3 shrink-0" />
+                                        <span>Cambiar Foto</span>
+                                        <input
+                                          type="file"
+                                          accept="image/*,application/pdf"
+                                          capture="environment"
+                                          className="hidden"
+                                          onChange={(e) => {
+                                            const file = e.target.files?.[0];
+                                            if (file) {
+                                              handleDirectUploadPhoto(doc, file);
+                                            }
+                                          }}
+                                        />
+                                      </label>
+                                    </div>
+                                  ) : (
+                                    <div className="mt-2">
+                                      <label className="w-full flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-lg border-2 border-dashed border-rose-200 hover:border-rose-400 bg-rose-50/50 hover:bg-rose-100/50 text-rose-800 text-[11px] font-bold cursor-pointer transition text-center group">
+                                        <Camera className="w-3.5 h-3.5 text-rose-600 group-hover:scale-110 transition-transform shrink-0" />
+                                        <span>Subir Foto del Billete</span>
+                                        <input
+                                          type="file"
+                                          accept="image/*,application/pdf"
+                                          capture="environment"
+                                          className="hidden"
+                                          onChange={(e) => {
+                                            const file = e.target.files?.[0];
+                                            if (file) {
+                                              handleDirectUploadPhoto(doc, file);
+                                            }
+                                          }}
+                                        />
+                                      </label>
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             ))}
@@ -1389,7 +1600,7 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
                                   <button
                                     type="button"
                                     onClick={() => setPreviewDoc({ url: doc.dataUrl, title: doc.title, type: doc.fileType })}
-                                    className="p-1.5 text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg transition"
+                                    className="p-1.5 text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg transition cursor-pointer"
                                     title="Ver documento"
                                   >
                                     <Eye className="w-3.5 h-3.5" />
@@ -1398,7 +1609,7 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
                                 <button
                                   type="button"
                                   onClick={() => setItemToDelete({ id: doc.id, title: doc.title, type: 'genericDoc' })}
-                                  className="p-1.5 text-stone-400 hover:text-red-600 rounded-lg transition"
+                                  className="p-1.5 text-stone-400 hover:text-red-600 rounded-lg transition cursor-pointer"
                                   title="Eliminar"
                                 >
                                   <Trash2 className="w-3.5 h-3.5" />
@@ -1420,6 +1631,60 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
                                 </p>
                               )}
                             </div>
+
+                            {/* Direct Photo Thumbnail or Upload Button for Group Docs */}
+                            {doc.dataUrl ? (
+                              <div className="mt-2.5 flex items-center gap-2 p-2 bg-white rounded-lg border border-stone-200 shadow-2xs">
+                                <div
+                                  onClick={() => setPreviewDoc({ url: doc.dataUrl, title: doc.title, type: doc.fileType })}
+                                  className="relative w-12 h-10 rounded border border-stone-200 overflow-hidden bg-stone-100 cursor-pointer shrink-0 group hover:opacity-90 transition"
+                                  title="Clic para ampliar foto"
+                                >
+                                  {doc.fileType === 'pdf' ? (
+                                    <div className="w-full h-full flex flex-col items-center justify-center bg-rose-50 text-rose-700">
+                                      <FileText className="w-3.5 h-3.5" />
+                                    </div>
+                                  ) : (
+                                    <img src={doc.dataUrl} alt={doc.title} className="w-full h-full object-cover" />
+                                  )}
+                                </div>
+                                <label className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded border border-rose-200 hover:border-rose-300 bg-rose-50/50 hover:bg-rose-100/50 text-rose-800 text-[10px] font-bold cursor-pointer transition text-center">
+                                  <Camera className="w-3 h-3 shrink-0" />
+                                  <span>Cambiar Foto</span>
+                                  <input
+                                    type="file"
+                                    accept="image/*,application/pdf"
+                                    capture="environment"
+                                    className="hidden"
+                                    onChange={(e) => {
+                                      const file = e.target.files?.[0];
+                                      if (file) {
+                                        handleDirectUploadPhoto(doc, file);
+                                      }
+                                    }}
+                                  />
+                                </label>
+                              </div>
+                            ) : (
+                              <div className="mt-2">
+                                <label className="w-full flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-lg border-2 border-dashed border-rose-200 hover:border-rose-400 bg-rose-50/50 hover:bg-rose-100/50 text-rose-800 text-[11px] font-bold cursor-pointer transition text-center group">
+                                  <Camera className="w-3.5 h-3.5 text-rose-600 group-hover:scale-110 transition-transform shrink-0" />
+                                  <span>Subir Foto del Billete</span>
+                                  <input
+                                    type="file"
+                                    accept="image/*,application/pdf"
+                                    capture="environment"
+                                    className="hidden"
+                                    onChange={(e) => {
+                                      const file = e.target.files?.[0];
+                                      if (file) {
+                                        handleDirectUploadPhoto(doc, file);
+                                      }
+                                    }}
+                                  />
+                                </label>
+                              </div>
+                            )}
                           </div>
                         </div>
                       ))}

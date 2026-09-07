@@ -397,10 +397,11 @@ export default function App() {
     });
   };
 
-  // Add Document
+  // Add or Update Document
   const handleAddDocument = (newDoc: DocumentItem) => {
     setDocuments((prev) => {
-      const updated = [newDoc, ...prev];
+      const filtered = prev.filter((d) => d.id !== newDoc.id);
+      const updated = [newDoc, ...filtered];
       saveDocuments(updated);
       uploadDocumentToCloud(newDoc);
       syncToCloud({ documents: updated });
