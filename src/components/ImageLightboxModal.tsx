@@ -7,7 +7,8 @@ import {
   X,
   Download,
   FileText,
-  ExternalLink
+  ExternalLink,
+  Hand
 } from 'lucide-react';
 import { downloadFile } from '../utils/ticketGenerator';
 
@@ -35,6 +36,13 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({
   const [dragStart, setDragStart] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Multi-touch pinch zoom & drag refs
+  const touchStartDistRef = useRef<number | null>(null);
+  const touchStartZoomRef = useRef<number>(1);
+  const touchStartPosRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const touchStartClientRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const lastTapRef = useRef<number>(0);
+
   useEffect(() => {
     if (isOpen) {
       setZoom(1);
@@ -51,8 +59,8 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleZoomIn = () => setZoom((prev) => Math.min(prev + 0.25, 4));
-  const handleZoomOut = () => setZoom((prev) => Math.max(prev - 0.25, 0.5));
+  const handleZoomIn = () => setZoom((prev) => Math.min(prev + 0.35, 5));
+  const handleZoomOut = () => setZoom((prev) => Math.max(prev - 0.35, 0.6));
   const handleResetZoom = () => {
     setZoom(1);
     setRotation(0);
@@ -61,6 +69,7 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({
   const handleRotateCw = () => setRotation((prev) => (prev + 90) % 360);
   const handleRotateCcw = () => setRotation((prev) => (prev - 90 + 360) % 360);
 
+  // Mouse drag handlers
   const handleMouseDown = (e: React.MouseEvent) => {
     if (zoom <= 1) return;
     setIsDragging(true);
@@ -76,6 +85,74 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({
   };
 
   const handleMouseUp = () => setIsDragging(false);
+
+  // Mobile Pinch-to-Zoom & Touch Pan Handlers
+  const getTouchDistance = (touches: React.TouchList) => {
+    if (touches.length < 2) return 0;
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.hypot(dx, dy);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      // 2 fingers detected: initialize pinch-to-zoom
+      const dist = getTouchDistance(e.touches);
+      touchStartDistRef.current = dist;
+      touchStartZoomRef.current = zoom;
+      setIsDragging(false);
+    } else if (e.touches.length === 1) {
+      // 1 finger detected: check for double tap or pan
+      const now = Date.now();
+      if (now - lastTapRef.current < 300) {
+        // Double tap detected: toggle zoom
+        if (zoom > 1.2) {
+          handleResetZoom();
+        } else {
+          setZoom(2.5);
+        }
+        lastTapRef.current = 0;
+        return;
+      }
+      lastTapRef.current = now;
+
+      if (zoom > 1) {
+        setIsDragging(true);
+        touchStartPosRef.current = { ...position };
+        touchStartClientRef.current = {
+          x: e.touches[0].clientX,
+          y: e.touches[0].clientY,
+        };
+      }
+    }
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length === 2 && touchStartDistRef.current) {
+      // Pinching with two fingers
+      const currentDist = getTouchDistance(e.touches);
+      const scale = currentDist / touchStartDistRef.current;
+      const newZoom = Math.max(0.6, Math.min(5, touchStartZoomRef.current * scale));
+      setZoom(newZoom);
+    } else if (e.touches.length === 1 && isDragging && zoom > 1) {
+      // Dragging with one finger
+      const dx = e.touches[0].clientX - touchStartClientRef.current.x;
+      const dy = e.touches[0].clientY - touchStartClientRef.current.y;
+      setPosition({
+        x: touchStartPosRef.current.x + dx,
+        y: touchStartPosRef.current.y + dy,
+      });
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (e.touches.length < 2) {
+      touchStartDistRef.current = null;
+    }
+    if (e.touches.length === 0) {
+      setIsDragging(false);
+    }
+  };
 
   const handleDownload = () => {
     downloadFile(imageUrl, fileName || `${title.replace(/\s+/g, '_')}.png`);
@@ -177,15 +254,18 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({
         </div>
       </div>
 
-      {/* Main Canvas with Drag / Zoom */}
+      {/* Main Canvas with Drag / Zoom / Touch Pinch */}
       <div
         ref={containerRef}
-        className={`flex-1 overflow-hidden relative flex items-center justify-center p-2 sm:p-6 ${
+        className={`flex-1 overflow-hidden relative flex items-center justify-center p-2 sm:p-6 touch-none ${
           zoom > 1 ? 'cursor-grab active:cursor-grabbing' : 'cursor-default'
         }`}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
-        onDoubleClick={() => (zoom === 1 ? setZoom(2) : handleResetZoom())}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        onDoubleClick={() => (zoom === 1 ? setZoom(2.5) : handleResetZoom())}
       >
         {isPdf ? (
           <div className="w-full max-w-4xl h-[80vh] bg-white rounded-2xl p-4 flex flex-col items-center justify-center shadow-2xl">
@@ -234,7 +314,7 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({
       {/* Bottom helper footer */}
       {!isPdf && (
         <div className="p-2 sm:p-3 bg-black/60 border-t border-stone-800 flex items-center justify-between text-[11px] text-stone-400 px-4">
-          <span>💡 Tip: Usa los botones de zoom (+/-) o haz doble clic para agrandar la entrada. Arrastra con el ratón o dedo para moverla.</span>
+          <span>💡 Tip: Amplía con dos dedos (pellizco) o doble toque. Desliza con el dedo para recorrer la entrada.</span>
           <div className="flex items-center gap-2">
             <button
               onClick={handleResetZoom}
