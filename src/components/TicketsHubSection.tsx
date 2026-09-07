@@ -808,7 +808,7 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
                           type="button"
                           onClick={() => setItemToDelete({ id: doc.id, title: doc.title, type: 'genericDoc' })}
                           className="text-stone-400 hover:text-red-600 p-1 rounded-lg transition-colors cursor-pointer"
-                          title="Eliminar (Código 8888)"
+                          title="Eliminar"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -929,7 +929,7 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
                           type="button"
                           onClick={() => setItemToDelete({ id: doc.id, title: doc.title, type: 'genericDoc' })}
                           className="text-stone-400 hover:text-red-600 p-1 rounded-lg transition-colors cursor-pointer"
-                          title="Eliminar (Código 8888)"
+                          title="Eliminar"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -1576,13 +1576,88 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
         </div>
       )}
 
+      {/* Security Deletion Modal (4-Digit PIN) */}
       {itemToDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs" onClick={() => setItemToDelete(null)}>
-          <div className="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl text-center" onClick={(e) => e.stopPropagation()}>
-            <Lock className="w-10 h-10 mx-auto text-red-500 mb-4" />
-            <p className="text-sm mb-4">Confirma eliminación con código 8888</p>
-            <input type="password" value={deletePin} onChange={(e) => setDeletePin(e.target.value)} maxLength={4} className="w-20 text-center text-xl font-mono border rounded-lg p-2 mb-4" />
-            <button onClick={handleConfirmDelete} className="w-full py-2 bg-red-600 text-white rounded-xl">Eliminar</button>
+        <div
+          id="delete-item-modal-backdrop"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs animate-in fade-in duration-150"
+          onClick={() => {
+            setItemToDelete(null);
+            setDeletePin('');
+            setPinError(false);
+          }}
+        >
+          <div
+            id="delete-item-modal-card"
+            className="w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl border border-red-200 text-center relative overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-12 h-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-3 shadow-xs">
+              <Lock className="w-6 h-6" />
+            </div>
+
+            <h3 className="text-base font-black text-stone-900">
+              Confirmar Eliminación
+            </h3>
+            <p className="text-xs text-stone-600 mt-1">
+              Para eliminar <strong className="text-stone-900">"{itemToDelete.title}"</strong>, introduce el código de seguridad de 4 dígitos:
+            </p>
+
+            <div className="my-4">
+              <input
+                id="input-delete-pin"
+                type="password"
+                maxLength={4}
+                autoFocus
+                value={deletePin}
+                onChange={(e) => {
+                  setDeletePin(e.target.value);
+                  setPinError(false);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleConfirmDelete();
+                  }
+                }}
+                placeholder="••••"
+                className={`w-36 text-center text-2xl font-mono font-black tracking-widest py-2 px-3 rounded-xl border ${
+                  pinError
+                    ? 'border-red-500 bg-red-50 text-red-600 ring-2 ring-red-300'
+                    : 'border-stone-300 bg-stone-50 text-stone-900 focus:border-red-500 focus:bg-white focus:ring-2 focus:ring-red-200'
+                } focus:outline-none transition-all`}
+              />
+
+              {pinError && (
+                <p className="text-xs text-red-600 font-bold mt-2 flex items-center justify-center gap-1">
+                  <AlertTriangle className="w-3.5 h-3.5" />
+                  Código incorrecto.
+                </p>
+              )}
+            </div>
+
+            <div className="flex items-center justify-center gap-2 pt-2 border-t border-stone-100">
+              <button
+                type="button"
+                onClick={() => {
+                  setItemToDelete(null);
+                  setDeletePin('');
+                  setPinError(false);
+                }}
+                className="px-4 py-2 text-xs font-bold text-stone-600 hover:text-stone-800 hover:bg-stone-100 rounded-xl transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+
+              <button
+                id="btn-confirm-delete-item"
+                type="button"
+                onClick={handleConfirmDelete}
+                className="px-5 py-2 text-xs font-black text-white bg-red-600 hover:bg-red-700 rounded-xl transition-all shadow-md shadow-red-600/20 cursor-pointer flex items-center gap-1.5"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Eliminar
+              </button>
+            </div>
           </div>
         </div>
       )}
