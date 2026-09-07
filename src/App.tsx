@@ -721,7 +721,7 @@ export default function App() {
         <div className="pt-6 border-t border-stone-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-stone-500">
           <div className="flex items-center gap-2">
             <Sparkles className="w-4 h-4 text-amber-500" />
-            <span>TurMadrid • Desplegado en Cloudflare Pages & D1</span>
+            <span>TurMadrid • Sistema Online Sincronizado</span>
           </div>
 
           <button

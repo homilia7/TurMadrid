@@ -123,7 +123,7 @@ export const PassportSection: React.FC<PassportSectionProps> = ({
           <div>
             <h2 className="text-xl font-bold tracking-tight">Pasaportes y Documentos</h2>
             <p className="text-xs text-blue-200">
-              Almacena copias digitales de pasaportes y datos de emergencia protegidos en Cloudflare D1
+              Almacena copias digitales de pasaportes y datos de emergencia protegidos con sincronización online segura
             </p>
           </div>
         </div>

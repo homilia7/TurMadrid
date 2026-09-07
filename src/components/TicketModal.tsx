@@ -194,7 +194,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
     await onUpdateTourTickets(tour.id, updated);
     setSelectedTicket(newTicket);
     setIsSaving(false);
-    setSaveSuccessMsg('¡Entrada guardada en la base de datos!');
+    setSaveSuccessMsg('¡Entrada guardada online exitosamente!');
     setTimeout(() => {
       setSaveSuccessMsg('');
       setIsUploading(false);
@@ -205,7 +205,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
   };
 
   const handleDeleteTicket = async (ticketId: string) => {
-    if (window.confirm('¿Estás seguro de que deseas eliminar esta entrada de la base de datos?')) {
+    if (window.confirm('¿Estás seguro de que deseas eliminar esta entrada online?')) {
       const updated = ticketsList.filter((t) => t.id !== ticketId);
       await deleteDocumentFromCloud(ticketId);
       await onUpdateTourTickets(tour.id, updated);
@@ -545,11 +545,11 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                       {isSaving ? (
                         <>
                           <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                          <span>Guardando en BD...</span>
+                          <span>Guardando Online...</span>
                         </>
                       ) : (
                         <>
-                          <span>💾 Guardar Entrada en la Base de Datos</span>
+                          <span>💾 Guardar Entrada Online</span>
                         </>
                       )}
                     </button>

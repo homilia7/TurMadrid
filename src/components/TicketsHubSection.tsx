@@ -243,6 +243,16 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
               </div>
 
               <div className="p-4 space-y-3 flex-1">
+                {/* Tour Name Banner */}
+                <div className="bg-amber-100/70 p-2.5 rounded-xl border border-amber-300/80">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 block mb-0.5">
+                    🏛️ Tour / Actividad:
+                  </span>
+                  <span className="text-xs font-extrabold text-stone-900 block leading-snug">
+                    {tour.title}
+                  </span>
+                </div>
+
                 <div className="text-xs text-gray-600 space-y-1.5">
                   <div className="flex items-center gap-1.5">
                     <Calendar className="w-3.5 h-3.5 text-amber-600 shrink-0" />
