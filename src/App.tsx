@@ -147,12 +147,15 @@ export default function App() {
             const localMatchingTour = localTours.find((lt) => lt.id === t.id);
             const localMatchingTickets = localMatchingTour?.tickets || [];
 
-            const finalTickets = (tourDocs.length > 0 ? tourDocs : (t.tickets || [])).map((tick) => {
+            const baseTickets = tourDocs.length > 0 ? tourDocs : (t.tickets || []);
+            const finalTickets = baseTickets.map((tick) => {
               const localT = localMatchingTickets.find((lt) => lt.id === tick.id);
+              const matchingDoc = mergedDocs.find((d) => d.id === tick.id);
               return {
                 ...tick,
-                qrCropUrl: tick.qrCropUrl || localT?.qrCropUrl,
-                qrCodeText: tick.qrCodeText || localT?.qrCodeText,
+                qrCropUrl: tick.qrCropUrl || matchingDoc?.qrCropUrl || localT?.qrCropUrl,
+                qrCodeText: tick.qrCodeText || matchingDoc?.qrCodeText || localT?.qrCodeText,
+                dataUrl: tick.dataUrl || matchingDoc?.dataUrl || localT?.dataUrl,
               };
             });
 

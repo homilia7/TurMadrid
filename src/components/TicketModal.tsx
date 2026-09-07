@@ -338,7 +338,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
     downloadFile(ticket.dataUrl, ticket.fileName || `Entrada_${ticket.title}.svg`);
   };
 
-  const activeTicket = selectedTicket || ticketsList[0] || null;
+  const activeTicket = (selectedTicket ? ticketsList.find((t) => t.id === selectedTicket.id) : null) || ticketsList[0] || selectedTicket || null;
 
   return (
     <div id="ticket-modal-backdrop" className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/75 backdrop-blur-xs">
@@ -931,10 +931,16 @@ export const TicketModal: React.FC<TicketModalProps> = ({
           );
           const targetDoc = updatedList.find((t) => t.id === targetId);
           if (targetDoc) {
-            await uploadDocumentToCloud(targetDoc);
+            try {
+              await uploadDocumentToCloud(targetDoc);
+            } catch (err) {
+              console.warn('Could not sync document directly to D1:', err);
+            }
             setSelectedTicket(targetDoc);
           }
-          await onUpdateTourTickets(tour.id, updatedList);
+          if (onUpdateTourTickets) {
+            await onUpdateTourTickets(tour.id, updatedList);
+          }
           setSaveSuccessMsg('¡Recorte QR guardado exitosamente!');
           setTimeout(() => setSaveSuccessMsg(''), 4000);
         }}

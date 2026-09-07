@@ -146,23 +146,34 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
     setPinError(false);
   };
 
-  const handleSaveCrop = async (croppedDataUrl: string, detectedQR?: string) => {
+  const handleSaveCrop = async (croppedDataUrl: string, detectedQR?: string, targetTicketId?: string) => {
     if (!activeTicketItem) return;
-    const { ticket, tour } = activeTicketItem;
-    const updatedTicket: DocumentItem = {
-      ...ticket,
-      qrCropUrl: croppedDataUrl,
-      qrCodeText: detectedQR || ticket.qrCodeText,
-      referenceNumber: detectedQR || ticket.referenceNumber,
-    };
-
-    const currentTourTickets = Array.isArray(tour.tickets) ? tour.tickets : [];
-    const updatedTickets = currentTourTickets.map((t) => (t.id === ticket.id ? updatedTicket : t));
-    await uploadDocumentToCloud(updatedTicket);
+    const { tour } = activeTicketItem;
+    const currentTourTickets = Array.isArray(tour.tickets) && tour.tickets.length > 0
+      ? tour.tickets
+      : [activeTicketItem.ticket];
+    const targetId = targetTicketId || activeTicketItem.ticket.id;
+    const updatedTickets = currentTourTickets.map((t) => {
+      if (t.id === targetId) {
+        return {
+          ...t,
+          qrCropUrl: croppedDataUrl,
+          qrCodeText: detectedQR || t.qrCodeText,
+          referenceNumber: detectedQR || t.referenceNumber,
+        };
+      }
+      return t;
+    });
+    const updatedTicket = updatedTickets.find((t) => t.id === targetId) || updatedTickets[0];
+    try {
+      await uploadDocumentToCloud(updatedTicket);
+    } catch (err) {
+      console.warn('Could not sync document directly to D1:', err);
+    }
     if (onUpdateTourTickets) {
       await onUpdateTourTickets(tour.id, updatedTickets);
     }
-    setActiveTicketItem({ ticket: updatedTicket, tour });
+    setActiveTicketItem({ ticket: updatedTicket, tour: { ...tour, tickets: updatedTickets } });
     setQrModalData((prev) => ({
       ...prev,
       qrCropUrl: croppedDataUrl,

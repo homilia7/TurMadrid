@@ -108,7 +108,7 @@ export async function captureFramedArea(
         outputSize
       );
 
-      const croppedUrl = canvas.toDataURL('image/png');
+      const croppedUrl = canvas.toDataURL('image/jpeg', 0.92);
       resolve(croppedUrl);
     } catch (err) {
       console.error('Error capturing framed area:', err);

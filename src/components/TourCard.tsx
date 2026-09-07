@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { formatDateShortWithDay } from '../utils/dateUtils';
+import { uploadDocumentToCloud } from '../utils/cloudSync';
 import { LargeQRModal } from './LargeQRModal';
 
 interface TourCardProps {
@@ -337,7 +338,8 @@ export const TourCard: React.FC<TourCardProps> = ({
             onUpdateTourTickets
               ? async (croppedDataUrl, detectedQR, targetTicketId) => {
                   const targetId = targetTicketId || primaryTicket?.id;
-                  const updatedTickets = ticketList.map((t) =>
+                  const currentTickets = Array.isArray(tour.tickets) && tour.tickets.length > 0 ? tour.tickets : ticketList;
+                  const updatedTickets = currentTickets.map((t) =>
                     t.id === targetId
                       ? {
                           ...t,
@@ -349,9 +351,13 @@ export const TourCard: React.FC<TourCardProps> = ({
                   );
                   const updatedDoc = updatedTickets.find((t) => t.id === targetId);
                   if (updatedDoc) {
-                    await uploadDocumentToCloud(updatedDoc);
+                    try {
+                      await uploadDocumentToCloud(updatedDoc);
+                    } catch (err) {
+                      console.warn('Could not sync document directly to D1, relying on state sync:', err);
+                    }
                   }
-                  onUpdateTourTickets(tour.id, updatedTickets);
+                  await onUpdateTourTickets(tour.id, updatedTickets);
                 }
               : undefined
           }
