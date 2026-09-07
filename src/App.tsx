@@ -717,6 +717,8 @@ export default function App() {
               documents={documents}
               onOpenTourTickets={(tour) => setActiveTicketTour(tour)}
               onUpdateTourTickets={handleUpdateTourTickets}
+              onAddDocument={handleAddDocument}
+              onDeleteDocument={handleDeleteDocument}
             />
           </div>
         )}
