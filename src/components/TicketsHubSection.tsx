@@ -9,7 +9,9 @@ import {
   Search, 
   X, 
   Users,
-  QrCode
+  QrCode,
+  FileText,
+  Maximize2
 } from 'lucide-react';
 import { formatDateWithDay, getDayOfWeek } from '../utils/dateUtils';
 import { LargeQRModal } from './LargeQRModal';
@@ -224,35 +226,45 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
               key={ticket.id}
               className="bg-white rounded-2xl border border-gray-200/80 shadow-sm overflow-hidden hover:border-amber-300 hover:shadow-md transition flex flex-col justify-between"
             >
-              <div className="p-4 bg-gradient-to-r from-amber-50 to-orange-50 border-b border-amber-100 flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-amber-600 text-white shadow-xs">
+              {/* Header */}
+              <div className="p-3.5 sm:p-4 bg-gradient-to-r from-amber-50 to-orange-50 border-b border-amber-100 flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                  <div className="p-2 rounded-xl bg-amber-600 text-white shadow-xs shrink-0">
                     <TicketIcon className="w-4 h-4" />
                   </div>
-                  <div>
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-amber-800">
+                  <div className="min-w-0 flex-1">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-amber-800 block truncate">
                       Día {tour.dayNumber} ({getDayOfWeek(tour.date)}) • {tour.city}
                     </span>
-                    <h3 className="text-sm font-bold text-gray-900 leading-tight">{ticket.title}</h3>
+                    <h3 className="text-sm font-bold text-gray-900 leading-tight truncate" title={ticket.title}>
+                      {ticket.title}
+                    </h3>
                   </div>
                 </div>
 
-                <span className="text-xs font-mono font-bold text-amber-700 bg-white px-2 py-0.5 rounded-md border border-amber-200">
-                  {ticket.referenceNumber || 'CONFIRMADA'}
+                <span 
+                  className="text-[11px] font-mono font-bold text-amber-800 bg-white px-2 py-0.5 rounded-md border border-amber-200 shrink-0 max-w-[130px] sm:max-w-[160px] truncate text-right shadow-2xs"
+                  title={ticket.referenceNumber || 'CONFIRMADA'}
+                >
+                  {ticket.referenceNumber && ticket.referenceNumber.length > 18
+                    ? `${ticket.referenceNumber.substring(0, 16)}…`
+                    : (ticket.referenceNumber || 'CONFIRMADA')}
                 </span>
               </div>
 
+              {/* Body */}
               <div className="p-4 space-y-3 flex-1">
                 {/* Tour Name Banner */}
                 <div className="bg-amber-100/70 p-2.5 rounded-xl border border-amber-300/80">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 block mb-0.5">
                     🏛️ Tour / Actividad:
                   </span>
-                  <span className="text-xs font-extrabold text-stone-900 block leading-snug">
+                  <span className="text-xs font-extrabold text-stone-900 block leading-snug truncate" title={tour.title}>
                     {tour.title}
                   </span>
                 </div>
 
+                {/* Date & Location */}
                 <div className="text-xs text-gray-600 space-y-1.5">
                   <div className="flex items-center gap-1.5">
                     <Calendar className="w-3.5 h-3.5 text-amber-600 shrink-0" />
@@ -267,7 +279,65 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
                   </div>
                 </div>
 
-                <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                {/* Image Preview & Clean File Info Box */}
+                <div className="bg-stone-50 rounded-xl p-2.5 border border-stone-200 flex items-center gap-3">
+                  {/* Thumbnail */}
+                  <div
+                    onClick={() =>
+                      setPreviewDoc({
+                        url: ticket.dataUrl,
+                        title: ticket.title,
+                        type: ticket.fileType,
+                      })
+                    }
+                    className="w-14 h-14 sm:w-16 sm:h-16 rounded-lg bg-stone-900 border border-stone-300 overflow-hidden shrink-0 flex items-center justify-center relative group cursor-pointer shadow-2xs"
+                    title="Clic para agrandar y ver imagen completa"
+                  >
+                    {ticket.fileType === 'pdf' ? (
+                      <FileText className="w-7 h-7 text-red-400" />
+                    ) : (
+                      <img
+                        src={ticket.dataUrl}
+                        alt={ticket.title}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform"
+                      />
+                    )}
+                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                      <Maximize2 className="w-3.5 h-3.5 text-amber-300" />
+                    </div>
+                  </div>
+
+                  {/* File & Code Details */}
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <div className="flex items-center gap-1 overflow-hidden">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-stone-500 shrink-0">
+                        Archivo:
+                      </span>
+                      <span
+                        className="text-xs font-bold text-stone-900 truncate block flex-1"
+                        title={ticket.fileName || ticket.title}
+                      >
+                        {ticket.fileName || `${ticket.title}.${ticket.fileType === 'pdf' ? 'pdf' : 'png'}`}
+                      </span>
+                    </div>
+
+                    {/* QR Code Decoded or Reference Badge */}
+                    <div className="bg-white px-2 py-1 rounded-lg border border-stone-200/90 overflow-hidden">
+                      <span className="text-[9px] font-extrabold uppercase tracking-wider text-amber-700 block leading-none mb-0.5">
+                        {ticket.qrCodeText ? 'Código QR Detectado:' : 'Referencia / Asiento:'}
+                      </span>
+                      <span
+                        className="text-[11px] font-mono font-bold text-stone-800 block truncate"
+                        title={ticket.qrCodeText || ticket.seatOrSection || ticket.referenceNumber}
+                      >
+                        {ticket.qrCodeText || ticket.seatOrSection || ticket.referenceNumber || 'Confirmada'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Traveler & Seat */}
+                <div className="flex items-center justify-between pt-1 border-t border-gray-100">
                   <div className="flex items-center gap-1.5">
                     {assignedTraveler ? (
                       <span className="inline-flex items-center gap-1 text-xs font-semibold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-full border border-purple-200">
@@ -280,47 +350,52 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
                     )}
                   </div>
 
-                  <span className="text-xs text-gray-400 font-medium">
+                  <span className="text-xs text-gray-500 font-medium truncate max-w-[120px]">
                     {ticket.seatOrSection || 'Entrada General'}
                   </span>
                 </div>
               </div>
 
+              {/* Action Buttons Footer */}
               <div className="p-3 bg-gray-50 border-t border-gray-100 flex items-center justify-between gap-2">
                 <button
                   onClick={() => onOpenTourTickets(tour)}
-                  className="text-xs font-bold text-blue-600 hover:text-blue-800 transition"
+                  className="text-xs font-bold text-blue-600 hover:text-blue-800 transition shrink-0"
                 >
                   Ver en Tour ➜
                 </button>
 
                 <div className="flex items-center gap-1.5 flex-wrap justify-end">
                   <button
-                    onClick={() => setQrModalData({
-                      isOpen: true,
-                      title: ticket.title,
-                      qrPayload: ticket.qrCodeText || undefined,
-                      ticketImage: ticket.dataUrl,
-                      qrCropUrl: ticket.qrCropUrl,
-                      travelerName: assignedTraveler ? assignedTraveler.name : 'Pase Grupal (5 Viajeros)',
-                      date: tour.date,
-                      time: tour.time,
-                      location: tour.location,
-                      referenceNumber: ticket.referenceNumber,
-                      seatOrSection: ticket.seatOrSection,
-                    })}
+                    onClick={() =>
+                      setQrModalData({
+                        isOpen: true,
+                        title: ticket.title,
+                        qrPayload: ticket.qrCodeText || undefined,
+                        ticketImage: ticket.dataUrl,
+                        qrCropUrl: ticket.qrCropUrl,
+                        travelerName: assignedTraveler ? assignedTraveler.name : 'Pase Grupal (5 Viajeros)',
+                        date: tour.date,
+                        time: tour.time,
+                        location: tour.location,
+                        referenceNumber: ticket.referenceNumber,
+                        seatOrSection: ticket.seatOrSection,
+                      })
+                    }
                     className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-amber-950 bg-amber-400 hover:bg-amber-300 rounded-lg transition shadow-xs cursor-pointer"
                   >
                     <QrCode className="w-3.5 h-3.5" /> Entrada QR
                   </button>
 
                   <button
-                    onClick={() => setPreviewDoc({
-                      url: ticket.dataUrl,
-                      title: ticket.title,
-                      type: ticket.fileType,
-                    })}
-                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-stone-700 bg-stone-100 hover:bg-stone-200 rounded-lg transition"
+                    onClick={() =>
+                      setPreviewDoc({
+                        url: ticket.dataUrl,
+                        title: ticket.title,
+                        type: ticket.fileType,
+                      })
+                    }
+                    className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-stone-700 bg-stone-100 hover:bg-stone-200 rounded-lg transition cursor-pointer"
                   >
                     <Eye className="w-3.5 h-3.5" /> Ver Ticket
                   </button>

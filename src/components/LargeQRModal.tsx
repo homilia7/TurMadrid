@@ -209,13 +209,18 @@ export const LargeQRModal: React.FC<LargeQRModalProps> = ({
             )}
 
             {/* Real decoded string / reference banner */}
-            <div className="mt-3 pt-2.5 border-t border-stone-200 w-full flex flex-col items-center justify-center text-stone-700 font-mono text-xs overflow-hidden">
-              <span className="font-semibold text-stone-500 text-[10px] uppercase">
-                {hasRealPayload ? 'Contenido Real Decodificado:' : 'Referencia:'}
+            <div className="mt-3 pt-2.5 border-t border-stone-200 w-full flex flex-col items-center justify-center text-stone-700 text-xs">
+              <span className="font-semibold text-stone-500 text-[10px] uppercase tracking-wider">
+                {hasRealPayload ? 'Contenido Real del Código QR:' : 'Referencia de la Entrada:'}
               </span>
-              <span className="font-bold text-stone-900 text-[11px] truncate max-w-full px-1" title={qrPayload || referenceNumber}>
-                {qrPayload || referenceNumber || 'Boleto Original'}
-              </span>
+              <div className="mt-1.5 px-3 py-1.5 bg-stone-100 rounded-xl border border-stone-200/90 w-full overflow-hidden text-center">
+                <p 
+                  className="font-mono font-bold text-stone-900 text-[11px] break-all line-clamp-2 select-all leading-snug" 
+                  title={qrPayload || referenceNumber}
+                >
+                  {qrPayload || referenceNumber || 'Boleto Oficial Confirmado'}
+                </p>
+              </div>
             </div>
           </div>
 

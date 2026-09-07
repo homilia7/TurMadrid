@@ -561,11 +561,16 @@ export const TicketModal: React.FC<TicketModalProps> = ({
               <div className="flex flex-col items-center justify-center w-full max-w-2xl mx-auto space-y-4">
                 {/* Actions Toolbar */}
                 <div className="w-full flex items-center justify-between bg-white p-3 rounded-xl border border-stone-200 shadow-xs">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-stone-900">{activeTicket.title}</span>
-                    <span className="text-[11px] text-stone-400">
-                      ({activeTicket.fileType.toUpperCase()})
+                  <div className="flex items-center gap-2 min-w-0 flex-1 mr-2">
+                    <span className="text-xs font-bold text-stone-900 truncate">{activeTicket.title}</span>
+                    <span className="text-[11px] font-semibold text-stone-600 bg-stone-100 px-2 py-0.5 rounded-md border border-stone-200 shrink-0">
+                      {activeTicket.fileType.toUpperCase()}
                     </span>
+                    {activeTicket.fileName && (
+                      <span className="text-[11px] text-stone-400 font-mono truncate max-w-[160px] hidden sm:inline" title={activeTicket.fileName}>
+                        ({activeTicket.fileName})
+                      </span>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-2">
