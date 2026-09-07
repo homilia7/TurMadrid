@@ -17,6 +17,7 @@ import { LargeQRModal } from './LargeQRModal';
 interface TicketsHubSectionProps {
   tours: Tour[];
   travelers: Traveler[];
+  documents?: DocumentItem[];
   onOpenTourTickets: (tour: Tour) => void;
   onUpdateTourTickets: (tourId: string, tickets: DocumentItem[]) => void;
 }
@@ -24,10 +25,12 @@ interface TicketsHubSectionProps {
 export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
   tours,
   travelers,
+  documents,
   onOpenTourTickets,
 }) => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCity, setSelectedCity] = useState<string>('all');
+  const [isSelectTourModalOpen, setIsSelectTourModalOpen] = useState<boolean>(false);
   const [previewDoc, setPreviewDoc] = useState<{ url: string; title: string; type: string } | null>(null);
   const [qrModalData, setQrModalData] = useState<{
     isOpen: boolean;
@@ -47,15 +50,46 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
 
   const safeTours = Array.isArray(tours) ? tours : [];
   const safeTravelers = Array.isArray(travelers) ? travelers : [];
+  const safeDocs = Array.isArray(documents) ? documents : [];
 
+  // Aggregate tickets from tours and documents
   const allTicketsWithTour: { ticket: DocumentItem; tour: Tour }[] = [];
+  const addedTicketIds = new Set<string>();
+
   safeTours.forEach((tour) => {
     if (tour.tickets && tour.tickets.length > 0) {
       tour.tickets.forEach((ticket) => {
-        allTicketsWithTour.push({ ticket, tour });
+        if (!addedTicketIds.has(ticket.id)) {
+          addedTicketIds.add(ticket.id);
+          allTicketsWithTour.push({ ticket, tour });
+        }
       });
     }
   });
+
+  safeDocs
+    .filter((doc) => doc.category === 'entrada')
+    .forEach((doc) => {
+      if (!addedTicketIds.has(doc.id)) {
+        addedTicketIds.add(doc.id);
+        const matchingTour = safeTours.find((t) => t.id === doc.tourId) || {
+          id: doc.tourId || 'tour-general',
+          dayNumber: 1,
+          date: new Date().toISOString().split('T')[0],
+          time: '10:00',
+          title: doc.title,
+          city: 'Madrid',
+          category: 'cultura',
+          location: 'Madrid',
+          description: '',
+          alertHoursBefore: 3,
+          alertEnabled: false,
+          visitedByUserIds: [],
+          tickets: [doc],
+        };
+        allTicketsWithTour.push({ ticket: doc, tour: matchingTour });
+      }
+    });
 
   const filtered = allTicketsWithTour.filter(({ ticket, tour }) => {
     const matchesSearch =
@@ -77,13 +111,80 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
             🎟️
           </div>
           <div>
-            <h2 className="text-xl font-bold tracking-tight">Centro de Entradas y Reservas</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-xl font-bold tracking-tight">Centro de Entradas y Reservas</h2>
+              <span className="text-xs bg-amber-400/30 text-amber-200 border border-amber-400/40 px-2 py-0.5 rounded-full font-bold">
+                {allTicketsWithTour.length} {allTicketsWithTour.length === 1 ? 'entrada' : 'entradas'}
+              </span>
+            </div>
             <p className="text-xs text-amber-200">
               Accede a todas las entradas de museos, palacios y espectáculos organizadas por día
             </p>
           </div>
         </div>
+
+        <button
+          onClick={() => setIsSelectTourModalOpen(true)}
+          className="px-4 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-stone-950 text-xs font-bold transition shadow-sm flex items-center gap-1.5 cursor-pointer"
+        >
+          <span>➕ Subir Nueva Entrada</span>
+        </button>
       </div>
+
+      {/* Select Tour Modal to upload a ticket */}
+      {isSelectTourModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-5 shadow-2xl border border-stone-200 space-y-4">
+            <div className="flex items-center justify-between border-b border-stone-100 pb-3">
+              <div>
+                <h3 className="text-base font-bold text-stone-900">Seleccionar Tour para Subir Entrada</h3>
+                <p className="text-xs text-stone-500">¿A qué actividad del itinerario pertenece esta entrada?</p>
+              </div>
+              <button
+                onClick={() => setIsSelectTourModalOpen(false)}
+                className="p-1.5 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="space-y-2 max-h-80 overflow-y-auto pr-1">
+              {safeTours.map((tour) => (
+                <button
+                  key={tour.id}
+                  onClick={() => {
+                    setIsSelectTourModalOpen(false);
+                    onOpenTourTickets(tour);
+                  }}
+                  className="w-full text-left p-3 rounded-xl border border-stone-200 hover:border-amber-400 hover:bg-amber-50/50 transition flex items-center justify-between group"
+                >
+                  <div className="space-y-0.5">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-100/60 px-1.5 py-0.5 rounded">
+                      Día {tour.dayNumber} ({getDayOfWeek(tour.date)}) • {tour.city}
+                    </span>
+                    <h4 className="text-xs font-bold text-stone-900 group-hover:text-amber-950">{tour.title}</h4>
+                    <span className="text-[11px] text-stone-500 block">
+                      {tour.time} hrs • {tour.location}
+                    </span>
+                  </div>
+                  <span className="text-xs font-bold text-amber-600 group-hover:translate-x-0.5 transition-transform shrink-0 ml-2">
+                    Subir ➜
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            <div className="flex justify-end pt-2 border-t border-stone-100">
+              <button
+                onClick={() => setIsSelectTourModalOpen(false)}
+                className="px-4 py-2 rounded-xl text-xs font-medium text-stone-600 hover:bg-stone-100 transition"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="flex flex-col sm:flex-row gap-2">
         <div className="relative flex-1">

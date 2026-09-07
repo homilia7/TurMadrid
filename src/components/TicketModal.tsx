@@ -46,6 +46,17 @@ export const TicketModal: React.FC<TicketModalProps> = ({
   const [ticketTitle, setTicketTitle] = useState<string>('');
   const [travelerId, setTravelerId] = useState<string>('group');
   const [seatOrRef, setSeatOrRef] = useState<string>('');
+  const [isScanningQR, setIsScanningQR] = useState<boolean>(false);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [saveSuccessMsg, setSaveSuccessMsg] = useState<string>('');
+  const [pendingFile, setPendingFile] = useState<{
+    fileName: string;
+    fileType: 'pdf' | 'image' | 'digital';
+    dataUrl: string;
+    fileSize: string;
+    detectedQR?: string;
+  } | null>(null);
+
   const [qrModalData, setQrModalData] = useState<{
     isOpen: boolean;
     title: string;
@@ -65,7 +76,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFilePicked = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -73,6 +84,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
     const isPdf = file.type === 'application/pdf' || file.name.endsWith('.pdf');
     const isImage = file.type.startsWith('image/');
 
+    setIsScanningQR(true);
     reader.onload = async (event) => {
       const dataUrl = event.target?.result as string;
       let detectedQR: string | undefined = undefined;
@@ -90,29 +102,21 @@ export const TicketModal: React.FC<TicketModalProps> = ({
         }
       }
 
-      const refCode = detectedQR || seatOrRef.trim() || 'REF-' + Math.floor(100000 + Math.random() * 900000);
-
-      const newTicket: Ticket = {
-        id: `ticket-${Date.now()}`,
-        tourId: tour.id,
-        title: ticketTitle.trim() || file.name.replace(/\.[^/.]+$/, ''),
+      setPendingFile({
         fileName: file.name,
         fileType: isPdf ? 'pdf' : isImage ? 'image' : 'digital',
         dataUrl,
         fileSize: `${(file.size / 1024).toFixed(1)} KB`,
-        uploadedAt: new Date().toISOString().split('T')[0],
-        travelerId: travelerId === 'group' ? undefined : travelerId,
-        seatOrSection: seatOrRef.trim() || undefined,
-        referenceNumber: refCode,
-        qrCodeText: detectedQR || refCode,
-      };
+        detectedQR,
+      });
+      setIsScanningQR(false);
 
-      const updated = [...ticketsList, newTicket];
-      onUpdateTourTickets(tour.id, updated);
-      setSelectedTicket(newTicket);
-      setIsUploading(false);
-      setTicketTitle('');
-      setSeatOrRef('');
+      if (!ticketTitle.trim()) {
+        setTicketTitle(file.name.replace(/\.[^/.]+$/, ''));
+      }
+      if (detectedQR && !seatOrRef.trim()) {
+        setSeatOrRef(detectedQR);
+      }
     };
 
     reader.readAsDataURL(file);
@@ -133,33 +137,68 @@ export const TicketModal: React.FC<TicketModalProps> = ({
       referenceNumber: refCode,
     });
 
-    const newTicket: Ticket = {
-      id: `ticket-gen-${Date.now()}`,
-      tourId: tour.id,
-      title: ticketTitle.trim() || `Entrada Oficial - ${travelerLabel}`,
+    setPendingFile({
       fileName: `Boleto_${tour.title.substring(0, 15).replace(/\s+/g, '_')}.svg`,
       fileType: 'digital',
       dataUrl: svgDataUrl,
       fileSize: '45 KB',
+      detectedQR: refCode,
+    });
+
+    if (!ticketTitle.trim()) {
+      setTicketTitle(`Entrada Oficial - ${travelerLabel}`);
+    }
+    if (!seatOrRef.trim()) {
+      setSeatOrRef('Acceso General Prioritario');
+    }
+  };
+
+  const handleSaveTicket = async () => {
+    if (!pendingFile) {
+      alert('Por favor selecciona un archivo PDF o Foto de la entrada, o presiona "Generar Boleto Digital".');
+      return;
+    }
+
+    setIsSaving(true);
+    const refCode = pendingFile.detectedQR || seatOrRef.trim() || 'REF-' + Math.floor(100000 + Math.random() * 900000);
+
+    const newTicket: Ticket = {
+      id: `ticket-${Date.now()}`,
+      tourId: tour.id,
+      category: 'entrada',
+      title: ticketTitle.trim() || pendingFile.fileName.replace(/\.[^/.]+$/, '') || `Entrada ${tour.title}`,
+      fileName: pendingFile.fileName,
+      fileType: pendingFile.fileType,
+      dataUrl: pendingFile.dataUrl,
+      fileSize: pendingFile.fileSize,
       uploadedAt: new Date().toISOString().split('T')[0],
       travelerId: travelerId === 'group' ? undefined : travelerId,
-      seatOrSection: seatOrRef.trim() || 'Acceso General Prioritario',
+      seatOrSection: seatOrRef.trim() || undefined,
       referenceNumber: refCode,
+      qrCodeText: pendingFile.detectedQR || refCode,
     };
 
     const updated = [...ticketsList, newTicket];
-    onUpdateTourTickets(tour.id, updated);
+    await onUpdateTourTickets(tour.id, updated);
     setSelectedTicket(newTicket);
-    setIsUploading(false);
-    setTicketTitle('');
-    setSeatOrRef('');
+    setIsSaving(false);
+    setSaveSuccessMsg('¡Entrada guardada en la base de datos!');
+    setTimeout(() => {
+      setSaveSuccessMsg('');
+      setIsUploading(false);
+      setPendingFile(null);
+      setTicketTitle('');
+      setSeatOrRef('');
+    }, 700);
   };
 
   const handleDeleteTicket = (ticketId: string) => {
-    const updated = ticketsList.filter((t) => t.id !== ticketId);
-    onUpdateTourTickets(tour.id, updated);
-    if (selectedTicket?.id === ticketId) {
-      setSelectedTicket(updated.length > 0 ? updated[0] : null);
+    if (window.confirm('¿Estás seguro de que deseas eliminar esta entrada de la base de datos?')) {
+      const updated = ticketsList.filter((t) => t.id !== ticketId);
+      onUpdateTourTickets(tour.id, updated);
+      if (selectedTicket?.id === ticketId) {
+        setSelectedTicket(updated.length > 0 ? updated[0] : null);
+      }
     }
   };
 
@@ -309,18 +348,18 @@ export const TicketModal: React.FC<TicketModalProps> = ({
           <div className="flex-1 p-4 sm:p-6 overflow-y-auto bg-stone-100/40 flex flex-col justify-center">
             {isUploading ? (
               /* Upload Form */
-              <div className="max-w-md mx-auto w-full bg-white p-6 rounded-2xl border border-stone-200 shadow-xs">
+              <div className="max-w-md mx-auto w-full bg-white p-6 rounded-2xl border border-stone-200 shadow-md">
                 <h4 className="text-base font-bold text-stone-900 mb-1 flex items-center gap-2">
                   <Upload className="w-4 h-4 text-amber-600" />
-                  Subir o Generar Nueva Entrada
+                  Subir y Guardar Entrada
                 </h4>
                 <p className="text-xs text-stone-500 mb-4">
-                  Sube el comprobante de compra o genera el voucher oficial del tour
+                  Sube el comprobante de compra (PDF o Foto) o genera el voucher oficial con código QR
                 </p>
 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-1">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-stone-600 mb-1">
                       Nombre o Identificador de la Entrada:
                     </label>
                     <input
@@ -333,7 +372,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-1">
+                    <label className="block text-xs font-bold uppercase tracking-wider text-stone-600 mb-1">
                       Asignar a Viajero:
                     </label>
                     <select
@@ -351,64 +390,155 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-1">
-                      Asiento o Referencia (Opcional):
+                    <label className="block text-xs font-bold uppercase tracking-wider text-stone-600 mb-1">
+                      Asiento o Referencia / Código:
                     </label>
                     <input
                       type="text"
                       value={seatOrRef}
                       onChange={(e) => setSeatOrRef(e.target.value)}
-                      placeholder="Ej: Acceso 11:15 AM / Coche 5"
+                      placeholder="Ej: Acceso 11:15 AM / Coche 5 / REF-93821"
                       className="w-full text-xs font-medium text-stone-900 bg-stone-50 border border-stone-200 rounded-xl px-3 py-2 focus:bg-white focus:outline-hidden focus:border-amber-500"
                     />
                   </div>
 
-                  {/* Upload file Box */}
+                  {/* Upload file Box or Selected File Preview */}
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-stone-500 mb-1">
-                      Archivo de Entrada (PDF o Imagen):
+                    <label className="block text-xs font-bold uppercase tracking-wider text-stone-600 mb-1">
+                      Archivo de Entrada (PDF o Foto):
                     </label>
                     <input
                       type="file"
                       ref={fileInputRef}
-                      onChange={handleFileUpload}
+                      onChange={handleFilePicked}
                       accept="image/*,.pdf"
                       className="hidden"
                     />
-                    <div
-                      onClick={() => fileInputRef.current?.click()}
-                      className="border-2 border-dashed border-stone-300 hover:border-amber-500 bg-stone-50 hover:bg-amber-50/40 p-4 rounded-xl text-center cursor-pointer transition-colors"
-                    >
-                      <Upload className="w-6 h-6 text-stone-400 mx-auto mb-1" />
-                      <span className="text-xs font-bold text-stone-700 block">
-                        Haz clic para seleccionar archivo PDF o Foto
-                      </span>
-                      <span className="text-[10px] text-stone-400">PDF, JPG, PNG admitidos</span>
-                    </div>
+
+                    {pendingFile ? (
+                      <div className="p-3.5 rounded-xl border border-amber-300 bg-amber-50/50 flex flex-col gap-2.5 animate-in fade-in">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2.5 overflow-hidden">
+                            {pendingFile.fileType === 'pdf' ? (
+                              <div className="w-9 h-9 rounded-lg bg-red-100 text-red-600 flex items-center justify-center shrink-0">
+                                <FileText className="w-5 h-5" />
+                              </div>
+                            ) : pendingFile.fileType === 'image' ? (
+                              <img
+                                src={pendingFile.dataUrl}
+                                alt="Preview"
+                                className="w-9 h-9 rounded-lg object-cover border border-stone-200 shrink-0"
+                              />
+                            ) : (
+                              <div className="w-9 h-9 rounded-lg bg-amber-100 text-amber-700 flex items-center justify-center shrink-0">
+                                <QrCode className="w-5 h-5" />
+                              </div>
+                            )}
+                            <div className="overflow-hidden">
+                              <span className="text-xs font-bold text-stone-900 block truncate">
+                                {pendingFile.fileName}
+                              </span>
+                              <span className="text-[11px] text-stone-500 font-medium">
+                                {pendingFile.fileType.toUpperCase()} • {pendingFile.fileSize}
+                              </span>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            className="text-xs font-bold text-amber-800 hover:text-amber-950 px-2 py-1 bg-amber-200/70 hover:bg-amber-200 rounded-lg transition"
+                          >
+                            Cambiar
+                          </button>
+                        </div>
+
+                        {isScanningQR && (
+                          <div className="text-[11px] text-stone-500 flex items-center gap-1.5 animate-pulse">
+                            <QrCode className="w-3.5 h-3.5 text-amber-600" />
+                            <span>Escaneando código QR de la entrada...</span>
+                          </div>
+                        )}
+
+                        {pendingFile.detectedQR && (
+                          <div className="bg-emerald-100 text-emerald-900 px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 border border-emerald-300">
+                            <Check className="w-4 h-4 text-emerald-600 shrink-0" />
+                            <span className="truncate">QR Detectado: {pendingFile.detectedQR}</span>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div
+                        onClick={() => fileInputRef.current?.click()}
+                        className="border-2 border-dashed border-stone-300 hover:border-amber-500 bg-stone-50 hover:bg-amber-50/40 p-4 rounded-xl text-center cursor-pointer transition-colors"
+                      >
+                        <Upload className="w-6 h-6 text-stone-400 mx-auto mb-1" />
+                        <span className="text-xs font-bold text-stone-700 block">
+                          Haz clic para seleccionar archivo PDF o Foto
+                        </span>
+                        <span className="text-[10px] text-stone-400">PDF, JPG, PNG admitidos</span>
+                      </div>
+                    )}
                   </div>
 
                   <div className="relative flex py-1 items-center">
                     <div className="grow border-t border-stone-200"></div>
-                    <span className="shrink mx-3 text-[11px] font-bold text-stone-400 uppercase">o también</span>
+                    <span className="shrink mx-3 text-[10px] font-bold text-stone-400 uppercase">o también</span>
                     <div className="grow border-t border-stone-200"></div>
                   </div>
 
                   <button
                     type="button"
                     onClick={handleGenerateDigitalTicket}
-                    className="w-full text-xs font-semibold py-2.5 px-3 rounded-xl bg-stone-900 text-white hover:bg-stone-800 transition-colors flex items-center justify-center gap-1.5 shadow-xs"
+                    className="w-full text-xs font-semibold py-2 px-3 rounded-xl bg-stone-100 hover:bg-stone-200 text-stone-800 transition-colors flex items-center justify-center gap-1.5 border border-stone-200"
                   >
-                    <QrCode className="w-4 h-4 text-amber-400" />
+                    <QrCode className="w-3.5 h-3.5 text-amber-600" />
                     Generar Boleto Digital Oficial con Código QR
                   </button>
 
-                  <div className="flex justify-end pt-2">
+                  {saveSuccessMsg && (
+                    <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold flex items-center justify-center gap-1.5 animate-in fade-in">
+                      <Check className="w-4 h-4 text-emerald-600" />
+                      {saveSuccessMsg}
+                    </div>
+                  )}
+
+                  {/* Prominent Save Button */}
+                  <div className="pt-2 border-t border-stone-100 flex items-center justify-end gap-2">
                     <button
                       type="button"
-                      onClick={() => setIsUploading(false)}
-                      className="text-xs font-medium text-stone-500 hover:text-stone-700 px-3 py-1.5 rounded-lg"
+                      onClick={() => {
+                        setIsUploading(false);
+                        setPendingFile(null);
+                      }}
+                      className="text-xs font-medium text-stone-500 hover:text-stone-700 px-3.5 py-2 rounded-xl transition"
                     >
                       Cancelar
+                    </button>
+
+                    <button
+                      id="save-ticket-btn"
+                      type="button"
+                      disabled={isSaving || !pendingFile}
+                      onClick={handleSaveTicket}
+                      className={`px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition shadow-md ${
+                        !pendingFile
+                          ? 'bg-stone-200 text-stone-400 cursor-not-allowed'
+                          : isSaving
+                          ? 'bg-amber-600 text-white cursor-wait'
+                          : 'bg-amber-500 hover:bg-amber-600 text-stone-950 font-black cursor-pointer shadow-amber-500/20'
+                      }`}
+                    >
+                      {isSaving ? (
+                        <>
+                          <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          <span>Guardando en BD...</span>
+                        </>
+                      ) : (
+                        <>
+                          <span>💾 Guardar Entrada en la Base de Datos</span>
+                        </>
+                      )}
                     </button>
                   </div>
                 </div>

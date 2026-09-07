@@ -113,17 +113,27 @@ export default function App() {
       if (!isMounted) return;
 
       if (cloudData) {
+        const cloudDocs = Array.isArray(cloudData.documents) ? cloudData.documents : [];
+        if (cloudDocs.length > 0) {
+          setDocuments(cloudDocs);
+        }
         if (Array.isArray(cloudData.tours) && cloudData.tours.length > 0) {
-          setTours(cloudData.tours);
+          const hydratedTours = cloudData.tours.map((t) => {
+            const tourDocs = cloudDocs.filter(
+              (d) => d.tourId === t.id && (d.category === 'entrada' || !d.category)
+            );
+            return {
+              ...t,
+              tickets: tourDocs.length > 0 ? tourDocs : (t.tickets || []),
+            };
+          });
+          setTours(hydratedTours);
         }
         if (Array.isArray(cloudData.travelers) && cloudData.travelers.length > 0) {
           setTravelers(cloudData.travelers);
         }
         if (Array.isArray(cloudData.days) && cloudData.days.length > 0) {
           setDays(cloudData.days);
-        }
-        if (Array.isArray(cloudData.documents)) {
-          setDocuments(cloudData.documents);
         }
         setSyncState({ status: 'synced', lastSyncedAt: new Date().toISOString() });
       } else {
@@ -282,14 +292,44 @@ export default function App() {
   };
 
   // Update tour tickets
-  const handleUpdateTourTickets = (tourId: string, newTickets: Tour['tickets']) => {
+  const handleUpdateTourTickets = async (tourId: string, newTickets: Tour['tickets']) => {
+    const cleanTickets = (newTickets || []).map((t) => ({
+      ...t,
+      category: 'entrada' as const,
+      tourId,
+    }));
+
+    // 1. Update tours state
+    let updatedTours: Tour[] = [];
     setTours((prev) => {
-      const updated = prev.map((t) => (t.id === tourId ? { ...t, tickets: newTickets } : t));
-      syncToCloud({ tours: updated });
-      return updated;
+      updatedTours = prev.map((t) => (t.id === tourId ? { ...t, tickets: cleanTickets } : t));
+      return updatedTours;
     });
+
+    // 2. Update documents state
+    let updatedDocs: DocumentItem[] = [];
+    setDocuments((prev) => {
+      const otherDocs = prev.filter(
+        (d) => !(d.tourId === tourId && (d.category === 'entrada' || !d.category))
+      );
+      updatedDocs = [...cleanTickets, ...otherDocs];
+      return updatedDocs;
+    });
+
     if (activeTicketTour?.id === tourId) {
-      setActiveTicketTour((prev) => (prev ? { ...prev, tickets: newTickets } : null));
+      setActiveTicketTour((prev) => (prev ? { ...prev, tickets: cleanTickets } : null));
+    }
+
+    // 3. Immediately persist & Sync to Cloudflare D1
+    setSyncState((prev) => ({ ...prev, status: 'syncing' }));
+    const success = await syncToCloud({
+      tours: updatedTours.length > 0 ? updatedTours : undefined,
+      documents: updatedDocs.length > 0 ? updatedDocs : undefined,
+    });
+    if (success) {
+      setSyncState({ status: 'synced', lastSyncedAt: new Date().toISOString() });
+    } else {
+      setSyncState({ status: navigator.onLine ? 'error' : 'offline' });
     }
   };
 
@@ -611,6 +651,7 @@ export default function App() {
             <TicketsHubSection
               tours={tours}
               travelers={travelers}
+              documents={documents}
               onOpenTourTickets={(tour) => setActiveTicketTour(tour)}
               onUpdateTourTickets={handleUpdateTourTickets}
             />
