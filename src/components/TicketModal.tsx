@@ -1,37 +1,40 @@
 import React, { useState, useRef } from 'react';
-import { Tour, Ticket, Traveler } from '../types';
+import { Tour, Traveler, Ticket } from '../types';
 import {
-  Ticket as TicketIcon,
-  Download,
-  Eye,
-  Upload,
+  X,
   Plus,
   Trash2,
-  X,
+  Download,
+  Calendar,
+  Clock,
+  MapPin,
+  Compass,
   FileText,
   FileImage,
+  Ticket as TicketIcon,
   Check,
-  ExternalLink,
   ShieldCheck,
   QrCode,
-  Users,
-  Calendar,
+  ExternalLink,
   Maximize2,
-  ZoomIn
+  Lock,
+  AlertTriangle,
+  ZoomIn,
+  Users
 } from 'lucide-react';
 import { generateDigitalTicketSvg, downloadFile } from '../utils/ticketGenerator';
 import { formatDateWithDay, getDayOfWeek } from '../utils/dateUtils';
 import { decodeQRFromImage } from '../utils/qrReader';
+import { deleteDocumentFromCloud } from '../utils/cloudSync';
 import { LargeQRModal } from './LargeQRModal';
 import { ImageLightboxModal } from './ImageLightboxModal';
-import { deleteDocumentFromCloud } from '../utils/cloudSync';
 
 interface TicketModalProps {
   isOpen: boolean;
   onClose: () => void;
   tour: Tour;
   travelers: Traveler[];
-  onUpdateTourTickets: (tourId: string, tickets: Ticket[]) => void;
+  onUpdateTourTickets: (tourId: string, tickets: Ticket[]) => Promise<void> | void;
 }
 
 export const TicketModal: React.FC<TicketModalProps> = ({
@@ -41,8 +44,9 @@ export const TicketModal: React.FC<TicketModalProps> = ({
   travelers,
   onUpdateTourTickets,
 }) => {
+  const ticketsList = Array.isArray(tour.tickets) ? tour.tickets : [];
   const safeTravelers = Array.isArray(travelers) ? travelers : [];
-  const ticketsList = Array.isArray(tour?.tickets) ? tour.tickets : [];
+
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(
     ticketsList.length > 0 ? ticketsList[0] : null
   );
@@ -50,10 +54,15 @@ export const TicketModal: React.FC<TicketModalProps> = ({
   const [ticketTitle, setTicketTitle] = useState<string>('');
   const [travelerId, setTravelerId] = useState<string>('group');
   const [seatOrRef, setSeatOrRef] = useState<string>('');
-  const [isScanningQR, setIsScanningQR] = useState<boolean>(false);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string>('');
-  const [isLightboxOpen, setIsLightboxOpen] = useState<boolean>(false);
+  const [isScanningQR, setIsScanningQR] = useState<boolean>(false);
+
+  // 4-digit PIN deletion modal state for tickets (code: 8888)
+  const [ticketToDelete, setTicketToDelete] = useState<Ticket | null>(null);
+  const [deleteTicketPin, setDeleteTicketPin] = useState<string>('');
+  const [pinError, setPinError] = useState<boolean>(false);
+
   const [pendingFile, setPendingFile] = useState<{
     fileName: string;
     fileType: 'pdf' | 'image' | 'digital';
@@ -204,15 +213,29 @@ export const TicketModal: React.FC<TicketModalProps> = ({
     }, 700);
   };
 
-  const handleDeleteTicket = async (ticketId: string) => {
-    if (window.confirm('¿Estás seguro de que deseas eliminar esta entrada online?')) {
-      const updated = ticketsList.filter((t) => t.id !== ticketId);
-      await deleteDocumentFromCloud(ticketId);
-      await onUpdateTourTickets(tour.id, updated);
-      if (selectedTicket?.id === ticketId) {
-        setSelectedTicket(updated.length > 0 ? updated[0] : null);
-      }
+  const handleDeleteTicketClick = (ticket: Ticket) => {
+    setTicketToDelete(ticket);
+    setDeleteTicketPin('');
+    setPinError(false);
+  };
+
+  const handleConfirmDeleteTicket = async () => {
+    if (deleteTicketPin.trim() !== '8888') {
+      setPinError(true);
+      return;
     }
+
+    if (!ticketToDelete) return;
+
+    const ticketId = ticketToDelete.id;
+    const updated = ticketsList.filter((t) => t.id !== ticketId);
+    await deleteDocumentFromCloud(ticketId);
+    await onUpdateTourTickets(tour.id, updated);
+    if (selectedTicket?.id === ticketId) {
+      setSelectedTicket(updated.length > 0 ? updated[0] : null);
+    }
+    setTicketToDelete(null);
+    setDeleteTicketPin('');
   };
 
   const handleDownload = (ticket: Ticket) => {
@@ -328,10 +351,10 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            handleDeleteTicket(t.id);
+                            handleDeleteTicketClick(t);
                           }}
-                          className="opacity-0 group-hover:opacity-100 text-stone-400 hover:text-red-600 p-1 transition-opacity"
-                          title="Eliminar entrada"
+                          className="opacity-0 group-hover:opacity-100 text-stone-400 hover:text-red-600 p-1 transition-opacity cursor-pointer"
+                          title="Eliminar entrada (requiere código 8888)"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -620,6 +643,16 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                       <Download className="w-3.5 h-3.5" />
                       Descargar
                     </button>
+
+                    <button
+                      id="delete-ticket-btn"
+                      type="button"
+                      onClick={() => handleDeleteTicketClick(activeTicket)}
+                      className="text-xs font-bold p-1.5 rounded-lg bg-stone-100 text-stone-400 hover:text-red-600 hover:bg-red-50 border border-stone-200 transition-colors flex items-center cursor-pointer"
+                      title="Eliminar entrada (requiere código 8888)"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
 
@@ -746,6 +779,84 @@ export const TicketModal: React.FC<TicketModalProps> = ({
           fileType={activeTicket.fileType}
           fileName={activeTicket.fileName}
         />
+      )}
+
+      {/* 4-Digit PIN Security Modal for Deleting Tickets (Code: 8888) */}
+      {ticketToDelete && (
+        <div
+          id="delete-ticket-modal-backdrop"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xs animate-in fade-in duration-150"
+          onClick={() => setTicketToDelete(null)}
+        >
+          <div
+            id="delete-ticket-modal-card"
+            className="w-full max-w-sm bg-white rounded-3xl p-6 shadow-2xl border border-red-200 text-center relative overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-12 h-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center mx-auto mb-3 shadow-xs">
+              <Lock className="w-6 h-6" />
+            </div>
+
+            <h3 className="text-base font-black text-stone-900">
+              Confirmar Borrado de Entrada
+            </h3>
+            <p className="text-xs text-stone-600 mt-1">
+              Para eliminar <strong className="text-stone-900">"{ticketToDelete.title}"</strong>, introduce el código de seguridad de 4 dígitos:
+            </p>
+
+            <div className="my-4">
+              <input
+                id="input-delete-ticket-pin"
+                type="password"
+                maxLength={4}
+                autoFocus
+                value={deleteTicketPin}
+                onChange={(e) => {
+                  setDeleteTicketPin(e.target.value);
+                  setPinError(false);
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleConfirmDeleteTicket();
+                  }
+                }}
+                placeholder="••••"
+                className={`w-36 text-center text-2xl font-mono font-black tracking-widest py-2 px-3 rounded-xl border ${
+                  pinError
+                    ? 'border-red-500 bg-red-50 text-red-600 ring-2 ring-red-300'
+                    : 'border-stone-300 bg-stone-50 text-stone-900 focus:border-red-500 focus:bg-white focus:ring-2 focus:ring-red-200'
+                } focus:outline-none transition-all`}
+              />
+
+              {pinError && (
+                <p className="text-xs text-red-600 font-bold mt-2 flex items-center justify-center gap-1">
+                  <AlertTriangle className="w-3.5 h-3.5" />
+                  Código incorrecto.
+                </p>
+              )}
+            </div>
+
+            <div className="flex items-center justify-center gap-2 pt-2 border-t border-stone-100">
+              <button
+                type="button"
+                onClick={() => setTicketToDelete(null)}
+                className="px-4 py-2 text-xs font-bold text-stone-600 hover:text-stone-800 hover:bg-stone-100 rounded-xl transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+
+              <button
+                id="btn-confirm-delete-ticket"
+                type="button"
+                onClick={handleConfirmDeleteTicket}
+                className="px-5 py-2 text-xs font-black text-white bg-red-600 hover:bg-red-700 rounded-xl transition-all shadow-md shadow-red-600/20 cursor-pointer flex items-center gap-1.5"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Eliminar Entrada
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
