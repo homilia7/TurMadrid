@@ -11,6 +11,11 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({ variant = 'n
   const [showModal, setShowModal] = useState<boolean>(false);
   const [justInstalledToast, setJustInstalledToast] = useState<boolean>(false);
 
+  // If already running as installed PWA, hide the button completely from the UI
+  if (isInstalled) {
+    return null;
+  }
+
   const handleInstallClick = async () => {
     if (hasNativePrompt) {
       const success = await install();
@@ -211,40 +216,47 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({ variant = 'n
             </div>
 
             {/* Footer actions */}
-            <div className="pt-3 border-t border-stone-100 flex items-center justify-end gap-2.5">
+            <div className="pt-3 border-t border-stone-100 flex items-center justify-between gap-2 flex-wrap">
               <button
                 type="button"
-                onClick={() => setShowModal(false)}
-                className="px-4 py-2.5 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                onClick={() => {
+                  localStorage.setItem('pwa_app_installed_status_v1', 'true');
+                  setShowModal(false);
+                  window.location.reload();
+                }}
+                className="px-3 py-2 bg-stone-100 hover:bg-stone-200 text-stone-600 text-xs font-semibold rounded-xl transition-colors cursor-pointer"
+                title="Ocultar este botón si ya tienes la app en tu pantalla de inicio"
               >
-                Cerrar
+                Ya la tengo instalada
               </button>
 
-              {hasNativePrompt ? (
-                <button
-                  type="button"
-                  onClick={async () => {
-                    const success = await install();
-                    if (success) {
-                      setJustInstalledToast(true);
-                      setShowModal(false);
-                      setTimeout(() => setJustInstalledToast(false), 4000);
-                    }
-                  }}
-                  className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-stone-950 text-xs font-black rounded-xl transition-all shadow-md shadow-amber-500/20 flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Download className="w-4 h-4 text-stone-950" />
-                  <span>🚀 Instalar Aplicación Ahora</span>
-                </button>
-              ) : (
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-stone-950 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                  className="px-3.5 py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-bold rounded-xl transition-colors cursor-pointer"
                 >
-                  Entendido
+                  Cerrar
                 </button>
-              )}
+
+                {hasNativePrompt && (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const success = await install();
+                      if (success) {
+                        setJustInstalledToast(true);
+                        setShowModal(false);
+                        setTimeout(() => setJustInstalledToast(false), 4000);
+                      }
+                    }}
+                    className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-stone-950 text-xs font-black rounded-xl transition-all shadow-md shadow-amber-500/20 flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Download className="w-4 h-4 text-stone-950" />
+                    <span>Instalar Ahora</span>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>

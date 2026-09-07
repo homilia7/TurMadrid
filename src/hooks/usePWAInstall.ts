@@ -21,13 +21,14 @@ export function usePWAInstall() {
       (window.navigator as unknown as { standalone?: boolean }).standalone === true ||
       document.referrer.includes('android-app://');
     
-    return isStandalone;
+    const storedStatus = localStorage.getItem(PWA_INSTALLED_KEY) === 'true';
+    return isStandalone || storedStatus;
   });
   const [isIOS, setIsIOS] = useState<boolean>(false);
 
   useEffect(() => {
     // Check if running as standalone PWA
-    const checkStandalone = () => {
+    const checkStandalone = async () => {
       const isStandalone =
         window.matchMedia('(display-mode: standalone)').matches ||
         (window.navigator as unknown as { standalone?: boolean }).standalone === true ||
@@ -35,6 +36,21 @@ export function usePWAInstall() {
 
       if (isStandalone) {
         setIsInstalled(true);
+        localStorage.setItem(PWA_INSTALLED_KEY, 'true');
+        return;
+      }
+
+      // Check modern navigator.getInstalledRelatedApps API if available
+      if ('getInstalledRelatedApps' in navigator) {
+        try {
+          const relatedApps = await (navigator as any).getInstalledRelatedApps();
+          if (Array.isArray(relatedApps) && relatedApps.length > 0) {
+            setIsInstalled(true);
+            localStorage.setItem(PWA_INSTALLED_KEY, 'true');
+          }
+        } catch {
+          // Ignore
+        }
       }
     };
 
