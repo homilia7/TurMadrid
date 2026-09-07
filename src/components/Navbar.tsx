@@ -151,6 +151,15 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             <button
               type="button"
+              onClick={onOpenTravelersModal}
+              className="p-1.5 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 text-stone-700 sm:hidden flex items-center justify-center shadow-2xs transition-colors cursor-pointer"
+              title="Configurar los 5 viajeros"
+            >
+              <Users className="w-3.5 h-3.5 text-stone-600" />
+            </button>
+
+            <button
+              type="button"
               onClick={onOpenAlertSettings}
               className="p-1.5 sm:px-2.5 sm:py-1.5 rounded-xl border border-stone-200 bg-white hover:bg-stone-50 text-stone-700 flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
               title={`Alertas configuradas a ${defaultAlertHours}h antes`}
@@ -171,11 +180,11 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
         </div>
 
-        {/* Second Row: Clean Horizontal Traveler Selector & Mini Progress */}
+        {/* Second Row: 5 Travelers Fully Visible + Quick Progress on larger screens */}
         <div className="mt-2 pt-1.5 border-t border-stone-100 flex items-center justify-between gap-2">
-          {/* Scrollable Traveler Pills */}
-          <div className="flex items-center gap-1 overflow-x-auto no-scrollbar py-0.5 max-w-full">
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400 shrink-0 mr-1 hidden sm:inline">
+          {/* 5 Travelers grid/flex taking full available width */}
+          <div className="grid grid-cols-5 sm:flex sm:items-center gap-1 sm:gap-1.5 flex-1 min-w-0">
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400 shrink-0 mr-1 hidden md:inline">
               Viajero:
             </span>
 
@@ -186,7 +195,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   key={traveler.id}
                   type="button"
                   onClick={() => onSelectActiveTraveler(traveler.id)}
-                  className={`px-2.5 py-1 rounded-lg text-xs flex items-center gap-1.5 transition-all shrink-0 cursor-pointer ${
+                  className={`w-full sm:w-auto px-1 sm:px-2.5 py-1 rounded-lg text-[11px] sm:text-xs flex items-center justify-center sm:justify-start gap-1 sm:gap-1.5 transition-all cursor-pointer min-w-0 ${
                     isSelected
                       ? 'bg-stone-900 text-white font-bold shadow-xs'
                       : 'bg-stone-100/90 text-stone-600 hover:text-stone-900 hover:bg-stone-200/80 font-medium'
@@ -197,7 +206,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                     className="w-2 h-2 rounded-full shrink-0"
                     style={{ backgroundColor: traveler.avatarColor }}
                   />
-                  <span className="truncate max-w-[80px]">{traveler.name}</span>
+                  <span className="truncate max-w-full">{traveler.name}</span>
                 </button>
               );
             })}
@@ -205,7 +214,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <button
               type="button"
               onClick={onOpenTravelersModal}
-              className="p-1 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors shrink-0"
+              className="hidden sm:flex p-1 rounded-lg text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors shrink-0"
               title="Editar los 5 viajeros"
             >
               <SlidersHorizontal className="w-3.5 h-3.5" />
@@ -213,8 +222,8 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           {/* Quick Progress Badge */}
-          <div className="flex items-center gap-2 shrink-0 text-right">
-            <span className="text-[11px] font-bold text-stone-600 hidden sm:inline">
+          <div className="hidden sm:flex items-center gap-2 shrink-0 text-right">
+            <span className="text-[11px] font-bold text-stone-600">
               <span className="font-extrabold text-stone-900">{activeUserVisitedCount}</span>/{totalTours} ({progressPercent}%)
             </span>
             <div className="w-16 sm:w-20 bg-stone-200 rounded-full h-1.5 overflow-hidden">

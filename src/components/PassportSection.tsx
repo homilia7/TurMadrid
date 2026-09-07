@@ -406,8 +406,8 @@ export const PassportSection: React.FC<PassportSectionProps> = ({
       {/* ========================================================================= */}
       {activeSubTab === 'passports' && (
         <div className="space-y-5 animate-in fade-in duration-200">
-          {/* Horizontal Traveler Selector */}
-          <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-none">
+          {/* Horizontal Traveler Selector (All 5 Travelers Fully Visible) */}
+          <div className="grid grid-cols-5 gap-1.5 sm:gap-2.5 pb-1">
             {safeTravelers.map((t) => {
               const isSelected = t.id === selectedTravelerId;
               const hasDoc = Boolean(t.passportDocUrl);
@@ -415,21 +415,22 @@ export const PassportSection: React.FC<PassportSectionProps> = ({
                 <button
                   key={t.id}
                   onClick={() => handleSelectTraveler(t.id)}
-                  className={`flex items-center gap-2.5 px-4 py-2.5 rounded-xl font-bold text-xs sm:text-sm transition-all whitespace-nowrap border cursor-pointer ${
+                  className={`flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-1 sm:gap-2 px-1 py-2 sm:px-3 sm:py-2.5 rounded-xl font-bold text-[10px] sm:text-xs transition-all border cursor-pointer min-w-0 ${
                     isSelected
-                      ? 'bg-blue-600 text-white border-blue-600 shadow-md scale-[1.02]'
+                      ? 'bg-blue-600 text-white border-blue-600 shadow-md scale-[1.01]'
                       : 'bg-white text-stone-700 border-stone-200 hover:bg-stone-50'
                   }`}
+                  title={`Ver pasaporte de ${t.name}`}
                 >
                   <div
-                    className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-black text-white shadow-xs shrink-0"
+                    className="w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-black text-white shadow-xs shrink-0"
                     style={{ backgroundColor: t.avatarColor }}
                   >
                     {t.name.charAt(0)}
                   </div>
-                  <span>{t.name}</span>
+                  <span className="truncate max-w-full text-center sm:text-left">{t.name}</span>
                   {hasDoc && (
-                    <span className="w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-white"></span>
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-white shrink-0 sm:ml-auto hidden sm:inline-block"></span>
                   )}
                 </button>
               );
