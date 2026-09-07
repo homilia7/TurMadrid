@@ -1,29 +1,42 @@
-import { Traveler, Tour, ItineraryDay } from '../types';
+﻿import { Traveler, Tour, ItineraryDay, DocumentItem } from '../types';
 import { INITIAL_TRAVELERS, INITIAL_TOURS, INITIAL_DAYS } from '../data/initialItinerary';
 
 const STORAGE_KEYS = {
-  TRAVELERS: 'app_itinerary_travelers_v1',
-  TOURS: 'app_itinerary_tours_v1',
-  DAYS: 'app_itinerary_days_v1',
-  ACTIVE_TRAVELER: 'app_itinerary_active_traveler_v1',
-  DEFAULT_ALERT_HOURS: 'app_itinerary_default_alert_hours_v1',
-  ALERT_SOUND_ENABLED: 'app_itinerary_alert_sound_v1',
+  TRAVELERS: 'app_itinerary_travelers_v2',
+  TOURS: 'app_itinerary_tours_v2',
+  DAYS: 'app_itinerary_days_v2',
+  DOCUMENTS: 'app_itinerary_documents_v2',
+  ACTIVE_TRAVELER: 'app_itinerary_active_traveler_v2',
+  DEFAULT_ALERT_HOURS: 'app_itinerary_default_alert_hours_v2',
+  ALERT_SOUND_ENABLED: 'app_itinerary_alert_sound_v2',
 };
+
+// Initial default documents extracted from tours and default travelers
+function getInitialDocuments(): DocumentItem[] {
+  const docs: DocumentItem[] = [];
+  
+  // Extract tickets from INITIAL_TOURS
+  INITIAL_TOURS.forEach((t) => {
+    if (t.tickets && t.tickets.length > 0) {
+      t.tickets.forEach((tick) => {
+        docs.push({
+          ...tick,
+          category: t.category === 'vuelo' ? 'vuelo' : 'entrada',
+          tourId: t.id,
+        });
+      });
+    }
+  });
+
+  return docs;
+}
 
 export function loadTravelers(): Traveler[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.TRAVELERS);
     if (!raw) return INITIAL_TRAVELERS;
     const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed) && parsed.length === 5) {
-      const hasGenericNames = parsed.some((t: Traveler) => t.name.startsWith('Viajero '));
-      const hasOldSwap = parsed[1]?.name === 'Vilma' && parsed[2]?.name === 'Mayela';
-      if (hasGenericNames || hasOldSwap) {
-        return parsed.map((t: Traveler, idx: number) => ({
-          ...t,
-          name: INITIAL_TRAVELERS[idx] ? INITIAL_TRAVELERS[idx].name : t.name,
-        }));
-      }
+    if (Array.isArray(parsed) && parsed.length > 0) {
       return parsed;
     }
     return INITIAL_TRAVELERS;
@@ -87,6 +100,29 @@ export function saveDays(days: ItineraryDay[]) {
   }
 }
 
+export function loadDocuments(): DocumentItem[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.DOCUMENTS);
+    if (!raw) return getInitialDocuments();
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      return parsed;
+    }
+    return getInitialDocuments();
+  } catch (e) {
+    console.error('Error loading documents from storage', e);
+    return getInitialDocuments();
+  }
+}
+
+export function saveDocuments(docs: DocumentItem[]) {
+  try {
+    localStorage.setItem(STORAGE_KEYS.DOCUMENTS, JSON.stringify(docs));
+  } catch (e) {
+    console.error('Error saving documents', e);
+  }
+}
+
 export function loadActiveTravelerId(): string {
   try {
     const saved = localStorage.getItem(STORAGE_KEYS.ACTIVE_TRAVELER);
@@ -138,13 +174,20 @@ export function saveAlertSoundEnabled(enabled: boolean) {
   }
 }
 
-export function resetToBrochureDefaults(): { travelers: Traveler[]; tours: Tour[]; days: ItineraryDay[] } {
+export function resetToBrochureDefaults(): {
+  travelers: Traveler[];
+  tours: Tour[];
+  days: ItineraryDay[];
+  documents: DocumentItem[];
+} {
   localStorage.removeItem(STORAGE_KEYS.TRAVELERS);
   localStorage.removeItem(STORAGE_KEYS.TOURS);
   localStorage.removeItem(STORAGE_KEYS.DAYS);
+  localStorage.removeItem(STORAGE_KEYS.DOCUMENTS);
   return {
     travelers: INITIAL_TRAVELERS,
     tours: INITIAL_TOURS,
     days: INITIAL_DAYS,
+    documents: getInitialDocuments(),
   };
 }

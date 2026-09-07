@@ -1,24 +1,47 @@
-export interface Traveler {
+﻿export interface Traveler {
   id: string;
   name: string;
   avatarColor: string;
   avatarIcon?: string;
+  passportNumber?: string;
+  passportExpiry?: string;
+  nationality?: string;
+  emergencyContact?: string;
+  notes?: string;
+  passportDocUrl?: string;
+  passportDocName?: string;
+  passportDocType?: 'pdf' | 'image' | 'digital';
 }
 
-export interface Ticket {
+export type DocumentCategory = 'entrada' | 'vuelo' | 'pasaporte' | 'reserva' | 'seguro' | 'otro';
+
+export interface DocumentItem {
   id: string;
-  tourId: string;
+  travelerId?: string;
+  tourId?: string;
+  category: DocumentCategory;
   title: string;
   fileName: string;
   fileType: 'pdf' | 'image' | 'digital';
-  dataUrl: string; // Base64 data or SVG/image URL
+  dataUrl: string;
   fileSize?: string;
-  uploadedAt: string;
-  travelerId?: string; // Optional: specific traveler or group ticket
-  qrCodeText?: string;
   referenceNumber?: string;
   seatOrSection?: string;
+  airline?: string;
+  flightNumber?: string;
+  terminal?: string;
+  gate?: string;
+  departureTime?: string;
+  arrivalTime?: string;
+  origin?: string;
+  destination?: string;
+  qrCodeText?: string;
+  notes?: string;
+  uploadedAt: string;
 }
+
+// Backward compatibility alias for Ticket
+export type Ticket = DocumentItem;
 
 export type TourCategory = 'cultura' | 'excursion' | 'transporte' | 'gastronomia' | 'ocio' | 'vuelo';
 
@@ -37,7 +60,7 @@ export interface Tour {
   alertHoursBefore: number; // e.g. 3, 4, etc.
   alertEnabled: boolean;
   visitedByUserIds: string[]; // List of traveler IDs who have checked this place
-  tickets: Ticket[];
+  tickets: DocumentItem[];
   notes?: string;
   imageThumbnail?: string;
 }
@@ -61,4 +84,10 @@ export interface AppNotification {
   scheduledTime: string;
   isTriggered: boolean;
   meetingPoint?: string;
+}
+
+export interface CloudSyncState {
+  status: 'synced' | 'syncing' | 'offline' | 'error';
+  lastSyncedAt?: string;
+  error?: string;
 }

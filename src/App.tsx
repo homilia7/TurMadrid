@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Traveler, Tour, ItineraryDay } from './types';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Traveler, Tour, ItineraryDay, DocumentItem, CloudSyncState } from './types';
 import {
   loadTravelers,
   saveTravelers,
@@ -7,6 +7,8 @@ import {
   saveTours,
   loadDays,
   saveDays,
+  loadDocuments,
+  saveDocuments,
   loadActiveTravelerId,
   saveActiveTravelerId,
   loadDefaultAlertHours,
@@ -15,6 +17,13 @@ import {
   saveAlertSoundEnabled,
   resetToBrochureDefaults,
 } from './utils/storage';
+import {
+  fetchCloudData,
+  syncToCloud,
+  uploadDocumentToCloud,
+  deleteDocumentFromCloud,
+  saveTravelerToCloud,
+} from './utils/cloudSync';
 import {
   calculateTourAlertStatus,
   playChimeSound,
@@ -30,6 +39,10 @@ import { AddTourModal } from './components/AddTourModal';
 import { TicketModal } from './components/TicketModal';
 import { PWAInstallButton } from './components/PWAInstallButton';
 import { OfflineIndicator } from './components/OfflineIndicator';
+import { MobileBottomNav, MainTabType } from './components/MobileBottomNav';
+import { PassportSection } from './components/PassportSection';
+import { FlightSection } from './components/FlightSection';
+import { TicketsHubSection } from './components/TicketsHubSection';
 import {
   Search,
   Filter,
@@ -41,17 +54,30 @@ import {
   MapPin,
   Calendar,
   Layers,
-  ChevronRight
+  ChevronRight,
+  Plane,
+  ShieldCheck,
+  Users
 } from 'lucide-react';
 
 export default function App() {
+  // Navigation tab state
+  const [activeTab, setActiveTab] = useState<MainTabType>('itinerary');
+
   // Core State
   const [travelers, setTravelers] = useState<Traveler[]>(loadTravelers);
   const [tours, setTours] = useState<Tour[]>(loadTours);
   const [days, setDays] = useState<ItineraryDay[]>(loadDays);
+  const [documents, setDocuments] = useState<DocumentItem[]>(loadDocuments);
   const [activeTravelerId, setActiveTravelerId] = useState<string>(loadActiveTravelerId);
   const [defaultAlertHours, setDefaultAlertHours] = useState<number>(loadDefaultAlertHours);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(loadAlertSoundEnabled);
+
+  // Cloudflare Sync State
+  const [syncState, setSyncState] = useState<CloudSyncState>({
+    status: 'synced',
+    lastSyncedAt: new Date().toISOString(),
+  });
 
   // Modals state
   const [isTravelersModalOpen, setIsTravelersModalOpen] = useState<boolean>(false);
@@ -66,7 +92,50 @@ export default function App() {
   const [filterStatus, setFilterStatus] = useState<'all' | 'pending' | 'visited' | 'tickets'>('all');
   const [selectedCity, setSelectedCity] = useState<string>('all');
 
-  // Persistence effects
+  // 1. Initial Cloudflare D1 Data Fetch & Hydration
+  useEffect(() => {
+    let isMounted = true;
+    async function initCloudData() {
+      setSyncState((prev) => ({ ...prev, status: 'syncing' }));
+      const cloudData = await fetchCloudData();
+      if (!isMounted) return;
+
+      if (cloudData && cloudData.tours && cloudData.tours.length > 0) {
+        setTours(cloudData.tours);
+        if (cloudData.travelers && cloudData.travelers.length > 0) {
+          setTravelers(cloudData.travelers);
+        }
+        if (cloudData.days && cloudData.days.length > 0) {
+          setDays(cloudData.days);
+        }
+        if (cloudData.documents && cloudData.documents.length > 0) {
+          setDocuments(cloudData.documents);
+        }
+        setSyncState({ status: 'synced', lastSyncedAt: new Date().toISOString() });
+      } else if (cloudData) {
+        const initialTours = loadTours();
+        const initialTravelers = loadTravelers();
+        const initialDays = loadDays();
+        const initialDocs = loadDocuments();
+        await syncToCloud({
+          travelers: initialTravelers,
+          tours: initialTours,
+          days: initialDays,
+          documents: initialDocs,
+        });
+        setSyncState({ status: 'synced', lastSyncedAt: new Date().toISOString() });
+      } else {
+        setSyncState({ status: 'offline' });
+      }
+    }
+
+    initCloudData();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // 2. Local Persistence Effects
   useEffect(() => {
     saveTravelers(travelers);
   }, [travelers]);
@@ -80,6 +149,10 @@ export default function App() {
   }, [days]);
 
   useEffect(() => {
+    saveDocuments(documents);
+  }, [documents]);
+
+  useEffect(() => {
     saveActiveTravelerId(activeTravelerId);
   }, [activeTravelerId]);
 
@@ -91,7 +164,23 @@ export default function App() {
     saveAlertSoundEnabled(soundEnabled);
   }, [soundEnabled]);
 
-  // Periodic alert monitor effect (checks every 30 seconds for approaching tours)
+  // 3. Debounced Cloudflare Sync on State Change
+  const triggerCloudSync = useCallback(async () => {
+    setSyncState((prev) => ({ ...prev, status: 'syncing' }));
+    const success = await syncToCloud({
+      travelers,
+      tours,
+      days,
+      documents,
+    });
+    if (success) {
+      setSyncState({ status: 'synced', lastSyncedAt: new Date().toISOString() });
+    } else {
+      setSyncState({ status: navigator.onLine ? 'error' : 'offline' });
+    }
+  }, [travelers, tours, days, documents]);
+
+  // Periodic alert monitor effect
   useEffect(() => {
     const checkedAlertsKey = 'checked_alerts_set_v1';
     let alertedIds: string[] = [];
@@ -132,8 +221,8 @@ export default function App() {
 
   // Toggle visit mark for a traveler
   const handleToggleVisit = (tourId: string, travelerId: string) => {
-    setTours((prevTours) =>
-      prevTours.map((t) => {
+    setTours((prevTours) => {
+      const updated = prevTours.map((t) => {
         if (t.id !== tourId) return t;
         const exists = t.visitedByUserIds.includes(travelerId);
         const updatedUserIds = exists
@@ -143,49 +232,90 @@ export default function App() {
           ...t,
           visitedByUserIds: updatedUserIds,
         };
-      })
-    );
+      });
+      syncToCloud({ tours: updated });
+      return updated;
+    });
   };
 
   // Quick change alert hours for a specific tour
   const handleQuickChangeAlert = (tourId: string, hours: number) => {
-    setTours((prev) =>
-      prev.map((t) => (t.id === tourId ? { ...t, alertHoursBefore: hours } : t))
-    );
+    setTours((prev) => {
+      const updated = prev.map((t) => (t.id === tourId ? { ...t, alertHoursBefore: hours } : t));
+      syncToCloud({ tours: updated });
+      return updated;
+    });
   };
 
   // Save new or updated tour
   const handleSaveTour = (savedTour: Tour) => {
     setTours((prev) => {
       const exists = prev.some((t) => t.id === savedTour.id);
-      if (exists) {
-        return prev.map((t) => (t.id === savedTour.id ? savedTour : t));
-      } else {
-        return [...prev, savedTour];
-      }
+      const updated = exists
+        ? prev.map((t) => (t.id === savedTour.id ? savedTour : t))
+        : [...prev, savedTour];
+      syncToCloud({ tours: updated });
+      return updated;
     });
   };
 
   // Delete tour
   const handleDeleteTour = (tourId: string) => {
-    setTours((prev) => prev.filter((t) => t.id !== tourId));
+    setTours((prev) => {
+      const updated = prev.filter((t) => t.id !== tourId);
+      syncToCloud({ tours: updated });
+      return updated;
+    });
   };
 
   // Update tour tickets
   const handleUpdateTourTickets = (tourId: string, newTickets: Tour['tickets']) => {
-    setTours((prev) =>
-      prev.map((t) => (t.id === tourId ? { ...t, tickets: newTickets } : t))
-    );
+    setTours((prev) => {
+      const updated = prev.map((t) => (t.id === tourId ? { ...t, tickets: newTickets } : t));
+      syncToCloud({ tours: updated });
+      return updated;
+    });
     if (activeTicketTour?.id === tourId) {
       setActiveTicketTour((prev) => (prev ? { ...prev, tickets: newTickets } : null));
     }
+  };
+
+  // Update Traveler Passport / Profile
+  const handleUpdateTraveler = (updatedTraveler: Traveler) => {
+    setTravelers((prev) => {
+      const updated = prev.map((t) => (t.id === updatedTraveler.id ? updatedTraveler : t));
+      saveTravelerToCloud(updatedTraveler);
+      return updated;
+    });
+  };
+
+  // Add Document
+  const handleAddDocument = (newDoc: DocumentItem) => {
+    setDocuments((prev) => {
+      const updated = [newDoc, ...prev];
+      uploadDocumentToCloud(newDoc);
+      return updated;
+    });
+  };
+
+  // Delete Document
+  const handleDeleteDocument = (docId: string) => {
+    setDocuments((prev) => {
+      const updated = prev.filter((d) => d.id !== docId);
+      deleteDocumentFromCloud(docId);
+      return updated;
+    });
   };
 
   // Global default alert hours save
   const handleSaveDefaultAlertHours = (hours: number, applyToAll: boolean) => {
     setDefaultAlertHours(hours);
     if (applyToAll) {
-      setTours((prev) => prev.map((t) => ({ ...t, alertHoursBefore: hours })));
+      setTours((prev) => {
+        const updated = prev.map((t) => ({ ...t, alertHoursBefore: hours }));
+        syncToCloud({ tours: updated });
+        return updated;
+      });
     }
   };
 
@@ -200,6 +330,8 @@ export default function App() {
       setTravelers(defaults.travelers);
       setTours(defaults.tours);
       setDays(defaults.days);
+      setDocuments(defaults.documents);
+      syncToCloud(defaults);
     }
   };
 
@@ -211,23 +343,20 @@ export default function App() {
 
   // Filtered tours and days
   const filteredTours = tours.filter((tour) => {
-    // City filter
     if (selectedCity !== 'all' && !tour.city.toLowerCase().includes(selectedCity.toLowerCase())) {
       return false;
     }
 
-    // Status filter
     if (filterStatus === 'visited' && !tour.visitedByUserIds.includes(activeTravelerId)) {
       return false;
     }
     if (filterStatus === 'pending' && tour.visitedByUserIds.includes(activeTravelerId)) {
       return false;
     }
-    if (filterStatus === 'tickets' && tour.tickets.length === 0) {
+    if (filterStatus === 'tickets' && (!tour.tickets || tour.tickets.length === 0)) {
       return false;
     }
 
-    // Search query
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       const matchTitle = tour.title.toLowerCase().includes(q);
@@ -242,15 +371,18 @@ export default function App() {
     return true;
   });
 
-  // Days that have matching tours (or show all days if no filter applied)
   const matchingDayNumbers = new Set(filteredTours.map((t) => t.dayNumber));
   const displayedDays =
     searchQuery.trim() || filterStatus !== 'all' || selectedCity !== 'all'
       ? days.filter((d) => matchingDayNumbers.has(d.dayNumber))
       : days;
 
+  const passportCount = travelers.filter((t) => Boolean(t.passportDocUrl || t.passportNumber)).length;
+  const flightCount = documents.filter((d) => d.category === 'vuelo').length;
+  const ticketCount = tours.reduce((acc, t) => acc + (t.tickets?.length || 0), 0);
+
   return (
-    <div className="min-h-screen flex flex-col bg-stone-100 text-stone-900 font-sans pb-16">
+    <div className="min-h-screen flex flex-col bg-stone-100 text-stone-900 font-sans pb-20 md:pb-12">
       {/* Top sticky navigation */}
       <Navbar
         travelers={travelers}
@@ -265,226 +397,291 @@ export default function App() {
         }}
         tours={tours}
         defaultAlertHours={defaultAlertHours}
+        syncState={syncState}
+        onManualSync={triggerCloudSync}
+        activeTab={activeTab}
+        onChangeTab={setActiveTab}
       />
 
       {/* Main Container */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 w-full mt-4 sm:mt-6 space-y-6">
-        {/* PWA Download Banner (Automatically hides once installed) */}
+      <main className="max-w-6xl mx-auto px-4 sm:px-6 w-full mt-3 sm:mt-5 space-y-5">
+        {/* PWA Download Banner */}
         <PWAInstallButton variant="banner" />
 
-        {/* Next Tour & Active Alert Banner */}
-        <AlertBanner
-          tours={tours}
-          defaultAlertHours={defaultAlertHours}
-          onOpenAlertSettings={() => setIsAlertModalOpen(true)}
-          onOpenTickets={(tour) => setActiveTicketTour(tour)}
-        />
+        {/* TAB 1: ITINERARIO DIARIO */}
+        {activeTab === 'itinerary' && (
+          <div className="space-y-5 animate-in fade-in duration-200">
+            {/* Next Tour & Active Alert Banner */}
+            <AlertBanner
+              tours={tours}
+              defaultAlertHours={defaultAlertHours}
+              onOpenAlertSettings={() => setIsAlertModalOpen(true)}
+              onOpenTickets={(tour) => setActiveTicketTour(tour)}
+            />
 
-        {/* 5 Travelers Group Progress Dashboard */}
-        <GroupSummary
-          travelers={travelers}
-          tours={tours}
-          activeTravelerId={activeTravelerId}
-          onSelectActiveTraveler={setActiveTravelerId}
-        />
+            {/* 5 Travelers Group Progress Dashboard */}
+            <GroupSummary
+              travelers={travelers}
+              tours={tours}
+              activeTravelerId={activeTravelerId}
+              onSelectActiveTraveler={setActiveTravelerId}
+            />
 
-        {/* Filter and Search Bar */}
-        <div className="bg-white rounded-2xl border border-stone-200 p-4 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
-          {/* Search box */}
-          <div className="relative flex-1">
-            <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              id="search-tours-input"
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Buscar tour, monumento, ciudad o punto de encuentro..."
-              className="w-full pl-9 pr-4 py-2 text-xs font-medium text-stone-800 bg-stone-50 border border-stone-200 rounded-xl focus:bg-white focus:outline-hidden focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500"
+            {/* Filter and Search Bar */}
+            <div className="bg-white rounded-2xl border border-stone-200 p-3.5 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+              <div className="relative flex-1">
+                <Search className="w-4 h-4 text-stone-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  id="search-tours-input"
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Buscar monumento, museo, hora o ciudad..."
+                  className="w-full pl-9 pr-3.5 py-2 rounded-xl text-xs sm:text-sm bg-stone-50 border border-stone-200 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+                />
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <select
+                  aria-label="Filtrar por ciudad"
+                  value={selectedCity}
+                  onChange={(e) => setSelectedCity(e.target.value)}
+                  className="px-3 py-2 text-xs font-semibold rounded-xl bg-stone-50 border border-stone-200 text-stone-700 focus:bg-white focus:outline-none focus:ring-2 focus:ring-amber-500"
+                >
+                  <option value="all">Todas las Ciudades</option>
+                  {uniqueCities.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+
+                <div className="flex items-center bg-stone-100 p-1 rounded-xl border border-stone-200 text-xs font-semibold">
+                  <button
+                    onClick={() => setFilterStatus('all')}
+                    className={`px-2.5 py-1 rounded-lg transition-all ${
+                      filterStatus === 'all'
+                        ? 'bg-white text-stone-900 shadow-2xs font-bold'
+                        : 'text-stone-600 hover:text-stone-900'
+                    }`}
+                  >
+                    Todos ({tours.length})
+                  </button>
+
+                  <button
+                    onClick={() => setFilterStatus('pending')}
+                    className={`px-2.5 py-1 rounded-lg transition-all ${
+                      filterStatus === 'pending'
+                        ? 'bg-white text-amber-700 shadow-2xs font-bold'
+                        : 'text-stone-600 hover:text-stone-900'
+                    }`}
+                  >
+                    Pendientes
+                  </button>
+
+                  <button
+                    onClick={() => setFilterStatus('visited')}
+                    className={`px-2.5 py-1 rounded-lg transition-all ${
+                      filterStatus === 'visited'
+                        ? 'bg-white text-emerald-700 shadow-2xs font-bold'
+                        : 'text-stone-600 hover:text-stone-900'
+                    }`}
+                  >
+                    Completados
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* List of Days & Tours */}
+            <div className="space-y-5">
+              {displayedDays.length > 0 ? (
+                displayedDays.map((day) => {
+                  const dayTours = filteredTours.filter((t) => t.dayNumber === day.dayNumber);
+                  return (
+                    <DaySection
+                      key={day.dayNumber}
+                      day={day}
+                      tours={dayTours}
+                      travelers={travelers}
+                      activeTravelerId={activeTravelerId}
+                      onToggleVisit={handleToggleVisit}
+                      onEditTour={(tour) => {
+                        setEditingTour(tour);
+                        setSelectedDayForNewTour(tour.dayNumber);
+                        setIsAddTourModalOpen(true);
+                      }}
+                      onDeleteTour={handleDeleteTour}
+                      onOpenTickets={(tour) => setActiveTicketTour(tour)}
+                      onQuickChangeAlert={handleQuickChangeAlert}
+                      onAddNewTourToDay={(dayNumber) => {
+                        setEditingTour(null);
+                        setSelectedDayForNewTour(dayNumber);
+                        setIsAddTourModalOpen(true);
+                      }}
+                    />
+                  );
+                })
+              ) : (
+                <div className="text-center py-12 bg-white rounded-2xl border border-stone-200 shadow-xs">
+                  <Calendar className="w-12 h-12 text-stone-300 mx-auto mb-3" />
+                  <h3 className="text-base font-bold text-stone-800">No se encontraron actividades</h3>
+                  <p className="text-xs text-stone-500 mt-1 max-w-sm mx-auto">
+                    Prueba ajustando los filtros o el término de búsqueda.
+                  </p>
+                  <button
+                    onClick={() => {
+                      setSearchQuery('');
+                      setFilterStatus('all');
+                      setSelectedCity('all');
+                    }}
+                    className="mt-4 px-4 py-2 text-xs font-bold text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-xl border border-amber-200 transition-colors"
+                  >
+                    Limpiar Filtros
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 2: VUELOS & PASAJES DE AVIÓN */}
+        {activeTab === 'flights' && (
+          <div className="animate-in fade-in duration-200">
+            <FlightSection
+              travelers={travelers}
+              documents={documents}
+              onAddDocument={handleAddDocument}
+              onDeleteDocument={handleDeleteDocument}
+              activeTravelerId={activeTravelerId}
             />
           </div>
+        )}
 
-          {/* Status filters */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
-            <button
-              type="button"
-              onClick={() => setFilterStatus('all')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors ${
-                filterStatus === 'all'
-                  ? 'bg-stone-900 text-white'
-                  : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
-              }`}
-            >
-              Todos ({tours.length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setFilterStatus('pending')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors flex items-center gap-1 ${
-                filterStatus === 'pending'
-                  ? 'bg-amber-500 text-white'
-                  : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
-              }`}
-            >
-              <Clock className="w-3.5 h-3.5" />
-              Por Visitar
-            </button>
-            <button
-              type="button"
-              onClick={() => setFilterStatus('visited')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors flex items-center gap-1 ${
-                filterStatus === 'visited'
-                  ? 'bg-emerald-600 text-white'
-                  : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
-              }`}
-            >
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              Visitados ({tours.filter((t) => t.visitedByUserIds.includes(activeTravelerId)).length})
-            </button>
-            <button
-              type="button"
-              onClick={() => setFilterStatus('tickets')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-colors flex items-center gap-1 ${
-                filterStatus === 'tickets'
-                  ? 'bg-amber-600 text-white'
-                  : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
-              }`}
-            >
-              <TicketIcon className="w-3.5 h-3.5" />
-              Con Entradas
-            </button>
+        {/* TAB 3: PASAPORTES & DOCUMENTACIÓN */}
+        {activeTab === 'passports' && (
+          <div className="animate-in fade-in duration-200">
+            <PassportSection
+              travelers={travelers}
+              onUpdateTraveler={handleUpdateTraveler}
+              onAddTraveler={(name, color) => {
+                const newT: Traveler = {
+                  id: `u-${Date.now()}`,
+                  name,
+                  avatarColor: color,
+                };
+                setTravelers((prev) => [...prev, newT]);
+                saveTravelerToCloud(newT);
+              }}
+              activeTravelerId={activeTravelerId}
+              onSelectTraveler={setActiveTravelerId}
+            />
           </div>
-        </div>
+        )}
 
-        {/* City Filter Pills */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
-          <span className="font-bold text-stone-400 uppercase tracking-wider shrink-0 text-[11px]">
-            Destinos:
-          </span>
-          <button
-            type="button"
-            onClick={() => setSelectedCity('all')}
-            className={`px-3 py-1 rounded-full font-medium transition-colors shrink-0 ${
-              selectedCity === 'all'
-                ? 'bg-amber-500 text-white font-bold'
-                : 'bg-white border border-stone-200 text-stone-600 hover:bg-stone-50'
-            }`}
-          >
-            Todos
-          </button>
-          {uniqueCities.map((city) => (
-            <button
-              key={city}
-              type="button"
-              onClick={() => setSelectedCity(city)}
-              className={`px-3 py-1 rounded-full font-medium transition-colors shrink-0 ${
-                selectedCity === city
-                  ? 'bg-amber-500 text-white font-bold'
-                  : 'bg-white border border-stone-200 text-stone-600 hover:bg-stone-50'
-              }`}
-            >
-              {city}
-            </button>
-          ))}
-        </div>
+        {/* TAB 4: ENTRADAS & RESERVAS */}
+        {activeTab === 'tickets' && (
+          <div className="animate-in fade-in duration-200">
+            <TicketsHubSection
+              tours={tours}
+              travelers={travelers}
+              onOpenTourTickets={(tour) => setActiveTicketTour(tour)}
+              onUpdateTourTickets={handleUpdateTourTickets}
+            />
+          </div>
+        )}
 
-        {/* Itinerary Day-by-Day List */}
-        <div className="space-y-4">
-          {displayedDays.length === 0 ? (
-            <div className="bg-white rounded-2xl p-12 text-center border border-stone-200">
-              <Search className="w-10 h-10 text-stone-300 mx-auto mb-2" />
-              <h4 className="text-base font-bold text-stone-800">No se encontraron tours con ese filtro</h4>
-              <p className="text-xs text-stone-500 mt-1">Prueba a buscar con otra palabra o restablece los filtros</p>
+        {/* TAB 5: GRUPO / VIAJEROS */}
+        {activeTab === 'travelers' && (
+          <div className="space-y-5 animate-in fade-in duration-200">
+            <div className="bg-gradient-to-r from-purple-900 to-indigo-950 text-white p-5 rounded-2xl shadow-md flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-purple-500/20 border border-purple-400/30 flex items-center justify-center text-2xl">
+                  👥
+                </div>
+                <div>
+                  <h2 className="text-xl font-bold tracking-tight">Grupo de Viajeros</h2>
+                  <p className="text-xs text-purple-200">
+                    5 Pasajeros: Jessica, Mayela, Vilma, Mercedes y Angelica
+                  </p>
+                </div>
+              </div>
               <button
-                type="button"
-                onClick={() => {
-                  setSearchQuery('');
-                  setFilterStatus('all');
-                  setSelectedCity('all');
-                }}
-                className="mt-3 text-xs font-bold px-4 py-2 bg-stone-900 text-white rounded-xl hover:bg-stone-800"
+                onClick={() => setIsTravelersModalOpen(true)}
+                className="px-3.5 py-2 text-xs font-bold text-purple-950 bg-purple-200 hover:bg-purple-100 rounded-xl shadow-sm transition"
               >
-                Limpiar Filtros
+                Editar Nombres
               </button>
             </div>
-          ) : (
-            displayedDays.map((day) => (
-              <DaySection
-                key={day.dayNumber}
-                day={day}
-                tours={filteredTours}
-                travelers={travelers}
-                activeTravelerId={activeTravelerId}
-                onToggleVisit={handleToggleVisit}
-                onOpenTickets={(tour) => setActiveTicketTour(tour)}
-                onEditTour={(tour) => {
-                  setEditingTour(tour);
-                  setIsAddTourModalOpen(true);
-                }}
-                onDeleteTour={handleDeleteTour}
-                onQuickChangeAlert={handleQuickChangeAlert}
-                onAddTourToDay={(dayNum) => {
-                  setEditingTour(null);
-                  setSelectedDayForNewTour(dayNum);
-                  setIsAddTourModalOpen(true);
-                }}
-              />
-            ))
-          )}
-        </div>
 
-        {/* Bottom Utility Bar */}
-        <div className="pt-4 border-t border-stone-200/80 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-stone-500">
-          <div>
-            Itinerario España 2026 • 13 Días • 5 Viajeros con marcado individual de visitas
+            <GroupSummary
+              travelers={travelers}
+              tours={tours}
+              activeTravelerId={activeTravelerId}
+              onSelectActiveTraveler={setActiveTravelerId}
+            />
           </div>
+        )}
+
+        {/* Bottom Actions and Reset */}
+        <div className="pt-6 border-t border-stone-200 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-stone-500">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-amber-500" />
+            <span>TurMadrid • Desplegado en Cloudflare Pages & D1</span>
+          </div>
+
           <button
             type="button"
             onClick={handleResetDefaults}
-            className="inline-flex items-center gap-1.5 text-stone-500 hover:text-stone-800 transition-colors"
-            title="Restablecer los datos originales del folleto PDF de España"
+            className="flex items-center gap-1.5 text-stone-500 hover:text-stone-800 transition-colors"
           >
             <RotateCcw className="w-3.5 h-3.5" />
-            <span>Restablecer Itinerario Original del Brochure</span>
+            <span>Restaurar Itinerario Oficial del Brochure</span>
           </button>
         </div>
       </main>
 
+      {/* Floating Offline Sync Indicator */}
+      <OfflineIndicator />
+
+      {/* Mobile Bottom Navigation Bar */}
+      <MobileBottomNav
+        activeTab={activeTab}
+        onChangeTab={setActiveTab}
+        ticketCount={ticketCount}
+        flightCount={flightCount}
+        passportCount={passportCount}
+      />
+
       {/* Modals */}
-      {/* 1. Travelers Modal (Edit the 5 users names & colors) */}
       <TravelersModal
         isOpen={isTravelersModalOpen}
         onClose={() => setIsTravelersModalOpen(false)}
         travelers={travelers}
-        onSave={(updated) => setTravelers(updated)}
-        activeTravelerId={activeTravelerId}
-        onSelectActiveTraveler={(id) => setActiveTravelerId(id)}
+        onSaveTravelers={(updatedTravelers) => {
+          setTravelers(updatedTravelers);
+          syncToCloud({ travelers: updatedTravelers });
+        }}
       />
 
-      {/* 2. Alert Settings Modal (3h or 4h before tour, modify alerts, test notifications) */}
       <AlertSettingsModal
         isOpen={isAlertModalOpen}
         onClose={() => setIsAlertModalOpen(false)}
         defaultAlertHours={defaultAlertHours}
-        onSaveDefaultAlertHours={handleSaveDefaultAlertHours}
         soundEnabled={soundEnabled}
+        onSaveAlertHours={handleSaveDefaultAlertHours}
         onToggleSound={setSoundEnabled}
       />
 
-      {/* 3. Add or Edit Tour Modal */}
       <AddTourModal
         isOpen={isAddTourModalOpen}
-        onClose={() => {
-          setIsAddTourModalOpen(false);
-          setEditingTour(null);
-        }}
-        days={days}
+        onClose={() => setIsAddTourModalOpen(false)}
         onSaveTour={handleSaveTour}
-        initialDayNumber={selectedDayForNewTour}
         editingTour={editingTour}
+        defaultDayNumber={selectedDayForNewTour}
         defaultAlertHours={defaultAlertHours}
       />
 
-      {/* 4. Ticket Modal (Upload, View online, Download tickets) */}
       {activeTicketTour && (
         <TicketModal
           isOpen={Boolean(activeTicketTour)}
@@ -494,9 +691,6 @@ export default function App() {
           onUpdateTourTickets={handleUpdateTourTickets}
         />
       )}
-
-      {/* Offline Connectivity Status Toast */}
-      <OfflineIndicator />
     </div>
   );
 }
