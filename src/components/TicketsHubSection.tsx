@@ -36,7 +36,9 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
   const [qrModalData, setQrModalData] = useState<{
     isOpen: boolean;
     title: string;
-    qrPayload: string;
+    qrPayload?: string;
+    ticketImage?: string;
+    qrCropUrl?: string;
     travelerName?: string;
     date?: string;
     time?: string;
@@ -46,7 +48,7 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
   }>({
     isOpen: false,
     title: '',
-    qrPayload: '',
+    qrPayload: undefined,
   });
 
   const safeTours = Array.isArray(tours) ? tours : [];
@@ -287,7 +289,9 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
                     onClick={() => setQrModalData({
                       isOpen: true,
                       title: ticket.title,
-                      qrPayload: ticket.qrCodeText || ticket.referenceNumber || `TICKET-${ticket.id}`,
+                      qrPayload: ticket.qrCodeText || undefined,
+                      ticketImage: ticket.dataUrl,
+                      qrCropUrl: ticket.qrCropUrl,
                       travelerName: assignedTraveler ? assignedTraveler.name : 'Pase Grupal (5 Viajeros)',
                       date: tour.date,
                       time: tour.time,
@@ -351,6 +355,8 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
         onClose={() => setQrModalData((prev) => ({ ...prev, isOpen: false }))}
         title={qrModalData.title}
         qrPayload={qrModalData.qrPayload}
+        ticketImage={qrModalData.ticketImage}
+        qrCropUrl={qrModalData.qrCropUrl}
         travelerName={qrModalData.travelerName}
         date={qrModalData.date}
         time={qrModalData.time}

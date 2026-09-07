@@ -1,5 +1,18 @@
-﻿import React, { useEffect, useState } from 'react';
-import { QrCode, X, Download, Maximize2, Minimize2, Sparkles, Calendar, MapPin, Clock, User, ShieldCheck } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import {
+  QrCode,
+  X,
+  Download,
+  Maximize2,
+  Minimize2,
+  Calendar,
+  MapPin,
+  Clock,
+  User,
+  ShieldCheck,
+  ExternalLink,
+  Image as ImageIcon
+} from 'lucide-react';
 import { generateLargeQR } from '../utils/qrReader';
 import { formatDateWithDay } from '../utils/dateUtils';
 import { downloadFile } from '../utils/ticketGenerator';
@@ -8,7 +21,9 @@ interface LargeQRModalProps {
   isOpen: boolean;
   onClose: () => void;
   title: string;
-  qrPayload: string;
+  qrPayload?: string;
+  ticketImage?: string;
+  qrCropUrl?: string;
   travelerName?: string;
   date?: string;
   time?: string;
@@ -22,6 +37,8 @@ export const LargeQRModal: React.FC<LargeQRModalProps> = ({
   onClose,
   title,
   qrPayload,
+  ticketImage,
+  qrCropUrl,
   travelerName,
   date,
   time,
@@ -29,9 +46,14 @@ export const LargeQRModal: React.FC<LargeQRModalProps> = ({
   referenceNumber,
   seatOrSection,
 }) => {
-  const [qrDataUrl, setQrDataUrl] = useState<string>('');
+  const [generatedQR, setGeneratedQR] = useState<string>('');
+  const [activeView, setActiveView] = useState<'digital' | 'original'>('digital');
   const [isFullScreen, setIsFullScreen] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  // Determine if we have a real decoded QR payload
+  const hasRealPayload = Boolean(qrPayload && qrPayload.trim().length > 0);
+  const displayImage = qrCropUrl || ticketImage;
 
   useEffect(() => {
     if (!isOpen) return;
@@ -39,26 +61,33 @@ export const LargeQRModal: React.FC<LargeQRModalProps> = ({
     let isMounted = true;
     setIsLoading(true);
 
-    const payloadToEncode = qrPayload || referenceNumber || `PASS-${title}-${date || ''}`;
-
-    generateLargeQR(payloadToEncode, 450).then((url) => {
-      if (isMounted) {
-        setQrDataUrl(url);
-        setIsLoading(false);
-      }
-    });
+    if (hasRealPayload && qrPayload) {
+      generateLargeQR(qrPayload, 480).then((url) => {
+        if (isMounted) {
+          setGeneratedQR(url);
+          setActiveView('digital');
+          setIsLoading(false);
+        }
+      });
+    } else {
+      // If no decoded payload, switch to showing the original uploaded ticket image
+      setGeneratedQR('');
+      setActiveView('original');
+      setIsLoading(false);
+    }
 
     return () => {
       isMounted = false;
     };
-  }, [isOpen, qrPayload, referenceNumber, title, date]);
+  }, [isOpen, qrPayload, hasRealPayload]);
 
   if (!isOpen) return null;
 
-  const handleDownloadQR = () => {
-    if (!qrDataUrl) return;
+  const handleDownloadActiveQR = () => {
+    const srcToDownload = activeView === 'digital' && generatedQR ? generatedQR : (displayImage || generatedQR);
+    if (!srcToDownload) return;
     const filename = `QR_${title.substring(0, 20).replace(/\s+/g, '_')}.png`;
-    downloadFile(qrDataUrl, filename);
+    downloadFile(srcToDownload, filename);
   };
 
   return (
@@ -83,7 +112,7 @@ export const LargeQRModal: React.FC<LargeQRModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-[11px] uppercase tracking-wider font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
-                  Entrada QR Oficial
+                  {hasRealPayload ? 'QR Real Decodificado' : 'Código Original de Entrada'}
                 </span>
               </div>
               <h3 className="text-base sm:text-lg font-bold text-white truncate max-w-xs sm:max-w-sm mt-0.5">
@@ -95,7 +124,7 @@ export const LargeQRModal: React.FC<LargeQRModalProps> = ({
           <div className="flex items-center gap-1.5">
             <button
               onClick={() => setIsFullScreen(!isFullScreen)}
-              className="p-2 text-stone-400 hover:text-white hover:bg-stone-800 rounded-xl transition"
+              className="p-2 text-stone-400 hover:text-white hover:bg-stone-800 rounded-xl transition cursor-pointer"
               title={isFullScreen ? 'Reducir' : 'Ampliar'}
             >
               {isFullScreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
@@ -103,7 +132,7 @@ export const LargeQRModal: React.FC<LargeQRModalProps> = ({
             <button
               id="close-qr-modal-btn"
               onClick={onClose}
-              className="p-2 text-stone-400 hover:text-white hover:bg-stone-800 rounded-xl transition"
+              className="p-2 text-stone-400 hover:text-white hover:bg-stone-800 rounded-xl transition cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
@@ -119,24 +148,73 @@ export const LargeQRModal: React.FC<LargeQRModalProps> = ({
             <span className="font-semibold">Listo para Escanear en Molinete / Acceso</span>
           </div>
 
+          {/* Toggle between High-Contrast Digital QR and Original Uploaded QR Image if available */}
+          {hasRealPayload && displayImage && (
+            <div className="flex items-center bg-stone-950 p-1 rounded-xl border border-stone-800 text-xs">
+              <button
+                type="button"
+                onClick={() => setActiveView('digital')}
+                className={`px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 ${
+                  activeView === 'digital'
+                    ? 'bg-amber-500 text-stone-950 shadow-xs'
+                    : 'text-stone-400 hover:text-white'
+                }`}
+              >
+                <QrCode className="w-3.5 h-3.5" />
+                <span>QR Alta Definición</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveView('original')}
+                className={`px-3 py-1.5 rounded-lg font-bold transition flex items-center gap-1.5 ${
+                  activeView === 'original'
+                    ? 'bg-amber-500 text-stone-950 shadow-xs'
+                    : 'text-stone-400 hover:text-white'
+                }`}
+              >
+                <ImageIcon className="w-3.5 h-3.5" />
+                <span>QR Original del Boleto</span>
+              </button>
+            </div>
+          )}
+
           {/* Large High-Contrast QR Code Card */}
-          <div className="bg-white p-4 sm:p-6 rounded-3xl shadow-2xl border-4 border-amber-400/80 flex flex-col items-center justify-center w-full max-w-xs sm:max-w-sm">
+          <div className="bg-white p-4 sm:p-6 rounded-3xl shadow-2xl border-4 border-amber-400/80 flex flex-col items-center justify-center w-full max-w-xs sm:max-w-sm overflow-hidden">
             {isLoading ? (
               <div className="w-64 h-64 flex items-center justify-center text-stone-400">
                 <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-amber-500"></div>
               </div>
-            ) : (
+            ) : activeView === 'digital' && generatedQR ? (
               <img
-                src={qrDataUrl}
-                alt={`Código QR para ${title}`}
+                src={generatedQR}
+                alt={`Código QR exacto para ${title}`}
                 className="w-full h-auto aspect-square object-contain rounded-xl select-none"
               />
+            ) : displayImage ? (
+              <div className="flex flex-col items-center justify-center">
+                <img
+                  src={displayImage}
+                  alt={`Código QR original para ${title}`}
+                  className="max-h-72 w-auto object-contain rounded-xl shadow-xs select-none"
+                />
+                <span className="text-[10px] text-stone-500 font-semibold mt-2">
+                  Fotografía original del boleto subido
+                </span>
+              </div>
+            ) : (
+              <div className="p-8 text-center text-stone-500 text-xs">
+                <QrCode className="w-12 h-12 mx-auto text-stone-300 mb-2" />
+                <span>No se encontró código QR en la entrada</span>
+              </div>
             )}
 
-            <div className="mt-3 pt-2.5 border-t border-stone-200 w-full flex items-center justify-between text-stone-700 font-mono text-xs">
-              <span className="font-semibold text-stone-500 text-[11px]">REF:</span>
-              <span className="font-bold text-stone-900 tracking-wider">
-                {referenceNumber || 'ESP-TUR-2026'}
+            {/* Real decoded string / reference banner */}
+            <div className="mt-3 pt-2.5 border-t border-stone-200 w-full flex flex-col items-center justify-center text-stone-700 font-mono text-xs overflow-hidden">
+              <span className="font-semibold text-stone-500 text-[10px] uppercase">
+                {hasRealPayload ? 'Contenido Real Decodificado:' : 'Referencia:'}
+              </span>
+              <span className="font-bold text-stone-900 text-[11px] truncate max-w-full px-1" title={qrPayload || referenceNumber}>
+                {qrPayload || referenceNumber || 'Boleto Original'}
               </span>
             </div>
           </div>
@@ -199,8 +277,8 @@ export const LargeQRModal: React.FC<LargeQRModalProps> = ({
         {/* Modal Footer */}
         <div className="p-4 bg-stone-950 border-t border-stone-800 flex items-center justify-between gap-3">
           <button
-            onClick={handleDownloadQR}
-            className="px-4 py-2.5 rounded-xl bg-stone-800 hover:bg-stone-700 text-white text-xs font-bold transition flex items-center gap-1.5"
+            onClick={handleDownloadActiveQR}
+            className="px-4 py-2.5 rounded-xl bg-stone-800 hover:bg-stone-700 text-white text-xs font-bold transition flex items-center gap-1.5 cursor-pointer"
           >
             <Download className="w-4 h-4 text-amber-400" />
             Descargar Imagen QR
@@ -208,7 +286,7 @@ export const LargeQRModal: React.FC<LargeQRModalProps> = ({
 
           <button
             onClick={onClose}
-            className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 text-xs font-bold transition shadow-md shadow-amber-500/20"
+            className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-stone-950 text-xs font-bold transition shadow-md shadow-amber-500/20 cursor-pointer"
           >
             Cerrar
           </button>

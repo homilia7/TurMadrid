@@ -318,7 +318,9 @@ export const TourCard: React.FC<TourCardProps> = ({
           isOpen={isQRModalOpen}
           onClose={() => setIsQRModalOpen(false)}
           title={primaryTicket.title || tour.title}
-          qrPayload={primaryTicket.qrCodeText || primaryTicket.referenceNumber || `TICKET-${primaryTicket.id}`}
+          qrPayload={primaryTicket.qrCodeText || undefined}
+          ticketImage={primaryTicket.dataUrl}
+          qrCropUrl={primaryTicket.qrCropUrl}
           travelerName={
             safeTravelers.find((tr) => tr.id === primaryTicket.travelerId)?.name || 'Pase Grupal (5 Viajeros)'
           }

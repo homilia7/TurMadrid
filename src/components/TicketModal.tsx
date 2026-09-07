@@ -59,12 +59,15 @@ export const TicketModal: React.FC<TicketModalProps> = ({
     dataUrl: string;
     fileSize: string;
     detectedQR?: string;
+    qrCropUrl?: string;
   } | null>(null);
 
   const [qrModalData, setQrModalData] = useState<{
     isOpen: boolean;
     title: string;
-    qrPayload: string;
+    qrPayload?: string;
+    ticketImage?: string;
+    qrCropUrl?: string;
     travelerName?: string;
     date?: string;
     time?: string;
@@ -74,7 +77,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
   }>({
     isOpen: false,
     title: '',
-    qrPayload: '',
+    qrPayload: undefined,
   });
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -92,14 +95,16 @@ export const TicketModal: React.FC<TicketModalProps> = ({
     reader.onload = async (event) => {
       const dataUrl = event.target?.result as string;
       let detectedQR: string | undefined = undefined;
+      let qrCropUrl: string | undefined = undefined;
 
       // Automatically attempt to scan and decode QR code from uploaded image
       if (isImage) {
         try {
           const qrResult = await decodeQRFromImage(dataUrl);
-          if (qrResult) {
-            detectedQR = qrResult;
-            console.log('✅ QR Code detectado automáticamente en la entrada:', qrResult);
+          if (qrResult && qrResult.text) {
+            detectedQR = qrResult.text;
+            qrCropUrl = qrResult.cropDataUrl;
+            console.log('✅ QR Code real detectado en la entrada:', qrResult.text);
           }
         } catch (err) {
           console.warn('Error escaneando QR:', err);
@@ -112,6 +117,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
         dataUrl,
         fileSize: `${(file.size / 1024).toFixed(1)} KB`,
         detectedQR,
+        qrCropUrl,
       });
       setIsScanningQR(false);
 
@@ -164,7 +170,7 @@ export const TicketModal: React.FC<TicketModalProps> = ({
     }
 
     setIsSaving(true);
-    const refCode = pendingFile.detectedQR || seatOrRef.trim() || 'REF-' + Math.floor(100000 + Math.random() * 900000);
+    const refCode = pendingFile.detectedQR || seatOrRef.trim() || undefined;
 
     const newTicket: Ticket = {
       id: `ticket-${Date.now()}`,
@@ -179,7 +185,8 @@ export const TicketModal: React.FC<TicketModalProps> = ({
       travelerId: travelerId === 'group' ? undefined : travelerId,
       seatOrSection: seatOrRef.trim() || undefined,
       referenceNumber: refCode,
-      qrCodeText: pendingFile.detectedQR || refCode,
+      qrCodeText: pendingFile.detectedQR || undefined,
+      qrCropUrl: pendingFile.qrCropUrl || undefined,
     };
 
     const updated = [...ticketsList, newTicket];
@@ -578,10 +585,9 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                         setQrModalData({
                           isOpen: true,
                           title: activeTicket.title,
-                          qrPayload:
-                            activeTicket.qrCodeText ||
-                            activeTicket.referenceNumber ||
-                            `TICKET-${activeTicket.id}`,
+                          qrPayload: activeTicket.qrCodeText || undefined,
+                          ticketImage: activeTicket.dataUrl,
+                          qrCropUrl: activeTicket.qrCropUrl,
                           travelerName:
                             safeTravelers.find((tr) => tr.id === activeTicket.travelerId)?.name ||
                             'Pase Grupal (5 Viajeros)',
@@ -713,6 +719,8 @@ export const TicketModal: React.FC<TicketModalProps> = ({
         onClose={() => setQrModalData((prev) => ({ ...prev, isOpen: false }))}
         title={qrModalData.title}
         qrPayload={qrModalData.qrPayload}
+        ticketImage={qrModalData.ticketImage}
+        qrCropUrl={qrModalData.qrCropUrl}
         travelerName={qrModalData.travelerName}
         date={qrModalData.date}
         time={qrModalData.time}

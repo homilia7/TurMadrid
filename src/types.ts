@@ -1,4 +1,4 @@
-﻿export interface Traveler {
+export interface Traveler {
   id: string;
   name: string;
   avatarColor: string;
@@ -36,6 +36,7 @@ export interface DocumentItem {
   origin?: string;
   destination?: string;
   qrCodeText?: string;
+  qrCropUrl?: string;
   notes?: string;
   uploadedAt: string;
 }
