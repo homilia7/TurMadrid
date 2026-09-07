@@ -822,15 +822,15 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
                           </div>
                         )}
                         <div className="flex items-center gap-2 pt-1 flex-wrap">
-                          <span className="bg-stone-100 text-stone-700 px-2 py-0.5 rounded-md font-mono text-[11px] font-bold">
-                            Ref: {formatCleanReference(doc.referenceNumber)}
+                          <span className="bg-amber-50 text-amber-900 border border-amber-200 px-2 py-0.5 rounded-md font-mono text-[11px] font-bold break-all">
+                            Nº Ref / Localizador: {doc.referenceNumber || 'HTL-RES'}
                           </span>
                           <span className="bg-amber-50 text-amber-800 px-2 py-0.5 rounded-md text-[11px] font-semibold flex items-center gap-1">
                             <Users className="w-3 h-3 text-amber-600" />
                             {assignedTraveler ? assignedTraveler.name : 'Reserva Grupal (5 Pax)'}
                           </span>
                         </div>
-                        {doc.notes && <p className="text-[11px] text-stone-500 bg-stone-50 p-2 rounded-lg border border-stone-100 mt-1">{doc.notes}</p>}
+                        {doc.notes && <p className="text-[11px] text-stone-600 bg-stone-50 p-2 rounded-lg border border-stone-100 mt-1 leading-relaxed"><strong className="text-stone-700">Descripción: </strong>{doc.notes}</p>}
                       </div>
                     </div>
 
@@ -943,15 +943,15 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
                           </div>
                         )}
                         <div className="flex items-center gap-2 pt-1 flex-wrap">
-                          <span className="bg-stone-100 text-stone-700 px-2 py-0.5 rounded-md font-mono text-[11px] font-bold">
-                            Ref: {formatCleanReference(doc.referenceNumber)}
+                          <span className="bg-emerald-50 text-emerald-900 border border-emerald-200 px-2 py-0.5 rounded-md font-mono text-[11px] font-bold break-all">
+                            Nº Ref / Localizador: {doc.referenceNumber || 'TLF-PASE'}
                           </span>
                           <span className="bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded-md text-[11px] font-semibold flex items-center gap-1">
                             <Users className="w-3 h-3 text-emerald-600" />
                             {assignedTraveler ? assignedTraveler.name : 'Pase Grupal (5 Pax)'}
                           </span>
                         </div>
-                        {doc.notes && <p className="text-[11px] text-stone-500 bg-stone-50 p-2 rounded-lg border border-stone-100 mt-1">{doc.notes}</p>}
+                        {doc.notes && <p className="text-[11px] text-stone-600 bg-stone-50 p-2 rounded-lg border border-stone-100 mt-1 leading-relaxed"><strong className="text-stone-700">Descripción: </strong>{doc.notes}</p>}
                       </div>
                     </div>
 
@@ -1074,9 +1074,22 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
-                          <h5 className="text-xs sm:text-sm font-bold text-stone-900 line-clamp-1">{idaDoc.title}</h5>
-                          <p className="text-[11px] font-mono text-stone-500 mt-1">Ref: {formatCleanReference(idaDoc.referenceNumber)}</p>
-                          {idaDoc.notes && <p className="text-[11px] text-stone-600 mt-1 line-clamp-1">{idaDoc.notes}</p>}
+                          <h5 className="text-xs sm:text-sm font-bold text-stone-900 break-words">{idaDoc.title}</h5>
+                          
+                          <div className="mt-2 space-y-1 bg-white/90 p-2.5 rounded-xl border border-emerald-200/80 text-xs shadow-2xs">
+                            <div className="flex items-start gap-1.5 flex-wrap">
+                              <span className="font-bold text-stone-700 text-[11px] shrink-0">Nº Referencia / Localizador:</span>
+                              <span className="font-mono font-bold text-emerald-900 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 text-[11px] break-all">
+                                {idaDoc.referenceNumber || 'MTR-IDA'}
+                              </span>
+                            </div>
+                            {idaDoc.notes && (
+                              <p className="text-[11px] text-stone-600 break-words leading-relaxed pt-1 border-t border-emerald-100">
+                                <strong className="text-stone-700">Descripción: </strong>
+                                {idaDoc.notes}
+                              </p>
+                            )}
+                          </div>
                         </div>
 
                         <div className="pt-2 border-t border-emerald-100 flex items-center justify-between gap-2">
@@ -1135,9 +1148,22 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
-                          <h5 className="text-xs sm:text-sm font-bold text-stone-900 line-clamp-1">{regresoDoc.title}</h5>
-                          <p className="text-[11px] font-mono text-stone-500 mt-1">Ref: {formatCleanReference(regresoDoc.referenceNumber)}</p>
-                          {regresoDoc.notes && <p className="text-[11px] text-stone-600 mt-1 line-clamp-1">{regresoDoc.notes}</p>}
+                          <h5 className="text-xs sm:text-sm font-bold text-stone-900 break-words">{regresoDoc.title}</h5>
+
+                          <div className="mt-2 space-y-1 bg-white/90 p-2.5 rounded-xl border border-blue-200/80 text-xs shadow-2xs">
+                            <div className="flex items-start gap-1.5 flex-wrap">
+                              <span className="font-bold text-stone-700 text-[11px] shrink-0">Nº Referencia / Localizador:</span>
+                              <span className="font-mono font-bold text-blue-900 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200 text-[11px] break-all">
+                                {regresoDoc.referenceNumber || 'MTR-REGRESO'}
+                              </span>
+                            </div>
+                            {regresoDoc.notes && (
+                              <p className="text-[11px] text-stone-600 break-words leading-relaxed pt-1 border-t border-blue-100">
+                                <strong className="text-stone-700">Descripción: </strong>
+                                {regresoDoc.notes}
+                              </p>
+                            )}
+                          </div>
                         </div>
 
                         <div className="pt-2 border-t border-blue-100 flex items-center justify-between gap-2">
@@ -1188,31 +1214,49 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
                       </span>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {otherDocs.map((doc) => (
-                          <div key={doc.id} className="p-3 rounded-xl border border-stone-200 bg-stone-50 flex items-center justify-between gap-2">
-                            <div className="truncate">
-                              <span className="text-[10px] font-bold text-stone-600 bg-white px-1.5 py-0.5 rounded border border-stone-200">
-                                {doc.seatOrSection || 'General'}
-                              </span>
-                              <h6 className="text-xs font-bold text-stone-800 truncate mt-0.5">{doc.title}</h6>
-                              <p className="text-[10px] font-mono text-stone-500">Ref: {formatCleanReference(doc.referenceNumber)}</p>
-                            </div>
-                            <div className="flex items-center gap-1 shrink-0">
-                              {doc.dataUrl && (
-                                <button
-                                  type="button"
-                                  onClick={() => setPreviewDoc({ url: doc.dataUrl, title: doc.title, type: doc.fileType })}
-                                  className="p-1.5 text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg transition"
-                                >
-                                  <Eye className="w-3.5 h-3.5" />
-                                </button>
-                              )}
-                              <button
-                                type="button"
-                                onClick={() => setItemToDelete({ id: doc.id, title: doc.title, type: 'genericDoc' })}
-                                className="p-1.5 text-stone-400 hover:text-red-600 rounded-lg transition"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
+                          <div key={doc.id} className="p-3.5 rounded-xl border border-stone-200 bg-stone-50 flex flex-col justify-between gap-2.5">
+                            <div>
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-[10px] font-bold text-stone-600 bg-white px-1.5 py-0.5 rounded border border-stone-200">
+                                  {doc.seatOrSection || 'General'}
+                                </span>
+                                <div className="flex items-center gap-1">
+                                  {doc.dataUrl && (
+                                    <button
+                                      type="button"
+                                      onClick={() => setPreviewDoc({ url: doc.dataUrl, title: doc.title, type: doc.fileType })}
+                                      className="p-1.5 text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg transition cursor-pointer"
+                                      title="Ver documento"
+                                    >
+                                      <Eye className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => setItemToDelete({ id: doc.id, title: doc.title, type: 'genericDoc' })}
+                                    className="p-1.5 text-stone-400 hover:text-red-600 rounded-lg transition cursor-pointer"
+                                    title="Eliminar"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
+                              </div>
+                              <h6 className="text-xs font-bold text-stone-800 mt-1">{doc.title}</h6>
+                              
+                              <div className="mt-2 space-y-1 bg-white p-2 rounded-lg border border-stone-200 text-xs">
+                                <div className="flex items-start gap-1 flex-wrap">
+                                  <span className="font-bold text-stone-700 text-[11px] shrink-0">Nº Referencia / Localizador:</span>
+                                  <span className="font-mono font-bold text-rose-800 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200 text-[11px] break-all">
+                                    {doc.referenceNumber || 'MTR-GENERAL'}
+                                  </span>
+                                </div>
+                                {doc.notes && (
+                                  <p className="text-[11px] text-stone-600 break-words leading-relaxed pt-1 border-t border-stone-100">
+                                    <strong className="text-stone-700">Descripción: </strong>
+                                    {doc.notes}
+                                  </p>
+                                )}
+                              </div>
                             </div>
                           </div>
                         ))}
@@ -1232,28 +1276,46 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 mt-3">
                   {metroDocs.filter((d) => !d.travelerId || d.travelerId === 'group').map((doc) => (
-                    <div key={doc.id} className="p-3.5 rounded-xl border border-stone-200 bg-stone-50 flex items-center justify-between gap-2">
-                      <div className="truncate">
-                        <h5 className="text-xs font-bold text-stone-800 truncate">{doc.title}</h5>
-                        <p className="text-[10px] font-mono text-stone-500">Ref: {formatCleanReference(doc.referenceNumber)}</p>
-                      </div>
-                      <div className="flex items-center gap-1 shrink-0">
-                        {doc.dataUrl && (
-                          <button
-                            type="button"
-                            onClick={() => setPreviewDoc({ url: doc.dataUrl, title: doc.title, type: doc.fileType })}
-                            className="p-1.5 text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg transition"
-                          >
-                            <Eye className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                        <button
-                          type="button"
-                          onClick={() => setItemToDelete({ id: doc.id, title: doc.title, type: 'genericDoc' })}
-                          className="p-1.5 text-stone-400 hover:text-red-600 rounded-lg transition"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                    <div key={doc.id} className="p-3.5 rounded-xl border border-stone-200 bg-stone-50 flex flex-col justify-between gap-2.5">
+                      <div>
+                        <div className="flex items-center justify-between gap-2">
+                          <h5 className="text-xs font-bold text-stone-800">{doc.title}</h5>
+                          <div className="flex items-center gap-1 shrink-0">
+                            {doc.dataUrl && (
+                              <button
+                                type="button"
+                                onClick={() => setPreviewDoc({ url: doc.dataUrl, title: doc.title, type: doc.fileType })}
+                                className="p-1.5 text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg transition"
+                                title="Ver documento"
+                              >
+                                <Eye className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => setItemToDelete({ id: doc.id, title: doc.title, type: 'genericDoc' })}
+                              className="p-1.5 text-stone-400 hover:text-red-600 rounded-lg transition"
+                              title="Eliminar"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+
+                        <div className="mt-2 space-y-1 bg-white p-2 rounded-lg border border-stone-200 text-xs">
+                          <div className="flex items-start gap-1 flex-wrap">
+                            <span className="font-bold text-stone-700 text-[11px] shrink-0">Nº Referencia / Localizador:</span>
+                            <span className="font-mono font-bold text-rose-800 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200 text-[11px] break-all">
+                              {doc.referenceNumber || 'MTR-GRUPAL'}
+                            </span>
+                          </div>
+                          {doc.notes && (
+                            <p className="text-[11px] text-stone-600 break-words leading-relaxed pt-1 border-t border-stone-100">
+                              <strong className="text-stone-700">Descripción: </strong>
+                              {doc.notes}
+                            </p>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
