@@ -23,27 +23,56 @@ export function usePWAInstall() {
     );
   };
 
+  const checkIsIOS = (): boolean => {
+    if (typeof window === 'undefined') return false;
+    const ua = window.navigator.userAgent.toLowerCase();
+    const isIOSDevice = /iphone|ipad|ipod/.test(ua);
+    const isIPadOS =
+      (window.navigator.platform === 'MacIntel' || window.navigator.userAgent.includes('Macintosh')) &&
+      window.navigator.maxTouchPoints > 1;
+    return isIOSDevice || isIPadOS;
+  };
+
+  const checkIsInAppBrowser = (): boolean => {
+    if (typeof window === 'undefined') return false;
+    const ua = window.navigator.userAgent.toLowerCase();
+    return /fban|fbav|instagram|line|micromessenger|whatsapp|snapchat|threads|twitter|wv/.test(ua);
+  };
+
+  const checkIsIOSSafari = (): boolean => {
+    if (typeof window === 'undefined') return false;
+    const ua = window.navigator.userAgent.toLowerCase();
+    const isIOSDevice = checkIsIOS();
+    const isSafari = /safari/.test(ua) && !/chrome|crios|fxios|optios|gsa|edge|edg|opr|opera/.test(ua);
+    return isIOSDevice && isSafari && !checkIsInAppBrowser();
+  };
+
   const [isInstalled, setIsInstalled] = useState<boolean>(() => {
     return checkIsCurrentlyStandalone();
   });
 
   const [isIOS, setIsIOS] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false;
-    const ua = window.navigator.userAgent.toLowerCase();
-    return /iphone|ipad|ipod/.test(ua);
+    return checkIsIOS();
+  });
+
+  const [isInAppBrowser, setIsInAppBrowser] = useState<boolean>(() => {
+    return checkIsInAppBrowser();
+  });
+
+  const [isIOSSafari, setIsIOSSafari] = useState<boolean>(() => {
+    return checkIsIOSSafari();
   });
 
   useEffect(() => {
     const updateInstallStatus = () => {
       const standalone = checkIsCurrentlyStandalone();
       setIsInstalled(standalone);
+      setIsIOS(checkIsIOS());
+      setIsInAppBrowser(checkIsInAppBrowser());
+      setIsIOSSafari(checkIsIOSSafari());
     };
 
     updateInstallStatus();
-
-    // Detect iOS
-    const ua = window.navigator.userAgent.toLowerCase();
-    setIsIOS(/iphone|ipad|ipod/.test(ua));
 
     if ((window as any).__deferredPWAInstallPrompt) {
       setDeferredPrompt((window as any).__deferredPWAInstallPrompt);
@@ -119,6 +148,8 @@ export function usePWAInstall() {
     hasNativePrompt: !!deferredPrompt,
     isInstalled,
     isIOS,
+    isInAppBrowser,
+    isIOSSafari,
     install,
   };
 }

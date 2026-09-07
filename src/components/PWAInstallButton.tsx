@@ -1,15 +1,29 @@
 import React, { useState } from 'react';
 import { usePWAInstall } from '../hooks/usePWAInstall';
-import { Download, X, Share2, PlusSquare, Smartphone, CheckCircle, ArrowDownToLine } from 'lucide-react';
+import {
+  Download,
+  X,
+  Share2,
+  PlusSquare,
+  Smartphone,
+  CheckCircle,
+  ArrowDownToLine,
+  Copy,
+  ExternalLink,
+  Compass,
+  AlertTriangle,
+  Sparkles,
+} from 'lucide-react';
 
 interface PWAInstallButtonProps {
   variant?: 'nav' | 'banner' | 'floating' | 'header-arrow' | 'icon';
 }
 
 export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({ variant = 'nav' }) => {
-  const { hasNativePrompt, isInstalled, isIOS, install } = usePWAInstall();
+  const { hasNativePrompt, isInstalled, isIOS, isInAppBrowser, isIOSSafari, install } = usePWAInstall();
   const [showModal, setShowModal] = useState<boolean>(false);
   const [justInstalledToast, setJustInstalledToast] = useState<boolean>(false);
+  const [copiedLink, setCopiedLink] = useState<boolean>(false);
 
   // If already running as installed standalone PWA on phone, hide the button completely
   if (isInstalled) {
@@ -25,6 +39,29 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({ variant = 'n
       }
     } else {
       setShowModal(true);
+    }
+  };
+
+  const handleTriggerIOSShare = async () => {
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({
+          title: 'TurMadrid - Itinerario España 2026',
+          text: 'Descarga el itinerario España 2026 en tu iPhone',
+          url: window.location.href,
+        });
+      } catch (err) {
+        // User cancelled share dialog or not supported
+        console.log('Native share closed or not supported:', err);
+      }
+    }
+  };
+
+  const handleCopyLink = () => {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(window.location.href);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 3000);
     }
   };
 
@@ -94,6 +131,11 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({ variant = 'n
                   <span className="text-xs font-extrabold uppercase tracking-wider bg-amber-500 text-stone-950 px-2 py-0.5 rounded-md">
                     App PWA Descargable
                   </span>
+                  {isIOS && (
+                    <span className="text-xs bg-stone-700/80 text-amber-300 font-bold px-2 py-0.5 rounded-md border border-amber-400/30">
+                      📱 Compatible iPhone / iPad
+                    </span>
+                  )}
                   <span className="text-xs text-amber-300 font-semibold flex items-center gap-1">
                     🇨🇷 Costa Rica ✈️ España 🇪🇸
                   </span>
@@ -123,8 +165,8 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({ variant = 'n
 
       {/* iOS & Browser Install Guide Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/75 backdrop-blur-xs p-4 animate-in fade-in duration-200">
-          <div className="w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-stone-200 relative overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-stone-950/80 backdrop-blur-xs p-3 sm:p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-lg bg-white rounded-3xl p-5 sm:p-6 shadow-2xl border border-stone-200 relative overflow-hidden max-h-[90vh] overflow-y-auto">
             {/* Header with App Logo */}
             <div className="flex items-center justify-between pb-4 border-b border-stone-100">
               <div className="flex items-center gap-3">
@@ -135,9 +177,16 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({ variant = 'n
                   referrerPolicy="no-referrer"
                 />
                 <div>
-                  <h3 className="text-base font-bold text-stone-900">
-                    Instalar España 2026
-                  </h3>
+                  <div className="flex items-center gap-1.5">
+                    <h3 className="text-base font-black text-stone-900">
+                      Instalar España 2026
+                    </h3>
+                    {isIOS && (
+                      <span className="text-[10px] bg-amber-100 text-amber-900 px-1.5 py-0.5 rounded-full font-extrabold border border-amber-300">
+                        iPhone / iPad
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-amber-700 font-semibold flex items-center gap-1">
                     🇨🇷 Costa Rica ➔ España 🇪🇸
                   </p>
@@ -147,53 +196,135 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({ variant = 'n
               <button
                 type="button"
                 onClick={() => setShowModal(false)}
-                className="p-1.5 rounded-full text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors"
+                className="p-2 rounded-full text-stone-400 hover:text-stone-700 hover:bg-stone-100 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* Content for iOS vs Android/Desktop */}
-            <div className="py-4 space-y-3.5">
+            {/* Modal Body */}
+            <div className="py-4 space-y-4">
+              {/* Special Warning if inside In-App Browser on iOS (e.g. WhatsApp, Instagram, Facebook, TikTok) */}
+              {isIOS && isInAppBrowser && (
+                <div className="p-3.5 bg-amber-50 border-2 border-amber-400/80 rounded-2xl space-y-2">
+                  <div className="flex items-center gap-2 text-xs font-bold text-amber-950">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span>Estás en el navegador interno (WhatsApp / Red Social)</span>
+                  </div>
+                  <p className="text-xs text-stone-700 leading-relaxed">
+                    Apple solo permite instalar aplicaciones en la pantalla de inicio desde <strong>Safari</strong>.
+                  </p>
+                  <div className="pt-1 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={handleCopyLink}
+                      className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-stone-950 text-xs font-black rounded-xl flex items-center gap-1.5 shadow-xs transition-colors cursor-pointer"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>{copiedLink ? '¡Enlace Copiado!' : 'Copiar Enlace'}</span>
+                    </button>
+                    <span className="text-[11px] text-stone-500 flex items-center">
+                      Luego abre Safari y pega la dirección.
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* iOS Specific Instructions */}
               {isIOS ? (
                 <>
-                  <p className="text-xs text-stone-600 leading-relaxed font-medium">
-                    Para instalar la aplicación en tu <strong>iPhone o iPad</strong> y tenerla en tu pantalla de inicio como una app normal:
-                  </p>
+                  <div className="bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-transparent border border-amber-200/80 rounded-2xl p-4 space-y-3.5">
+                    <div className="flex items-center justify-between">
+                      <div className="text-xs font-black uppercase tracking-wider text-amber-900 flex items-center gap-1.5">
+                        <Smartphone className="w-4 h-4 text-amber-600" />
+                        Pasos para instalar en tu iPhone:
+                      </div>
+                      <span className="text-[10px] bg-amber-200/60 text-amber-900 font-bold px-2 py-0.5 rounded-md">
+                        Navegador Safari
+                      </span>
+                    </div>
 
-                  <div className="bg-amber-50/70 border border-amber-200 rounded-2xl p-4 space-y-3">
-                    <div className="flex items-start gap-3">
-                      <div className="w-6 h-6 rounded-full bg-amber-500 text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
+                    {/* Step 1 */}
+                    <div className="flex items-start gap-3 bg-white p-3 rounded-xl border border-stone-200/80 shadow-2xs">
+                      <div className="w-6 h-6 rounded-full bg-amber-500 text-stone-950 text-xs font-black flex items-center justify-center shrink-0 mt-0.5">
                         1
                       </div>
-                      <div className="text-xs text-stone-800">
-                        Toca el botón <strong>Compartir</strong> <Share2 className="w-3.5 h-3.5 inline text-blue-600 mx-1" /> en la barra inferior de Safari.
+                      <div className="text-xs text-stone-800 leading-relaxed">
+                        Toca el botón <strong>Compartir</strong>{' '}
+                        <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-blue-50 border border-blue-200 text-blue-600 align-middle mx-1">
+                          <Share2 className="w-3.5 h-3.5" />
+                        </span>{' '}
+                        en la <strong>barra inferior de Safari</strong> (o pulsa el botón directo abajo).
                       </div>
                     </div>
 
-                    <div className="flex items-start gap-3">
-                      <div className="w-6 h-6 rounded-full bg-amber-500 text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
+                    {/* Step 2 */}
+                    <div className="flex items-start gap-3 bg-white p-3 rounded-xl border border-stone-200/80 shadow-2xs">
+                      <div className="w-6 h-6 rounded-full bg-amber-500 text-stone-950 text-xs font-black flex items-center justify-center shrink-0 mt-0.5">
                         2
                       </div>
-                      <div className="text-xs text-stone-800">
-                        Desplaza hacia abajo y selecciona <strong>"Agregar a pantalla de inicio"</strong> <PlusSquare className="w-3.5 h-3.5 inline text-stone-700 mx-1" />.
+                      <div className="text-xs text-stone-800 leading-relaxed">
+                        En el menú que se despliega, baja y pulsa{' '}
+                        <strong>"Agregar a pantalla de inicio"</strong>{' '}
+                        <span className="inline-flex items-center justify-center w-5 h-5 rounded bg-stone-100 border border-stone-300 text-stone-800 align-middle mx-1">
+                          <PlusSquare className="w-3.5 h-3.5" />
+                        </span>.
                       </div>
                     </div>
 
-                    <div className="flex items-start gap-3">
-                      <div className="w-6 h-6 rounded-full bg-amber-500 text-white text-xs font-bold flex items-center justify-center shrink-0 mt-0.5">
+                    {/* Step 3 */}
+                    <div className="flex items-start gap-3 bg-white p-3 rounded-xl border border-stone-200/80 shadow-2xs">
+                      <div className="w-6 h-6 rounded-full bg-amber-500 text-stone-950 text-xs font-black flex items-center justify-center shrink-0 mt-0.5">
                         3
                       </div>
-                      <div className="text-xs text-stone-800">
-                        Toca <strong>"Agregar"</strong> en la esquina superior derecha ¡y listo!
+                      <div className="text-xs text-stone-800 leading-relaxed">
+                        Pulsa <strong>"Agregar"</strong> en la esquina superior derecha. ¡La app aparecerá en la pantalla principal de tu iPhone!
                       </div>
                     </div>
                   </div>
+
+                  {/* Direct Native Share Trigger for iOS */}
+                  {typeof navigator !== 'undefined' && typeof (navigator as any).share === 'function' && (
+                    <div className="bg-stone-900 text-white rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 shadow-md">
+                      <div className="text-left">
+                        <div className="text-xs font-black text-amber-400 flex items-center gap-1.5">
+                          <Sparkles className="w-3.5 h-3.5" />
+                          Acceso Rápido en iPhone
+                        </div>
+                        <p className="text-[11px] text-stone-300 mt-0.5">
+                          Abre el menú de compartir de iOS directamente:
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleTriggerIOSShare}
+                        className="w-full sm:w-auto px-4 py-2 bg-amber-400 hover:bg-amber-300 active:bg-amber-500 text-stone-950 font-black text-xs rounded-xl flex items-center justify-center gap-2 transition-transform transform active:scale-95 cursor-pointer shrink-0 shadow-sm"
+                      >
+                        <Share2 className="w-4 h-4 text-stone-950 stroke-[2.5]" />
+                        <span>Abrir Menú Compartir</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Copy Link Helper */}
+                  <div className="flex items-center justify-between p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs">
+                    <span className="text-stone-600">¿Necesitas abrirlo en Safari?</span>
+                    <button
+                      type="button"
+                      onClick={handleCopyLink}
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-stone-200 hover:bg-stone-300 text-stone-800 font-bold transition-colors cursor-pointer"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                      <span>{copiedLink ? '¡Enlace Copiado!' : 'Copiar Enlace'}</span>
+                    </button>
+                  </div>
                 </>
               ) : (
+                /* Android / Desktop Browser Guide */
                 <>
                   <p className="text-xs text-stone-600 leading-relaxed">
-                    Instala la aplicación en tu dispositivo <strong>Android, PC o Mac</strong> para acceder rápidamente desde tu pantalla principal y usarla sin internet:
+                    Instala la aplicación en tu dispositivo <strong>Android, PC o Mac</strong> para acceder rápidamente desde tu pantalla principal y usarla sin conexión:
                   </p>
 
                   <div className="bg-stone-50 border border-stone-200 rounded-2xl p-4 space-y-2.5">
@@ -215,7 +346,7 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({ variant = 'n
             </div>
 
             {/* Footer actions */}
-            <div className="pt-3 border-t border-stone-100 flex items-center justify-end gap-2">
+            <div className="pt-3 border-t border-stone-100 flex items-center justify-between gap-2">
               <button
                 type="button"
                 onClick={() => setShowModal(false)}
@@ -259,4 +390,5 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({ variant = 'n
     </>
   );
 };
+
 
