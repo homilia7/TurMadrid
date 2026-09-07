@@ -114,12 +114,23 @@ export default function App() {
 
       if (cloudData) {
         const cloudDocs = Array.isArray(cloudData.documents) ? cloudData.documents : [];
-        if (cloudDocs.length > 0) {
-          setDocuments(cloudDocs);
-        }
+        const localDocs = loadDocuments();
+        
+        // Merge cloud documents and any unsynced local documents by id
+        const docsMap = new Map<string, DocumentItem>();
+        cloudDocs.forEach((d) => docsMap.set(d.id, d));
+        localDocs.forEach((d) => {
+          if (!docsMap.has(d.id)) {
+            docsMap.set(d.id, d);
+          }
+        });
+        const mergedDocs = Array.from(docsMap.values());
+        setDocuments(mergedDocs);
+        saveDocuments(mergedDocs);
+
         if (Array.isArray(cloudData.tours) && cloudData.tours.length > 0) {
           const hydratedTours = cloudData.tours.map((t) => {
-            const tourDocs = cloudDocs.filter(
+            const tourDocs = mergedDocs.filter(
               (d) => d.tourId === t.id && (d.category === 'entrada' || !d.category)
             );
             return {
@@ -128,12 +139,15 @@ export default function App() {
             };
           });
           setTours(hydratedTours);
+          saveTours(hydratedTours);
         }
         if (Array.isArray(cloudData.travelers) && cloudData.travelers.length > 0) {
           setTravelers(cloudData.travelers);
+          saveTravelers(cloudData.travelers);
         }
         if (Array.isArray(cloudData.days) && cloudData.days.length > 0) {
           setDays(cloudData.days);
+          saveDays(cloudData.days);
         }
         setSyncState({ status: 'synced', lastSyncedAt: new Date().toISOString() });
       } else {
@@ -299,37 +313,50 @@ export default function App() {
       tourId,
     }));
 
-    // 1. Update tours state
-    let updatedTours: Tour[] = [];
-    setTours((prev) => {
-      updatedTours = prev.map((t) => (t.id === tourId ? { ...t, tickets: cleanTickets } : t));
-      return updatedTours;
-    });
+    // 1. Calculate updated tours synchronously
+    const currentTours = Array.isArray(tours) ? tours : [];
+    const updatedTours = currentTours.map((t) =>
+      t.id === tourId ? { ...t, tickets: cleanTickets } : t
+    );
+    setTours(updatedTours);
+    saveTours(updatedTours);
 
-    // 2. Update documents state
-    let updatedDocs: DocumentItem[] = [];
-    setDocuments((prev) => {
-      const otherDocs = prev.filter(
-        (d) => !(d.tourId === tourId && (d.category === 'entrada' || !d.category))
-      );
-      updatedDocs = [...cleanTickets, ...otherDocs];
-      return updatedDocs;
-    });
+    // 2. Calculate updated documents synchronously
+    const currentDocs = Array.isArray(documents) ? documents : [];
+    const otherDocs = currentDocs.filter(
+      (d) => !(d.tourId === tourId && (d.category === 'entrada' || !d.category))
+    );
+    const updatedDocs = [...cleanTickets, ...otherDocs];
+    setDocuments(updatedDocs);
+    saveDocuments(updatedDocs);
 
     if (activeTicketTour?.id === tourId) {
       setActiveTicketTour((prev) => (prev ? { ...prev, tickets: cleanTickets } : null));
     }
 
-    // 3. Immediately persist & Sync to Cloudflare D1
+    // 3. Persist directly to Cloudflare D1
     setSyncState((prev) => ({ ...prev, status: 'syncing' }));
-    const success = await syncToCloud({
-      tours: updatedTours.length > 0 ? updatedTours : undefined,
-      documents: updatedDocs.length > 0 ? updatedDocs : undefined,
-    });
-    if (success) {
-      setSyncState({ status: 'synced', lastSyncedAt: new Date().toISOString() });
-    } else {
-      setSyncState({ status: navigator.onLine ? 'error' : 'offline' });
+
+    try {
+      // Direct insertion of each ticket into D1 documents table
+      for (const ticket of cleanTickets) {
+        await uploadDocumentToCloud(ticket);
+      }
+
+      // Sync overall state to Cloudflare D1
+      const success = await syncToCloud({
+        tours: updatedTours,
+        documents: updatedDocs,
+      });
+
+      if (success) {
+        setSyncState({ status: 'synced', lastSyncedAt: new Date().toISOString() });
+      } else {
+        setSyncState({ status: navigator.onLine ? 'error' : 'offline' });
+      }
+    } catch (err) {
+      console.error('Error syncing tour tickets to D1:', err);
+      setSyncState({ status: 'error' });
     }
   };
 

@@ -24,6 +24,7 @@ import { formatDateWithDay, getDayOfWeek } from '../utils/dateUtils';
 import { decodeQRFromImage } from '../utils/qrReader';
 import { LargeQRModal } from './LargeQRModal';
 import { ImageLightboxModal } from './ImageLightboxModal';
+import { deleteDocumentFromCloud } from '../utils/cloudSync';
 
 interface TicketModalProps {
   isOpen: boolean;
@@ -203,10 +204,11 @@ export const TicketModal: React.FC<TicketModalProps> = ({
     }, 700);
   };
 
-  const handleDeleteTicket = (ticketId: string) => {
+  const handleDeleteTicket = async (ticketId: string) => {
     if (window.confirm('¿Estás seguro de que deseas eliminar esta entrada de la base de datos?')) {
       const updated = ticketsList.filter((t) => t.id !== ticketId);
-      onUpdateTourTickets(tour.id, updated);
+      await deleteDocumentFromCloud(ticketId);
+      await onUpdateTourTickets(tour.id, updated);
       if (selectedTicket?.id === ticketId) {
         setSelectedTicket(updated.length > 0 ? updated[0] : null);
       }
