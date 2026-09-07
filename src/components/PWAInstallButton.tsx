@@ -1,20 +1,15 @@
 import React, { useState } from 'react';
 import { usePWAInstall } from '../hooks/usePWAInstall';
-import { Download, Sparkles, X, Share2, PlusSquare, Smartphone, CheckCircle } from 'lucide-react';
+import { Download, Sparkles, X, Share2, PlusSquare, Smartphone, CheckCircle, ArrowDownToLine } from 'lucide-react';
 
 interface PWAInstallButtonProps {
-  variant?: 'nav' | 'banner' | 'floating';
+  variant?: 'nav' | 'banner' | 'floating' | 'header-arrow' | 'icon';
 }
 
 export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({ variant = 'nav' }) => {
   const { isInstallable, hasNativePrompt, isInstalled, isIOS, install } = usePWAInstall();
   const [showModal, setShowModal] = useState<boolean>(false);
   const [justInstalledToast, setJustInstalledToast] = useState<boolean>(false);
-
-  // If already downloaded / installed as PWA, remove the button completely from the UI
-  if (isInstalled) {
-    return null;
-  }
 
   const handleInstallClick = async () => {
     if (hasNativePrompt) {
@@ -30,6 +25,21 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({ variant = 'n
 
   return (
     <>
+      {/* Visual variant: HEADER ARROW (Flechita de descarga junto a Online) */}
+      {(variant === 'header-arrow' || variant === 'icon') && (
+        <button
+          id="btn-download-arrow-header"
+          type="button"
+          onClick={handleInstallClick}
+          className="inline-flex items-center gap-1 px-2 sm:px-2.5 py-1 text-[11px] font-extrabold text-amber-950 bg-amber-400 hover:bg-amber-300 active:bg-amber-500 rounded-full border border-amber-500/80 shadow-2xs transition-all cursor-pointer shrink-0"
+          title="Descargar e instalar la app en tu teléfono celular"
+        >
+          <ArrowDownToLine className="w-3.5 h-3.5 stroke-[2.5]" />
+          <span className="hidden sm:inline">Descargar App</span>
+          <span className="sm:hidden">App</span>
+        </button>
+      )}
+
       {/* Visual variant: NAV button */}
       {variant === 'nav' && (
         <button

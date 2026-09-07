@@ -142,13 +142,12 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           </div>
 
-          {/* Action Buttons: Status, Alerts & Add Tour */}
+          {/* Action Buttons: Status, Download Arrow, Alerts & Add Tour */}
           <div className="flex items-center gap-1.5 shrink-0">
             <CloudSyncBadge syncState={syncState} onManualSync={onManualSync} />
             
-            <div className="hidden sm:block">
-              <PWAInstallButton variant="nav" />
-            </div>
+            {/* Botón de la flechita para descargar la aplicación */}
+            <PWAInstallButton variant="header-arrow" />
 
             <button
               type="button"
