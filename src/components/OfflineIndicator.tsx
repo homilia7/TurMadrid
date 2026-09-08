@@ -47,7 +47,7 @@ export const OfflineIndicator: React.FC = () => {
         <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-500"></span>
       </span>
       <WifiOff className="w-4 h-4 text-amber-400" />
-      <span>Modo Sin Conexión (PWA activa)</span>
+      <span>Modo Sin Conexión (Disponible sin internet)</span>
     </div>
   );
 };
