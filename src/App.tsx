@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Traveler, Tour, ItineraryDay, DocumentItem, CloudSyncState } from './types';
+import { Traveler, Tour, ItineraryDay, DocumentItem, CloudSyncState, Ticket } from './types';
 import { INITIAL_DAYS } from './data/initialItinerary';
 import {
   loadTravelers,
@@ -665,6 +665,7 @@ export default function App() {
                       tours={dayTours}
                       travelers={travelers}
                       activeTravelerId={activeTravelerId}
+                      documents={documents}
                       onToggleVisit={handleToggleVisit}
                       onEditTour={(tour) => {
                         setEditingTour(tour);
@@ -825,9 +826,14 @@ export default function App() {
         isOpen={isTravelersModalOpen}
         onClose={() => setIsTravelersModalOpen(false)}
         travelers={travelers}
-        onSaveTravelers={(updatedTravelers) => {
+        onSave={(updatedTravelers) => {
           setTravelers(updatedTravelers);
           syncToCloud({ travelers: updatedTravelers });
+        }}
+        activeTravelerId={activeTravelerId}
+        onSelectActiveTraveler={(id) => {
+          setActiveTravelerId(id);
+          saveActiveTravelerId(id);
         }}
       />
 
@@ -836,7 +842,7 @@ export default function App() {
         onClose={() => setIsAlertModalOpen(false)}
         defaultAlertHours={defaultAlertHours}
         soundEnabled={soundEnabled}
-        onSaveAlertHours={handleSaveDefaultAlertHours}
+        onSaveDefaultAlertHours={handleSaveDefaultAlertHours}
         onToggleSound={setSoundEnabled}
       />
 

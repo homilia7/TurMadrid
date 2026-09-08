@@ -31,6 +31,7 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
   onAddDocument,
   onDeleteDocument,
 }) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
   const [previewDoc, setPreviewDoc] = useState<{ url: string; title: string; type: string } | null>(null);
 
