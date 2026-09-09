@@ -33,7 +33,7 @@ export const DaySection: React.FC<DaySectionProps> = ({
   onAddNewTourToDay,
   onUpdateTourTickets,
 }) => {
-  const [isExpanded, setIsExpanded] = useState<boolean>(false);
+  const [isExpanded, setIsExpanded] = useState<boolean>(day.dayNumber === 1);
 
   // Live timer every 30s to re-evaluate when 10:00 PM arrives in Spain / phone
   const [now, setNow] = useState<Date>(() => new Date());
@@ -223,7 +223,7 @@ export const DaySection: React.FC<DaySectionProps> = ({
               title="Agregar tour a este día"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Tour</span>
+              <span className="hidden sm:inline">Nuevo Tour</span>
             </button>
 
             <button
@@ -273,20 +273,34 @@ export const DaySection: React.FC<DaySectionProps> = ({
               </button>
             </div>
           ) : (
-            dayTours.map((tour) => (
-              <TourCard
-                key={tour.id}
-                tour={tour}
-                travelers={travelers}
-                activeTravelerId={activeTravelerId}
-                onToggleVisit={onToggleVisit}
-                onOpenTickets={onOpenTickets}
-                onEditTour={onEditTour}
-                onDeleteTour={onDeleteTour}
-                onQuickChangeAlert={onQuickChangeAlert}
-                onUpdateTourTickets={onUpdateTourTickets}
-              />
-            ))
+            <>
+              {dayTours.map((tour) => (
+                <TourCard
+                  key={tour.id}
+                  tour={tour}
+                  travelers={travelers}
+                  activeTravelerId={activeTravelerId}
+                  onToggleVisit={onToggleVisit}
+                  onOpenTickets={onOpenTickets}
+                  onEditTour={onEditTour}
+                  onDeleteTour={onDeleteTour}
+                  onQuickChangeAlert={onQuickChangeAlert}
+                  onUpdateTourTickets={onUpdateTourTickets}
+                />
+              ))}
+
+              <div className="pt-2 flex items-center justify-start">
+                <button
+                  type="button"
+                  onClick={() => onAddNewTourToDay(day.dayNumber)}
+                  className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-stone-950 text-xs sm:text-sm font-bold flex items-center gap-2 shadow-xs transition-colors cursor-pointer"
+                  title="Agregar nueva actividad o tour a este día"
+                >
+                  <Plus className="w-4 h-4 stroke-[2.5]" />
+                  <span>Nuevo Tour</span>
+                </button>
+              </div>
+            </>
           )}
         </div>
       )}

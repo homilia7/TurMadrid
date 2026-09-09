@@ -5,7 +5,6 @@ import { CloudSyncBadge } from './CloudSyncBadge';
 import {
   Users,
   Bell,
-  Plus,
   Calendar,
   Plane,
   ShieldCheck,
@@ -20,7 +19,7 @@ interface NavbarProps {
   onSelectActiveTraveler: (id: string) => void;
   onOpenTravelersModal: () => void;
   onOpenAlertSettings: () => void;
-  onOpenAddTourModal: () => void;
+  onOpenAddTourModal?: () => void;
   tours: Tour[];
   defaultAlertHours: number;
   syncState: CloudSyncState;
@@ -166,16 +165,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <Bell className="w-3.5 h-3.5 text-amber-600 shrink-0" />
               <span className="text-xs font-bold hidden md:inline">Alertas ({defaultAlertHours}h)</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={onOpenAddTourModal}
-              className="px-2.5 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-stone-950 font-bold flex items-center gap-1 shadow-xs transition-colors cursor-pointer text-xs"
-              title="Agregar nueva actividad o tour"
-            >
-              <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
-              <span className="hidden sm:inline">Nuevo Tour</span>
             </button>
           </div>
         </div>
