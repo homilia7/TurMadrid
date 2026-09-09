@@ -61,6 +61,20 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
   
   const [expandedTourIds, setExpandedTourIds] = useState<Set<string>>(new Set());
   const [expandedMetroTravelerIds, setExpandedMetroTravelerIds] = useState<Set<string>>(new Set());
+  const [expandedTourTravelerKeys, setExpandedTourTravelerKeys] = useState<Set<string>>(new Set());
+
+  const toggleTourTravelerAccordion = (tourId: string, travelerId: string) => {
+    setExpandedTourTravelerKeys((prev) => {
+      const next = new Set(prev);
+      const key = `${tourId}-${travelerId}`;
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  };
 
   const [previewDoc, setPreviewDoc] = useState<{
     url: string;
@@ -662,140 +676,415 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
                             </button>
                           </div>
                         ) : (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                            {tickets.map((ticket) => {
-                              const assignedTraveler = ticket.travelerId
-                                ? safeTravelers.find((t) => t.id === ticket.travelerId)
-                                : null;
+                          <div className="space-y-3">
+                            {/* Traveler Accordions */}
+                            {safeTravelers.map((traveler) => {
+                              const travelerTickets = tickets.filter((t) => t.travelerId === traveler.id);
+                              const groupTickets = tickets.filter((t) => !t.travelerId || t.travelerId === 'group');
+                              const isCoveredByGroup = travelerTickets.length === 0 && groupTickets.length > 0;
+                              const hasTickets = travelerTickets.length > 0 || isCoveredByGroup;
+                              const isTravelerExpanded = expandedTourTravelerKeys.has(`${tour.id}-${traveler.id}`);
+                              const displayTickets = travelerTickets.length > 0 ? travelerTickets : isCoveredByGroup ? groupTickets : [];
 
                               return (
                                 <div
-                                  key={ticket.id}
-                                  className="bg-white rounded-xl border border-stone-200 p-3.5 shadow-2xs hover:border-amber-400 transition-all flex flex-col justify-between gap-3 relative"
+                                  key={traveler.id}
+                                  className="bg-white rounded-2xl border border-stone-200/90 shadow-2xs overflow-hidden transition-all hover:border-amber-300/80"
                                 >
-                                  <div>
-                                    <div className="flex items-center justify-between gap-2 pb-2 border-b border-stone-100">
-                                      <div className="flex items-center gap-2">
-                                        <div
-                                          className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black text-white shrink-0 shadow-xs"
-                                          style={{ backgroundColor: assignedTraveler?.avatarColor || '#d97706' }}
-                                        >
-                                          {(assignedTraveler?.name || 'G').substring(0, 1)}
-                                        </div>
-                                        <span className="text-xs font-bold text-stone-900 truncate max-w-[150px]">
-                                          {assignedTraveler ? assignedTraveler.name : 'Pase Grupal (5 Pax)'}
-                                        </span>
-                                      </div>
-
-                                      <span
-                                        className="text-[10px] font-mono font-bold text-amber-900 bg-amber-50 px-2 py-0.5 rounded border border-amber-200/80 truncate max-w-[130px]"
-                                        title={ticket.referenceNumber || ticket.qrCodeText || 'CONFIRMADA'}
-                                      >
-                                        Ref: {formatCleanReference(ticket.referenceNumber || ticket.qrCodeText)}
-                                      </span>
-                                    </div>
-
-                                    <div className="flex items-center gap-3 mt-2.5">
+                                  {/* Traveler Accordion Header */}
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleTourTravelerAccordion(tour.id, traveler.id)}
+                                    className="w-full text-left p-3.5 sm:p-4 bg-stone-50/70 hover:bg-amber-50/40 transition-colors flex items-center justify-between gap-3 cursor-pointer select-none"
+                                  >
+                                    <div className="flex items-center gap-3 min-w-0 flex-1">
                                       <div
-                                        onClick={() =>
-                                          setPreviewDoc({
-                                            url: ticket.dataUrl,
-                                            title: ticket.title,
-                                            type: ticket.fileType,
-                                          })
-                                        }
-                                        className="w-14 h-14 rounded-lg bg-stone-950 border border-stone-300 overflow-hidden shrink-0 flex items-center justify-center relative group cursor-pointer shadow-2xs"
+                                        className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center font-black text-white text-base sm:text-lg shadow-xs shrink-0"
+                                        style={{ backgroundColor: traveler.avatarColor || '#2563eb' }}
                                       >
-                                        {ticket.fileType === 'pdf' ? (
-                                          <FileText className="w-6 h-6 text-red-400" />
-                                        ) : (
-                                          <img
-                                            src={ticket.qrCropUrl || ticket.dataUrl}
-                                            alt={ticket.title}
-                                            className="w-full h-full object-cover group-hover:scale-110 transition-transform"
-                                          />
-                                        )}
-                                        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
-                                          <Maximize2 className="w-3.5 h-3.5 text-amber-300" />
-                                        </div>
+                                        {traveler.name.charAt(0)}
                                       </div>
 
-                                      <div className="min-w-0 flex-1 space-y-1">
-                                        <h4 className="text-xs font-bold text-stone-900 truncate" title={ticket.title}>
-                                          {ticket.title}
-                                        </h4>
-                                        <div className="flex items-center gap-1.5 flex-wrap">
-                                          <span className="text-[10px] font-bold text-stone-600 bg-stone-100 px-1.5 py-0.2 rounded uppercase">
-                                            {ticket.fileType}
+                                      <div className="min-w-0 flex-1">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                          <h4 className="text-base sm:text-lg font-black text-stone-900 tracking-tight leading-snug">
+                                            {traveler.name}
+                                          </h4>
+                                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-stone-100 text-stone-600">
+                                            Viajero(a)
                                           </span>
-                                          {ticket.qrCropUrl ? (
-                                            <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-300 px-1.5 py-0.2 rounded flex items-center gap-0.5">
-                                              ✓ QR Guardado
+                                        </div>
+
+                                        <div className="flex items-center gap-2 mt-0.5 text-xs">
+                                          {travelerTickets.length > 0 ? (
+                                            <span className="text-[11px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-300 px-2 py-0.5 rounded-md flex items-center gap-1">
+                                              <TicketIcon className="w-3 h-3 text-emerald-600" />
+                                              <span>{travelerTickets.length} {travelerTickets.length === 1 ? 'entrada individual' : 'entradas individuales'}</span>
+                                            </span>
+                                          ) : isCoveredByGroup ? (
+                                            <span className="text-[11px] font-bold text-amber-800 bg-amber-50 border border-amber-300 px-2 py-0.5 rounded-md flex items-center gap-1">
+                                              <Users className="w-3 h-3 text-amber-600" />
+                                              <span>Cubierto por Pase Grupal (5 Pax)</span>
                                             </span>
                                           ) : (
-                                            <span className="text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-300 px-1.5 py-0.2 rounded">
-                                              ✂ QR Pendiente
+                                            <span className="text-[11px] font-medium text-stone-400 bg-stone-100 px-2 py-0.5 rounded-md">
+                                              Sin entrada asignada
                                             </span>
                                           )}
                                         </div>
                                       </div>
                                     </div>
-                                  </div>
 
-                                  <div className="pt-2 border-t border-stone-100 flex items-center justify-between gap-1.5">
-                                    <button
-                                      type="button"
-                                      onClick={() => {
-                                        setActiveTicketItem({ ticket, tour });
-                                        setQrModalData({
-                                          isOpen: true,
-                                          title: tour.title,
-                                          qrPayload: ticket.qrCodeText || undefined,
-                                          ticketImage: ticket.dataUrl,
-                                          qrCropUrl: ticket.qrCropUrl,
-                                          travelerName: assignedTraveler?.name || 'Pase Grupal (5 Pax)',
-                                          date: tour.date,
-                                          time: tour.time,
-                                          location: tour.location,
-                                          referenceNumber: ticket.referenceNumber,
-                                          seatOrSection: ticket.seatOrSection,
-                                        });
-                                      }}
-                                      className="px-2.5 py-1 text-xs font-bold text-amber-950 bg-amber-400 hover:bg-amber-300 rounded-lg shadow-2xs transition flex items-center gap-1 cursor-pointer"
-                                    >
-                                      <QrCode className="w-3.5 h-3.5" />
-                                      <span>Entrada QR</span>
-                                    </button>
+                                    <div className="flex items-center gap-2 shrink-0">
+                                      {hasTickets && (
+                                        <span className="text-[11px] font-bold bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-lg border border-emerald-300 hidden sm:inline-flex items-center gap-1">
+                                          <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[2.5]" />
+                                          <span>Entrada Lista</span>
+                                        </span>
+                                      )}
 
-                                    <div className="flex items-center gap-1">
-                                      <button
-                                        type="button"
-                                        onClick={() => setPreviewDoc({ url: ticket.dataUrl, title: ticket.title, type: ticket.fileType })}
-                                        className="px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 rounded-xl transition flex items-center gap-1.5 shadow-xs cursor-pointer"
-                                        title="Ver entrada"
-                                      >
-                                        <Eye className="w-4 h-4 stroke-[2.5]" />
-                                        <span>Ver</span>
-                                      </button>
-                                      <a
-                                        href={ticket.dataUrl}
-                                        download={ticket.fileName || `${ticket.title}.png`}
-                                        className="p-1.5 text-stone-600 hover:text-stone-900 hover:bg-stone-100 rounded-lg transition"
-                                      >
-                                        <Download className="w-3.5 h-3.5" />
-                                      </a>
-                                      <button
-                                        type="button"
-                                        onClick={() => setItemToDelete({ id: ticket.id, title: ticket.title, type: 'tourTicket', tourId: tour.id })}
-                                        className="p-1.5 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition cursor-pointer"
-                                      >
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                      </button>
+                                      <div className="w-8 h-8 rounded-lg bg-stone-200/70 hover:bg-stone-300/80 flex items-center justify-center text-stone-700 ml-1 transition">
+                                        {isTravelerExpanded ? (
+                                          <ChevronUp className="w-4 h-4 stroke-[2.5]" />
+                                        ) : (
+                                          <ChevronDown className="w-4 h-4 stroke-[2.5]" />
+                                        )}
+                                      </div>
                                     </div>
-                                  </div>
+                                  </button>
+
+                                  {/* Traveler Accordion Deployed Content */}
+                                  {isTravelerExpanded && (
+                                    <div className="p-3.5 sm:p-4 border-t border-stone-100 space-y-3 bg-stone-50/40 animate-in fade-in duration-150">
+                                      {displayTickets.length === 0 ? (
+                                        <div className="text-center py-5 px-4 bg-white rounded-xl border border-dashed border-stone-200">
+                                          <p className="text-xs text-stone-500 font-medium">
+                                            Aún no se ha asignado una entrada para {traveler.name}.
+                                          </p>
+                                          <button
+                                            type="button"
+                                            onClick={() => onOpenTourTickets(tour)}
+                                            className="mt-2 text-xs font-bold text-amber-700 hover:text-amber-800 inline-flex items-center gap-1 cursor-pointer"
+                                          >
+                                            <Plus className="w-3.5 h-3.5" />
+                                            <span>Subir o generar entrada para {traveler.name}</span>
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                          {displayTickets.map((ticket) => (
+                                            <div
+                                              key={ticket.id}
+                                              className="bg-white rounded-xl border border-stone-200 p-3.5 shadow-2xs hover:border-amber-400 transition-all flex flex-col justify-between gap-3 relative"
+                                            >
+                                              <div>
+                                                <div className="flex items-center justify-between gap-2 pb-2 border-b border-stone-100">
+                                                  <div className="flex items-center gap-2">
+                                                    <div
+                                                      className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black text-white shrink-0 shadow-xs"
+                                                      style={{ backgroundColor: traveler.avatarColor || '#2563eb' }}
+                                                    >
+                                                      {traveler.name.charAt(0)}
+                                                    </div>
+                                                    <span className="text-sm font-bold text-stone-900 truncate max-w-[170px]">
+                                                      {traveler.name}
+                                                    </span>
+                                                  </div>
+
+                                                  <span
+                                                    className="text-[10px] font-mono font-bold text-amber-900 bg-amber-50 px-2 py-0.5 rounded border border-amber-200/80 truncate max-w-[130px]"
+                                                    title={ticket.referenceNumber || ticket.qrCodeText || 'CONFIRMADA'}
+                                                  >
+                                                    Ref: {formatCleanReference(ticket.referenceNumber || ticket.qrCodeText)}
+                                                  </span>
+                                                </div>
+
+                                                <div className="flex items-center gap-3 mt-2.5">
+                                                  <div
+                                                    onClick={() =>
+                                                      setPreviewDoc({
+                                                        url: ticket.dataUrl,
+                                                        title: ticket.title,
+                                                        type: ticket.fileType,
+                                                      })
+                                                    }
+                                                    className="w-14 h-14 rounded-lg bg-stone-950 border border-stone-300 overflow-hidden shrink-0 flex items-center justify-center relative group cursor-pointer shadow-2xs"
+                                                  >
+                                                    {ticket.fileType === 'pdf' ? (
+                                                      <FileText className="w-6 h-6 text-red-400" />
+                                                    ) : (
+                                                      <img
+                                                        src={ticket.qrCropUrl || ticket.dataUrl}
+                                                        alt={ticket.title}
+                                                        className="w-full h-full object-cover group-hover:scale-110 transition-transform"
+                                                      />
+                                                    )}
+                                                    <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                                                      <Maximize2 className="w-3.5 h-3.5 text-amber-300" />
+                                                    </div>
+                                                  </div>
+
+                                                  <div className="min-w-0 flex-1 space-y-1">
+                                                    <h4 className="text-xs font-bold text-stone-900 truncate" title={ticket.title}>
+                                                      {ticket.title}
+                                                    </h4>
+                                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                                      <span className="text-[10px] font-bold text-stone-600 bg-stone-100 px-1.5 py-0.2 rounded uppercase">
+                                                        {ticket.fileType}
+                                                      </span>
+                                                      {ticket.qrCropUrl ? (
+                                                        <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-300 px-1.5 py-0.2 rounded flex items-center gap-0.5">
+                                                          ✓ QR Guardado
+                                                        </span>
+                                                      ) : (
+                                                        <span className="text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-300 px-1.5 py-0.2 rounded">
+                                                          ✂ QR Pendiente
+                                                        </span>
+                                                      )}
+                                                    </div>
+                                                  </div>
+                                                </div>
+                                              </div>
+
+                                              <div className="pt-2 border-t border-stone-100 flex items-center justify-between gap-1.5">
+                                                <button
+                                                  type="button"
+                                                  onClick={() => {
+                                                    setActiveTicketItem({ ticket, tour });
+                                                    setQrModalData({
+                                                      isOpen: true,
+                                                      title: tour.title,
+                                                      qrPayload: ticket.qrCodeText || undefined,
+                                                      ticketImage: ticket.dataUrl,
+                                                      qrCropUrl: ticket.qrCropUrl,
+                                                      travelerName: traveler.name,
+                                                      date: tour.date,
+                                                      time: tour.time,
+                                                      location: tour.location,
+                                                      referenceNumber: ticket.referenceNumber,
+                                                      seatOrSection: ticket.seatOrSection,
+                                                    });
+                                                  }}
+                                                  className="px-2.5 py-1 text-xs font-bold text-amber-950 bg-amber-400 hover:bg-amber-300 rounded-lg shadow-2xs transition flex items-center gap-1 cursor-pointer"
+                                                >
+                                                  <QrCode className="w-3.5 h-3.5" />
+                                                  <span>Entrada QR</span>
+                                                </button>
+
+                                                <div className="flex items-center gap-1">
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => setPreviewDoc({ url: ticket.dataUrl, title: ticket.title, type: ticket.fileType })}
+                                                    className="px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 rounded-xl transition flex items-center gap-1.5 shadow-xs cursor-pointer"
+                                                    title="Ver entrada"
+                                                  >
+                                                    <Eye className="w-4 h-4 stroke-[2.5]" />
+                                                    <span>Ver</span>
+                                                  </button>
+                                                  <a
+                                                    href={ticket.dataUrl}
+                                                    download={ticket.fileName || `${ticket.title}.png`}
+                                                    className="p-1.5 text-stone-600 hover:text-stone-900 hover:bg-stone-100 rounded-lg transition"
+                                                  >
+                                                    <Download className="w-3.5 h-3.5" />
+                                                  </a>
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => setItemToDelete({ id: ticket.id, title: ticket.title, type: 'tourTicket', tourId: tour.id })}
+                                                    className="p-1.5 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition cursor-pointer"
+                                                  >
+                                                    <Trash2 className="w-3.5 h-3.5" />
+                                                  </button>
+                                                </div>
+                                              </div>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
                                 </div>
                               );
                             })}
+
+                            {/* Optional Group Pass Accordion for General 5-Pax Tickets */}
+                            {(() => {
+                              const groupTickets = tickets.filter((t) => !t.travelerId || t.travelerId === 'group');
+                              if (groupTickets.length === 0) return null;
+                              const isGroupExpanded = expandedTourTravelerKeys.has(`${tour.id}-group`);
+
+                              return (
+                                <div className="bg-amber-50/40 rounded-2xl border border-amber-200/80 shadow-2xs overflow-hidden transition-all hover:border-amber-300">
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleTourTravelerAccordion(tour.id, 'group')}
+                                    className="w-full text-left p-3.5 sm:p-4 bg-amber-100/50 hover:bg-amber-100/70 transition-colors flex items-center justify-between gap-3 cursor-pointer select-none"
+                                  >
+                                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                                      <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-amber-500 flex items-center justify-center font-black text-stone-950 text-lg shadow-xs shrink-0">
+                                        👥
+                                      </div>
+                                      <div className="min-w-0 flex-1">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                          <h4 className="text-base sm:text-lg font-black text-stone-900 tracking-tight leading-snug">
+                                            Pase Grupal (Los 5 Viajeros)
+                                          </h4>
+                                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-200 text-amber-950 border border-amber-300">
+                                            Grupo Completo
+                                          </span>
+                                        </div>
+                                        <p className="text-xs text-amber-900 font-semibold mt-0.5">
+                                          Aplica para Jessica, Mayela, Vilma, Mercedes y Angelica
+                                        </p>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 shrink-0">
+                                      <span className="text-[11px] font-bold bg-amber-200 text-amber-950 px-2.5 py-1 rounded-lg border border-amber-300 hidden sm:inline-flex items-center gap-1">
+                                        <TicketIcon className="w-3.5 h-3.5 text-amber-800" />
+                                        <span>{groupTickets.length} {groupTickets.length === 1 ? 'Pase Grupal' : 'Pases Grupales'}</span>
+                                      </span>
+                                      <div className="w-8 h-8 rounded-lg bg-amber-200/80 flex items-center justify-center text-amber-900 ml-1 transition">
+                                        {isGroupExpanded ? (
+                                          <ChevronUp className="w-4 h-4 stroke-[2.5]" />
+                                        ) : (
+                                          <ChevronDown className="w-4 h-4 stroke-[2.5]" />
+                                        )}
+                                      </div>
+                                    </div>
+                                  </button>
+                                  {isGroupExpanded && (
+                                    <div className="p-3.5 sm:p-4 border-t border-amber-200/80 bg-white space-y-3 animate-in fade-in duration-150">
+                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        {groupTickets.map((ticket) => (
+                                          <div
+                                            key={ticket.id}
+                                            className="bg-white rounded-xl border border-stone-200 p-3.5 shadow-2xs hover:border-amber-400 transition-all flex flex-col justify-between gap-3 relative"
+                                          >
+                                            <div>
+                                              <div className="flex items-center justify-between gap-2 pb-2 border-b border-stone-100">
+                                                <div className="flex items-center gap-2">
+                                                  <div className="w-6 h-6 rounded-full bg-amber-500 flex items-center justify-center text-[10px] font-black text-stone-950 shrink-0 shadow-xs">
+                                                    👥
+                                                  </div>
+                                                  <span className="text-sm font-bold text-stone-900 truncate max-w-[170px]">
+                                                    Pase Grupal (5 Pax)
+                                                  </span>
+                                                </div>
+
+                                                <span
+                                                  className="text-[10px] font-mono font-bold text-amber-900 bg-amber-50 px-2 py-0.5 rounded border border-amber-200/80 truncate max-w-[130px]"
+                                                  title={ticket.referenceNumber || ticket.qrCodeText || 'CONFIRMADA'}
+                                                >
+                                                  Ref: {formatCleanReference(ticket.referenceNumber || ticket.qrCodeText)}
+                                                </span>
+                                              </div>
+
+                                              <div className="flex items-center gap-3 mt-2.5">
+                                                <div
+                                                  onClick={() =>
+                                                    setPreviewDoc({
+                                                      url: ticket.dataUrl,
+                                                      title: ticket.title,
+                                                      type: ticket.fileType,
+                                                    })
+                                                  }
+                                                  className="w-14 h-14 rounded-lg bg-stone-950 border border-stone-300 overflow-hidden shrink-0 flex items-center justify-center relative group cursor-pointer shadow-2xs"
+                                                >
+                                                  {ticket.fileType === 'pdf' ? (
+                                                    <FileText className="w-6 h-6 text-red-400" />
+                                                  ) : (
+                                                    <img
+                                                      src={ticket.qrCropUrl || ticket.dataUrl}
+                                                      alt={ticket.title}
+                                                      className="w-full h-full object-cover group-hover:scale-110 transition-transform"
+                                                    />
+                                                  )}
+                                                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white">
+                                                    <Maximize2 className="w-3.5 h-3.5 text-amber-300" />
+                                                  </div>
+                                                </div>
+
+                                                <div className="min-w-0 flex-1 space-y-1">
+                                                  <h4 className="text-xs font-bold text-stone-900 truncate" title={ticket.title}>
+                                                    {ticket.title}
+                                                  </h4>
+                                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                                    <span className="text-[10px] font-bold text-stone-600 bg-stone-100 px-1.5 py-0.2 rounded uppercase">
+                                                      {ticket.fileType}
+                                                    </span>
+                                                    {ticket.qrCropUrl ? (
+                                                      <span className="text-[10px] font-bold text-emerald-800 bg-emerald-50 border border-emerald-300 px-1.5 py-0.2 rounded flex items-center gap-0.5">
+                                                        ✓ QR Guardado
+                                                      </span>
+                                                    ) : (
+                                                      <span className="text-[10px] font-bold text-amber-800 bg-amber-50 border border-amber-300 px-1.5 py-0.2 rounded">
+                                                        ✂ QR Pendiente
+                                                      </span>
+                                                    )}
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            </div>
+
+                                            <div className="pt-2 border-t border-stone-100 flex items-center justify-between gap-1.5">
+                                              <button
+                                                type="button"
+                                                onClick={() => {
+                                                  setActiveTicketItem({ ticket, tour });
+                                                  setQrModalData({
+                                                    isOpen: true,
+                                                    title: tour.title,
+                                                    qrPayload: ticket.qrCodeText || undefined,
+                                                    ticketImage: ticket.dataUrl,
+                                                    qrCropUrl: ticket.qrCropUrl,
+                                                    travelerName: 'Pase Grupal (5 Pax)',
+                                                    date: tour.date,
+                                                    time: tour.time,
+                                                    location: tour.location,
+                                                    referenceNumber: ticket.referenceNumber,
+                                                    seatOrSection: ticket.seatOrSection,
+                                                  });
+                                                }}
+                                                className="px-2.5 py-1 text-xs font-bold text-amber-950 bg-amber-400 hover:bg-amber-300 rounded-lg shadow-2xs transition flex items-center gap-1 cursor-pointer"
+                                              >
+                                                <QrCode className="w-3.5 h-3.5" />
+                                                <span>Entrada QR</span>
+                                              </button>
+
+                                              <div className="flex items-center gap-1">
+                                                <button
+                                                  type="button"
+                                                  onClick={() => setPreviewDoc({ url: ticket.dataUrl, title: ticket.title, type: ticket.fileType })}
+                                                  className="px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 rounded-xl transition flex items-center gap-1.5 shadow-xs cursor-pointer"
+                                                  title="Ver entrada"
+                                                >
+                                                  <Eye className="w-4 h-4 stroke-[2.5]" />
+                                                  <span>Ver</span>
+                                                </button>
+                                                <a
+                                                  href={ticket.dataUrl}
+                                                  download={ticket.fileName || `${ticket.title}.png`}
+                                                  className="p-1.5 text-stone-600 hover:text-stone-900 hover:bg-stone-100 rounded-lg transition"
+                                                >
+                                                  <Download className="w-3.5 h-3.5" />
+                                                </a>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => setItemToDelete({ id: ticket.id, title: ticket.title, type: 'tourTicket', tourId: tour.id })}
+                                                  className="p-1.5 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition cursor-pointer"
+                                                >
+                                                  <Trash2 className="w-3.5 h-3.5" />
+                                                </button>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              );
+                            })()}
                           </div>
                         )}
                       </div>

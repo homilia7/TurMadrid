@@ -483,9 +483,21 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                         </button>
                       </div>
 
-                      <div className="mt-1.5 flex items-center justify-between text-[11px] text-stone-500">
-                        <span>{assigned ? assigned.name : 'Pase Grupal (5 Pax)'}</span>
-                        <span>{t.fileSize || 'SVG'}</span>
+                      <div className="mt-2 pt-2 border-t border-stone-100 flex items-center justify-between gap-1">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <div
+                            className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-black text-white shrink-0 shadow-2xs"
+                            style={{ backgroundColor: assigned?.avatarColor || '#d97706' }}
+                          >
+                            {(assigned?.name || 'G').charAt(0)}
+                          </div>
+                          <span className="text-xs sm:text-sm font-black text-stone-900 truncate">
+                            {assigned ? assigned.name : 'Pase Grupal (5 Pax)'}
+                          </span>
+                        </div>
+                        <span className="text-[10px] text-stone-400 font-semibold shrink-0">
+                          {t.fileSize || 'SVG'}
+                        </span>
                       </div>
                     </div>
                   );
@@ -877,6 +889,13 @@ export const TicketModal: React.FC<TicketModalProps> = ({
 
                 {/* Ticket Details Summary Bar */}
                 <div className="w-full bg-white p-3 sm:p-3.5 rounded-xl border border-stone-200 text-xs flex flex-wrap items-center justify-between gap-2.5 overflow-hidden">
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <Users className="w-3.5 h-3.5 text-amber-600" />
+                    <span className="text-stone-400 font-medium">Viajero: </span>
+                    <span className="font-black text-xs sm:text-sm text-stone-900 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                      {safeTravelers.find((tr) => tr.id === activeTicket.travelerId)?.name || 'Pase Grupal (5 Pax)'}
+                    </span>
+                  </div>
                   <div className="flex items-center gap-1.5 shrink-0">
                     <Calendar className="w-3.5 h-3.5 text-amber-600" />
                     <span className="text-stone-400 font-medium">Fecha: </span>
