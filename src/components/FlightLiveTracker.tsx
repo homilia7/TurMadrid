@@ -698,8 +698,8 @@ export const FlightLiveTracker: React.FC<FlightLiveTrackerProps> = ({ documents 
             </p>
 
             {(() => {
-              const shareUrl = typeof window !== 'undefined' ? window.location.href : 'https://tureuropa.pages.dev';
-              const shareText = `✈️ ¡Hola! Les comparto el seguimiento en vivo de nuestro vuelo ${displayFlightCode} (${activeRoute.originCode} ➔ ${activeRoute.destinationCode}) y nuestro viaje a España: ${shareUrl}`;
+              const shareUrl = 'https://tureuropa.pages.dev/?familia=1';
+              const shareText = `✈️ ¡Hola! Les comparto el portal familiar en vivo para seguir nuestro vuelo ${displayFlightCode} (${activeRoute.originCode} ➔ ${activeRoute.destinationCode}) y nuestro viaje a España: ${shareUrl}`;
               const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
 
               const handleNativeShare = async () => {

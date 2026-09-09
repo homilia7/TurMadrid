@@ -65,6 +65,16 @@ export default function App() {
   // Navigation tab state
   const [activeTab, setActiveTab] = useState<MainTabType>('itinerary');
 
+  // Redirigir familiares al portal dedicado de TurEuropa si abren un enlace con ?familia=1 o ?familiar=1
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('familia') === '1' || params.get('familiar') === '1') {
+        window.location.replace(`https://tureuropa.pages.dev${window.location.search}`);
+      }
+    }
+  }, []);
+
   // Core State
   const [travelers, setTravelers] = useState<Traveler[]>(() => {
     const loaded = loadTravelers();
