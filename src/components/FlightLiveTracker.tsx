@@ -9,7 +9,11 @@ import {
   Gauge, 
   CheckCircle2, 
   Globe,
-  Share2
+  Share2,
+  Copy,
+  Check,
+  X,
+  MessageCircle,
 } from 'lucide-react';
 import { DocumentItem } from '../types';
 
@@ -94,6 +98,7 @@ export const FlightLiveTracker: React.FC<FlightLiveTrackerProps> = ({ documents 
   const [flightPhase, setFlightPhase] = useState<string>('Programado a Tiempo');
   const [progressPercent, setProgressPercent] = useState<number>(42);
   const [copiedLink, setCopiedLink] = useState<boolean>(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState<boolean>(false);
 
   // Active route
   const activeRoute = PRESET_ROUTES.find((r) => r.id === selectedRouteId) || PRESET_ROUTES[0];
@@ -230,12 +235,12 @@ export const FlightLiveTracker: React.FC<FlightLiveTrackerProps> = ({ documents 
           <div className="flex items-center gap-2 self-start md:self-center">
             <button
               type="button"
-              onClick={handleShareFlight}
-              className="px-3.5 py-2 rounded-xl text-xs font-bold bg-sky-800/60 hover:bg-sky-700/80 text-white border border-sky-600/40 flex items-center gap-1.5 transition shadow-2xs cursor-pointer"
-              title="Copiar enlace para compartir con familiares"
+              onClick={() => setIsShareModalOpen(true)}
+              className="px-3.5 py-2 rounded-xl text-xs font-bold bg-sky-800/60 hover:bg-sky-700/80 text-white border border-sky-600/40 flex items-center gap-1.5 transition shadow-2xs cursor-pointer active:scale-95"
+              title="Compartir con familiares"
             >
               <Share2 className="w-3.5 h-3.5" />
-              <span>{copiedLink ? '✓ Enlace Copiado' : 'Compartir con Familia'}</span>
+              <span>Compartir con Familia</span>
             </button>
 
             <button
@@ -675,6 +680,106 @@ export const FlightLiveTracker: React.FC<FlightLiveTrackerProps> = ({ documents 
               <li>Al tocar el botón de Flightradar24, pueden ver el avión en 3D en tiempo real mientras cruza el Atlántico.</li>
               <li>Recuerden que en España son <strong>8 horas más</strong> que en Costa Rica (horario de verano europeo CEST).</li>
             </ul>
+          </div>
+        </div>
+      )}
+
+      {/* Popup Modal: Compartir con Familia (WhatsApp y Compartir Nativo) */}
+      {isShareModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 shadow-2xl border border-stone-200 text-center relative animate-in zoom-in-95">
+            <div className="w-12 h-12 rounded-2xl bg-sky-100 text-sky-700 flex items-center justify-center mx-auto mb-3 shadow-xs">
+              <Share2 className="w-6 h-6" />
+            </div>
+
+            <h3 className="text-lg font-black text-stone-900">Compartir con Familia</h3>
+            <p className="text-xs text-stone-500 mb-4">
+              Comparte el enlace de seguimiento en vivo con tus familiares para que sigan el vuelo y el viaje en tiempo real.
+            </p>
+
+            {(() => {
+              const shareUrl = typeof window !== 'undefined' ? window.location.href : 'https://tureuropa.pages.dev';
+              const shareText = `✈️ ¡Hola! Les comparto el seguimiento en vivo de nuestro vuelo ${displayFlightCode} (${activeRoute.originCode} ➔ ${activeRoute.destinationCode}) y nuestro viaje a España: ${shareUrl}`;
+              const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(shareText)}`;
+
+              const handleNativeShare = async () => {
+                if (typeof navigator !== 'undefined' && navigator.share) {
+                  try {
+                    await navigator.share({
+                      title: `Vuelo ${displayFlightCode} - España 2026`,
+                      text: shareText,
+                      url: shareUrl,
+                    });
+                  } catch (e) {
+                    // Dialog closed or cancelled
+                  }
+                } else if (navigator.clipboard) {
+                  navigator.clipboard.writeText(shareText);
+                  setCopiedLink(true);
+                  setTimeout(() => setCopiedLink(false), 2000);
+                }
+              };
+
+              return (
+                <div className="space-y-3">
+                  <div className="p-3 bg-stone-50 rounded-2xl border border-stone-200 text-xs font-mono break-all text-stone-700 text-left">
+                    {shareUrl}
+                  </div>
+
+                  {/* Dos botones principales: WhatsApp y Compartir */}
+                  <div className="grid grid-cols-2 gap-2.5">
+                    {/* Botón WhatsApp */}
+                    <a
+                      href={whatsappUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="py-3 px-4 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-black text-xs sm:text-sm transition flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 active:scale-95 cursor-pointer"
+                    >
+                      <MessageCircle className="w-4 h-4 fill-white" />
+                      <span>WhatsApp</span>
+                    </a>
+
+                    {/* Botón Compartir (Menú del sistema / Otras apps) */}
+                    <button
+                      type="button"
+                      onClick={handleNativeShare}
+                      className="py-3 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs sm:text-sm transition flex items-center justify-center gap-2 shadow-md shadow-blue-600/20 cursor-pointer active:scale-95"
+                    >
+                      <Share2 className="w-4 h-4" />
+                      <span>Compartir</span>
+                    </button>
+                  </div>
+
+                  {/* Botón Copiar Enlace */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (navigator.clipboard) {
+                        navigator.clipboard.writeText(shareUrl);
+                        setCopiedLink(true);
+                        setTimeout(() => setCopiedLink(false), 2000);
+                      }
+                    }}
+                    className="w-full py-2.5 px-4 rounded-xl border border-stone-200 hover:bg-stone-50 font-bold text-xs text-stone-700 transition flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    {copiedLink ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4 text-stone-500" />}
+                    <span>{copiedLink ? '¡Enlace Copiado al Portapapeles!' : 'Copiar Enlace'}</span>
+                  </button>
+                </div>
+              );
+            })()}
+
+            {/* Botón Cerrar en Rojo */}
+            <div className="pt-3 mt-3 border-t border-stone-100 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setIsShareModalOpen(false)}
+                className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-black text-xs transition cursor-pointer shadow-md shadow-red-600/20 flex items-center gap-1.5 border border-red-500 active:scale-95"
+              >
+                <X className="w-4 h-4 stroke-[2.5]" />
+                <span>Cerrar</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
