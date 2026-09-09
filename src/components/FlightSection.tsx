@@ -16,6 +16,7 @@ import {
 
 import { formatDateWithDay } from '../utils/dateUtils';
 import { optimizeImageForUpload } from '../utils/imageUtils';
+import { FlightLiveTracker } from './FlightLiveTracker';
 
 interface FlightSectionProps {
   travelers: Traveler[];
@@ -130,7 +131,20 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
         </button>
       </div>
 
-      <div className="space-y-4">
+      {/* Rastreador de Vuelo en Tiempo Real (Dos Secciones: Mapa GPS & Radar Satelital) */}
+      <FlightLiveTracker documents={safeDocs} />
+
+      {/* Listado de Pasajes y Billetes de los Viajeros */}
+      <div className="space-y-4 pt-2">
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-sm sm:text-base font-black text-stone-900 flex items-center gap-2">
+            <span>🎫 Billetes y Pases de Abordar Registrados</span>
+            <span className="text-xs font-bold text-sky-800 bg-sky-100 px-2 py-0.5 rounded-full border border-sky-200">
+              {allFlights.length} {allFlights.length === 1 ? 'registro' : 'registros'}
+            </span>
+          </h3>
+        </div>
+
         {allFlights.map((flight) => {
           const assignedTraveler = safeTravelers.find((t) => t.id === flight.travelerId);
           const hasFile = Boolean(flight.dataUrl);
