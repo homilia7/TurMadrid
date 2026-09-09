@@ -771,9 +771,11 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
                                       <button
                                         type="button"
                                         onClick={() => setPreviewDoc({ url: ticket.dataUrl, title: ticket.title, type: ticket.fileType })}
-                                        className="p-1.5 text-stone-600 hover:text-stone-900 hover:bg-stone-100 rounded-lg transition"
+                                        className="px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 rounded-xl transition flex items-center gap-1.5 shadow-xs cursor-pointer"
+                                        title="Ver entrada"
                                       >
-                                        <Eye className="w-3.5 h-3.5" />
+                                        <Eye className="w-4 h-4 stroke-[2.5]" />
+                                        <span>Ver</span>
                                       </button>
                                       <a
                                         href={ticket.dataUrl}
@@ -903,9 +905,9 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
                           <button
                             type="button"
                             onClick={() => setPreviewDoc({ url: doc.dataUrl, title: doc.title, type: doc.fileType })}
-                            className="px-2.5 py-1.5 text-xs font-bold text-amber-900 bg-amber-100 hover:bg-amber-200 rounded-lg transition flex items-center gap-1 cursor-pointer"
+                            className="px-3.5 py-2 text-xs sm:text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 rounded-xl transition flex items-center gap-1.5 shadow-xs cursor-pointer"
                           >
-                            <Eye className="w-3.5 h-3.5" /> Ver
+                            <Eye className="w-4 h-4 stroke-[2.5]" /> Ver
                           </button>
                         )}
                         {doc.dataUrl && (
@@ -1024,9 +1026,9 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
                           <button
                             type="button"
                             onClick={() => setPreviewDoc({ url: doc.dataUrl, title: doc.title, type: doc.fileType })}
-                            className="px-2.5 py-1.5 text-xs font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 rounded-lg border border-emerald-200 transition flex items-center gap-1 cursor-pointer"
+                            className="px-3.5 py-2 text-xs sm:text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 rounded-xl transition flex items-center gap-1.5 shadow-xs cursor-pointer"
                           >
-                            <Eye className="w-3.5 h-3.5" /> Ver
+                            <Eye className="w-4 h-4 stroke-[2.5]" /> Ver
                           </button>
                         )}
                         {doc.dataUrl && (
@@ -1278,9 +1280,9 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
                                   <button
                                     type="button"
                                     onClick={() => setPreviewDoc({ url: idaDoc.dataUrl, title: idaDoc.title, type: idaDoc.fileType })}
-                                    className="px-2.5 py-1 text-xs font-bold text-emerald-800 bg-white hover:bg-emerald-100/60 rounded-lg border border-emerald-300 transition flex items-center gap-1 cursor-pointer"
+                                    className="px-3.5 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 rounded-xl transition flex items-center gap-1.5 shadow-xs cursor-pointer"
                                   >
-                                    <Eye className="w-3 h-3" /> Ver
+                                    <Eye className="w-3.5 h-3.5 stroke-[2.5]" /> Ver
                                   </button>
                                 )}
                                 {idaDoc.dataUrl && (
@@ -1411,9 +1413,9 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
                                   <button
                                     type="button"
                                     onClick={() => setPreviewDoc({ url: regresoDoc.dataUrl, title: regresoDoc.title, type: regresoDoc.fileType })}
-                                    className="px-2.5 py-1 text-xs font-bold text-blue-800 bg-white hover:bg-blue-100/60 rounded-lg border border-blue-300 transition flex items-center gap-1 cursor-pointer"
+                                    className="px-3.5 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 rounded-xl transition flex items-center gap-1.5 shadow-xs cursor-pointer"
                                   >
-                                    <Eye className="w-3 h-3" /> Ver
+                                    <Eye className="w-3.5 h-3.5 stroke-[2.5]" /> Ver
                                   </button>
                                 )}
                                 {regresoDoc.dataUrl && (
@@ -1463,10 +1465,11 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
                                         <button
                                           type="button"
                                           onClick={() => setPreviewDoc({ url: doc.dataUrl, title: doc.title, type: doc.fileType })}
-                                          className="p-1.5 text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg transition cursor-pointer"
+                                          className="px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 rounded-xl transition flex items-center gap-1.5 shadow-xs cursor-pointer"
                                           title="Ver documento"
                                         >
-                                          <Eye className="w-3.5 h-3.5" />
+                                          <Eye className="w-4 h-4 stroke-[2.5]" />
+                                          <span>Ver</span>
                                         </button>
                                       )}
                                       <button
@@ -1600,10 +1603,11 @@ export const TicketsHubSection: React.FC<TicketsHubSectionProps> = ({
                                   <button
                                     type="button"
                                     onClick={() => setPreviewDoc({ url: doc.dataUrl, title: doc.title, type: doc.fileType })}
-                                    className="p-1.5 text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg transition cursor-pointer"
+                                    className="px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 rounded-xl transition flex items-center gap-1.5 shadow-xs cursor-pointer"
                                     title="Ver documento"
                                   >
-                                    <Eye className="w-3.5 h-3.5" />
+                                    <Eye className="w-4 h-4 stroke-[2.5]" />
+                                    <span>Ver</span>
                                   </button>
                                 )}
                                 <button

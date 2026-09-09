@@ -24,6 +24,7 @@ import {
   Upload,
   Camera,
   RefreshCw,
+  Eye,
 } from 'lucide-react';
 import { generateDigitalTicketSvg, downloadFile, formatCleanReference } from '../utils/ticketGenerator';
 import { formatDateWithDay, getDayOfWeek } from '../utils/dateUtils';
@@ -744,11 +745,11 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                       id="zoom-ticket-image-btn"
                       type="button"
                       onClick={() => setIsLightboxOpen(true)}
-                      className="text-xs font-bold px-3 py-1.5 rounded-lg bg-stone-100 hover:bg-stone-200 text-stone-800 transition-colors flex items-center gap-1.5 border border-stone-300 cursor-pointer"
-                      title="Agrandar y hacer zoom en pantalla completa"
+                      className="text-xs sm:text-sm font-bold px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
+                      title="Ver entrada en pantalla completa"
                     >
-                      <Maximize2 className="w-3.5 h-3.5 text-amber-600" />
-                      <span>Agrandar</span>
+                      <Eye className="w-4 h-4 text-white stroke-[2.5]" />
+                      <span>Ver</span>
                     </button>
 
                     <button
@@ -829,9 +830,9 @@ export const TicketModal: React.FC<TicketModalProps> = ({
                     </button>
                   </div>
 
-                  <div className="absolute top-3 right-3 z-10 bg-black/70 hover:bg-black/90 backdrop-blur-xs text-white text-[11px] font-bold px-2.5 py-1 rounded-lg border border-white/20 opacity-90 group-hover:opacity-100 flex items-center gap-1.5 transition">
-                    <Maximize2 className="w-3.5 h-3.5 text-amber-400" />
-                    <span>🔍 Agrandar</span>
+                  <div className="absolute top-3 right-3 z-10 bg-emerald-600/90 hover:bg-emerald-600 backdrop-blur-xs text-white text-xs font-bold px-3 py-1.5 rounded-xl border border-emerald-400/40 opacity-90 group-hover:opacity-100 flex items-center gap-1.5 transition shadow-md">
+                    <Eye className="w-4 h-4 text-white stroke-[2.5]" />
+                    <span>Ver</span>
                   </div>
 
                   {activeTicket.fileType === 'pdf' ? (
@@ -914,11 +915,13 @@ export const TicketModal: React.FC<TicketModalProps> = ({
             Cada tour cuenta con almacenamiento de entradas digitales y comprobantes para los 5 viajeros.
           </span>
           <button
+            id="btn-close-ticket-modal-footer"
             type="button"
             onClick={onClose}
-            className="px-5 py-2 text-xs sm:text-sm font-semibold text-stone-700 hover:text-stone-900 bg-stone-200/70 hover:bg-stone-300 rounded-xl transition-colors ml-auto cursor-pointer"
+            className="px-6 sm:px-8 py-2.5 sm:py-3 text-sm sm:text-base font-black text-white bg-red-600 hover:bg-red-700 active:bg-red-800 rounded-xl transition-all shadow-md shadow-red-600/30 border border-red-500 ml-auto cursor-pointer flex items-center gap-2"
           >
-            Cerrar Visor
+            <X className="w-4 h-4 sm:w-5 sm:h-5 stroke-[3]" />
+            <span>Cerrar</span>
           </button>
         </div>
       </div>

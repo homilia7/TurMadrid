@@ -246,9 +246,9 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
                             title: flight.title,
                             type: flight.fileType,
                           })}
-                          className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-sky-700 bg-sky-50 border border-sky-200 rounded-lg hover:bg-sky-100 transition"
+                          className="flex items-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 rounded-xl transition shadow-xs cursor-pointer"
                         >
-                          <Eye className="w-3.5 h-3.5" /> Ver Pase
+                          <Eye className="w-4 h-4 stroke-[2.5]" /> Ver Pase
                         </button>
                         <a
                           href={flight.dataUrl}

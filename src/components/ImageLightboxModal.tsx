@@ -316,10 +316,11 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({
           <button
             type="button"
             onClick={onClose}
-            className="p-2 text-stone-300 hover:text-white bg-red-950/60 border border-red-800/80 hover:bg-red-900 rounded-xl transition ml-1 cursor-pointer"
-            title="Cerrar visor"
+            className="px-4 py-2 text-xs sm:text-sm font-black text-white bg-red-600 hover:bg-red-700 active:bg-red-800 border border-red-500 rounded-xl transition-all shadow-md shadow-red-600/30 ml-1 cursor-pointer flex items-center gap-1.5"
+            title="Cerrar"
           >
-            <X className="w-4 h-4 text-red-400" />
+            <X className="w-4 h-4 text-white stroke-[3]" />
+            <span>Cerrar</span>
           </button>
         </div>
       </div>
@@ -458,9 +459,10 @@ export const ImageLightboxModal: React.FC<ImageLightboxModalProps> = ({
             <span>•</span>
             <button
               onClick={onClose}
-              className="text-stone-300 hover:text-white font-semibold cursor-pointer"
+              className="px-3 py-1 text-xs font-bold text-white bg-red-600 hover:bg-red-700 rounded-lg transition cursor-pointer flex items-center gap-1 shadow-xs"
             >
-              Cerrar
+              <X className="w-3.5 h-3.5 stroke-[2.5]" />
+              <span>Cerrar</span>
             </button>
           </div>
         </div>
