@@ -369,9 +369,11 @@ export const LargeQRModal: React.FC<LargeQRModalProps> = ({
             <button
               id="close-qr-modal-btn"
               onClick={onClose}
-              className="p-1.5 text-stone-400 hover:text-white hover:bg-stone-800 rounded-lg transition cursor-pointer"
+              className="px-3 py-1.5 bg-red-600 hover:bg-red-700 active:bg-red-800 text-white rounded-xl font-black text-xs transition flex items-center gap-1 shadow-xs border border-red-500 cursor-pointer"
+              title="Cerrar"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4 stroke-[3]" />
+              <span>Cerrar</span>
             </button>
           </div>
         </div>
@@ -678,10 +680,14 @@ export const LargeQRModal: React.FC<LargeQRModalProps> = ({
             )}
 
             <button
+              id="btn-close-large-qr-modal"
+              type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl bg-stone-800 hover:bg-stone-700 text-stone-300 text-xs font-bold transition cursor-pointer"
+              className="px-6 sm:px-8 py-2.5 sm:py-3 rounded-xl bg-red-600 hover:bg-red-700 active:bg-red-800 text-white text-sm sm:text-base font-black transition-all shadow-md shadow-red-600/30 border border-red-500 flex items-center justify-center gap-2 cursor-pointer"
+              title="Cerrar"
             >
-              Cerrar
+              <X className="w-4 h-4 sm:w-5 sm:h-5 stroke-[3]" />
+              <span>Cerrar</span>
             </button>
           </div>
         </div>
