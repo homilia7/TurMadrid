@@ -49,13 +49,6 @@ export const Navbar: React.FC<NavbarProps> = ({
     safeTravelers[0] ||
     ({ id: 'u1', name: 'Viajero 1', avatarColor: '#2563eb' } as Traveler);
 
-  const activeUserVisitedCount = safeTours.filter((t) =>
-    (t.visitedByUserIds || []).includes(activeTravelerId)
-  ).length;
-
-  const totalTours = safeTours.length;
-  const progressPercent = totalTours > 0 ? Math.round((activeUserVisitedCount / totalTours) * 100) : 0;
-
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200 shadow-2xs">
       <div className="max-w-6xl mx-auto px-3 sm:px-6 py-2 sm:py-2.5">
@@ -208,22 +201,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             >
               <SlidersHorizontal className="w-3.5 h-3.5" />
             </button>
-          </div>
-
-          {/* Quick Progress Badge */}
-          <div className="hidden sm:flex items-center gap-2 shrink-0 text-right">
-            <span className="text-[11px] font-bold text-stone-600">
-              <span className="font-extrabold text-stone-900">{activeUserVisitedCount}</span>/{totalTours} ({progressPercent}%)
-            </span>
-            <div className="w-16 sm:w-20 bg-stone-200 rounded-full h-1.5 overflow-hidden">
-              <div
-                className="h-full rounded-full transition-all duration-500"
-                style={{
-                  width: `${progressPercent}%`,
-                  backgroundColor: activeTraveler.avatarColor || '#f59e0b',
-                }}
-              />
-            </div>
           </div>
         </div>
       </div>
