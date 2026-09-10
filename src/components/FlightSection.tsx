@@ -35,7 +35,14 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
   onAddDocument,
   onUpdateDocument,
   onDeleteDocument,
+  activeTravelerId,
 }) => {
+  const safeTravelers = Array.isArray(travelers) ? travelers : [];
+  const safeDocs = Array.isArray(documents) ? documents : [];
+  const allFlights = safeDocs.filter((d) => d.category === 'vuelo');
+
+  const defaultTraveler = safeTravelers.find((t) => t.id === activeTravelerId) || safeTravelers[0];
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
   const [editingFlightId, setEditingFlightId] = useState<string | null>(null);
@@ -50,17 +57,15 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
   const [flightArrival, setFlightArrival] = useState<string>('2026-09-11T17:35');
   const [flightTerminal, setFlightTerminal] = useState<string>('Terminal M (SJO) / Terminal 1 (MAD)');
   const [flightGate, setFlightGate] = useState<string>('Por asignar');
-  const [flightSeat, setFlightSeat] = useState<string>('Asientos Grupo');
+  const [flightSeat, setFlightSeat] = useState<string>('Por asignar');
   const [flightReference, setFlightReference] = useState<string>('E9-858-SJO');
-  const [flightTravelerId, setFlightTravelerId] = useState<string>('');
-  const [flightNotes, setFlightNotes] = useState<string>('Vuelo directo San José a Madrid Barajas Terminal 1.');
+  const [flightTravelerId, setFlightTravelerId] = useState<string>(defaultTraveler?.id || '');
+  const [flightPassengerName, setFlightPassengerName] = useState<string>(defaultTraveler?.name || 'Jessica');
+  const [flightNotes, setFlightNotes] = useState<string>('Vuelo directo nocturno San José (SJO) a Madrid Barajas (MAD) Terminal 1.');
   const [uploadedFileData, setUploadedFileData] = useState<{ name: string; url: string; type: 'pdf' | 'image' | 'digital' } | null>(null);
 
-  const safeTravelers = Array.isArray(travelers) ? travelers : [];
-  const safeDocs = Array.isArray(documents) ? documents : [];
-  const allFlights = safeDocs.filter((d) => d.category === 'vuelo');
-
   const resetFormToDefaults = () => {
+    const curTraveler = safeTravelers.find((t) => t.id === activeTravelerId) || safeTravelers[0];
     setEditingFlightId(null);
     setFlightTitle('Vuelo San José ✈ Madrid (E9 858)');
     setFlightAirline('Iberojet');
@@ -71,10 +76,11 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
     setFlightArrival('2026-09-11T17:35');
     setFlightTerminal('Terminal M (SJO) / Terminal 1 (MAD)');
     setFlightGate('Por asignar');
-    setFlightSeat('Asientos Grupo');
+    setFlightSeat('Por asignar');
     setFlightReference('E9-858-SJO');
-    setFlightTravelerId('');
-    setFlightNotes('Vuelo directo San José a Madrid Barajas Terminal 1.');
+    setFlightTravelerId(curTraveler?.id || '');
+    setFlightPassengerName(curTraveler?.name || 'Jessica');
+    setFlightNotes('Vuelo directo nocturno San José (SJO) a Madrid Barajas (MAD) Terminal 1.');
     setUploadedFileData(null);
   };
 
@@ -84,20 +90,22 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
   };
 
   const handleOpenEditModal = (flight: DocumentItem) => {
+    const assignedT = safeTravelers.find((t) => t.id === flight.travelerId);
     setEditingFlightId(flight.id);
-    setFlightTitle(flight.title || '');
-    setFlightAirline(flight.airline || '');
-    setFlightNumber(flight.flightNumber || '');
-    setFlightOrigin(flight.origin || '');
-    setFlightDestination(flight.destination || '');
-    setFlightDeparture(flight.departureTime || '');
-    setFlightArrival(flight.arrivalTime || '');
-    setFlightTerminal(flight.terminal || '');
-    setFlightGate(flight.gate || '');
-    setFlightSeat(flight.seatOrSection || '');
-    setFlightReference(flight.referenceNumber || '');
+    setFlightTitle(flight.title || 'Vuelo San José ✈ Madrid (E9 858)');
+    setFlightAirline(flight.airline || 'Iberojet');
+    setFlightNumber(flight.flightNumber || 'E9 858');
+    setFlightOrigin(flight.origin || 'San José (SJO)');
+    setFlightDestination(flight.destination || 'Madrid (MAD)');
+    setFlightDeparture(flight.departureTime || '2026-09-10T23:20');
+    setFlightArrival(flight.arrivalTime || '2026-09-11T17:35');
+    setFlightTerminal(flight.terminal || 'Terminal M (SJO) / Terminal 1 (MAD)');
+    setFlightGate(flight.gate || 'Por asignar');
+    setFlightSeat(flight.seatOrSection || 'Por asignar');
+    setFlightReference(flight.referenceNumber || 'E9-858-SJO');
     setFlightTravelerId(flight.travelerId || '');
-    setFlightNotes(flight.notes || '');
+    setFlightPassengerName(flight.passengerName || assignedT?.name || 'Grupo Completo (5 Pasajeros)');
+    setFlightNotes(flight.notes || 'Vuelo directo nocturno San José (SJO) a Madrid Barajas (MAD) Terminal 1.');
     setUploadedFileData(
       flight.dataUrl
         ? {
@@ -137,7 +145,7 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
     if (!flightTitle.trim()) return;
 
     const selectedTraveler = safeTravelers.find((t) => t.id === flightTravelerId);
-    const passengerName = selectedTraveler?.name || (flightTravelerId ? undefined : 'Grupo Completo');
+    const finalPassengerName = flightPassengerName.trim() || selectedTraveler?.name || (flightTravelerId ? undefined : 'Grupo Completo (5 Pasajeros)');
 
     if (editingFlightId) {
       const existing = safeDocs.find((d) => d.id === editingFlightId);
@@ -157,7 +165,7 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
         seatOrSection: flightSeat.trim(),
         referenceNumber: flightReference.trim(),
         travelerId: flightTravelerId || undefined,
-        passengerName,
+        passengerName: finalPassengerName,
         notes: flightNotes.trim(),
         fileName: uploadedFileData?.name || existing?.fileName || 'Pase_Digital.pdf',
         fileType: uploadedFileData?.type || existing?.fileType || 'digital',
@@ -186,7 +194,7 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
         seatOrSection: flightSeat.trim(),
         referenceNumber: flightReference.trim(),
         travelerId: flightTravelerId || undefined,
-        passengerName,
+        passengerName: finalPassengerName,
         notes: flightNotes.trim(),
         fileName: uploadedFileData?.name || 'Pase_Digital.pdf',
         fileType: uploadedFileData?.type || 'digital',
@@ -240,9 +248,7 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
 
         {allFlights.map((flight) => {
           const assignedTraveler = safeTravelers.find((t) => t.id === flight.travelerId);
-          const passengerDisplayName = assignedTraveler 
-            ? assignedTraveler.name 
-            : (flight.passengerName || 'Grupo Completo (5 Pasajeros)');
+          const passengerDisplayName = flight.passengerName || assignedTraveler?.name || 'Grupo Completo (5 Pasajeros)';
           const hasFile = Boolean(flight.dataUrl);
 
           return (
@@ -296,16 +302,16 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
                 {/* Cuadrícula Principal: COLUMNA DE NOMBRE DEL PASAJERO AFUERA EN GRANDE + TRAMO */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-3.5 items-center bg-gradient-to-r from-sky-50/90 via-indigo-50/40 to-slate-50 p-4 rounded-2xl border border-sky-200/80 shadow-2xs">
                   {/* Columna 1: Nombre del Pasajero afuera en grande */}
-                  <div className="p-3 bg-white rounded-xl border-2 border-sky-200/80 shadow-xs flex flex-col justify-center">
-                    <span className="text-[10px] font-black uppercase tracking-wider text-sky-700 flex items-center gap-1">
+                  <div className="p-3.5 bg-white rounded-xl border-2 border-sky-400 shadow-sm flex flex-col justify-center">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-sky-800 flex items-center gap-1">
                       <Users className="w-3.5 h-3.5 text-sky-600" />
                       Nombre del Pasajero
                     </span>
-                    <p className="text-base sm:text-lg font-black text-slate-900 mt-1 truncate" title={passengerDisplayName}>
+                    <p className="text-lg sm:text-xl font-black text-slate-900 mt-1 truncate" title={passengerDisplayName}>
                       {passengerDisplayName}
                     </p>
                     <span className="text-xs font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200 mt-1 self-start">
-                      {assignedTraveler ? `Asiento: ${flight.seatOrSection || 'Por asignar'}` : '👥 Grupo Completo (5 Pasajeros)'}
+                      {flight.seatOrSection && flight.seatOrSection !== 'Por asignar' ? `Asiento: ${flight.seatOrSection}` : (assignedTraveler ? `Viajero: ${assignedTraveler.name}` : '👥 Grupo Completo')}
                     </span>
                   </div>
 
@@ -472,6 +478,78 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
             </div>
 
             <div className="p-5 overflow-y-auto space-y-4 text-sm">
+              {/* SECCIÓN DESTACADA: NOMBRE DEL PASAJERO / VIAJERO */}
+              <div className="bg-sky-50/90 border-2 border-sky-400 rounded-2xl p-4 shadow-sm">
+                <div className="flex items-center justify-between gap-2 mb-2">
+                  <label className="text-xs font-black text-sky-950 uppercase tracking-wider flex items-center gap-1.5">
+                    <User className="w-4 h-4 text-sky-600" />
+                    Nombre del Pasajero (Se muestra en grande afuera en la tarjeta)
+                  </label>
+                  <span className="text-[11px] font-bold text-sky-800 bg-sky-200/80 px-2.5 py-0.5 rounded-full border border-sky-300 shadow-2xs">
+                    ⭐ Destacado en Tarjeta
+                  </span>
+                </div>
+
+                <input
+                  type="text"
+                  value={flightPassengerName}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setFlightPassengerName(val);
+                    const matched = safeTravelers.find((t) => t.name.toLowerCase() === val.toLowerCase());
+                    setFlightTravelerId(matched ? matched.id : '');
+                  }}
+                  className="w-full px-3.5 py-2.5 text-base font-black text-slate-900 bg-white border-2 border-sky-400 rounded-xl focus:ring-2 focus:ring-sky-500 focus:outline-none shadow-xs"
+                  placeholder="Ej: Jessica, Mayela, Vilma, Mercedes, Angelica..."
+                />
+
+                {/* Botones de Selección Rápida de Viajeros */}
+                <div className="mt-3">
+                  <span className="text-[11px] font-bold text-slate-600 block mb-1.5">
+                    Selección rápida del pasajero con un clic:
+                  </span>
+                  <div className="flex flex-wrap gap-1.5">
+                    {safeTravelers.map((t) => {
+                      const isSelected = flightTravelerId === t.id || flightPassengerName.toLowerCase() === t.name.toLowerCase();
+                      return (
+                        <button
+                          key={t.id}
+                          type="button"
+                          onClick={() => {
+                            setFlightPassengerName(t.name);
+                            setFlightTravelerId(t.id);
+                          }}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer border ${
+                            isSelected
+                              ? 'bg-sky-600 text-white border-sky-700 shadow-xs ring-2 ring-sky-300'
+                              : 'bg-white text-slate-700 hover:bg-sky-100/80 border-slate-300 shadow-2xs'
+                          }`}
+                        >
+                          <span>👤</span>
+                          <span>{t.name}</span>
+                        </button>
+                      );
+                    })}
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFlightPassengerName('Grupo Completo (5 Pasajeros)');
+                        setFlightTravelerId('');
+                      }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer border ${
+                        !flightTravelerId && flightPassengerName.includes('Grupo')
+                          ? 'bg-emerald-600 text-white border-emerald-700 shadow-xs ring-2 ring-emerald-300'
+                          : 'bg-white text-slate-700 hover:bg-emerald-50 border-slate-300 shadow-2xs'
+                      }`}
+                    >
+                      <Users className="w-3.5 h-3.5" />
+                      <span>Grupo Completo (5)</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               <div>
                 <label className="text-xs font-bold text-gray-700 block mb-1">Título del Vuelo / Tramo</label>
                 <input
@@ -491,7 +569,7 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
                     value={flightAirline}
                     onChange={(e) => setFlightAirline(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-sky-500 focus:outline-none"
-                    placeholder="Iberojet / Iberia"
+                    placeholder="Iberojet"
                   />
                 </div>
                 <div>
@@ -500,7 +578,7 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
                     type="text"
                     value={flightNumber}
                     onChange={(e) => setFlightNumber(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-sky-500 focus:outline-none"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-sky-500 focus:outline-none font-bold"
                     placeholder="E9 858"
                   />
                 </div>
@@ -531,21 +609,21 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-bold text-gray-700 block mb-1">Fecha & Hora Salida</label>
+                  <label className="text-xs font-bold text-gray-700 block mb-1">Fecha & Hora Salida (Costa Rica)</label>
                   <input
                     type="datetime-local"
                     value={flightDeparture}
                     onChange={(e) => setFlightDeparture(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-sky-500 focus:outline-none"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-sky-500 focus:outline-none font-medium"
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-bold text-gray-700 block mb-1">Fecha & Hora Llegada</label>
+                  <label className="text-xs font-bold text-gray-700 block mb-1">Fecha & Hora Llegada (Madrid)</label>
                   <input
                     type="datetime-local"
                     value={flightArrival}
                     onChange={(e) => setFlightArrival(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-sky-500 focus:outline-none"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-xl focus:ring-2 focus:ring-sky-500 focus:outline-none font-medium"
                   />
                 </div>
               </div>
@@ -558,7 +636,7 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
                     value={flightTerminal}
                     onChange={(e) => setFlightTerminal(e.target.value)}
                     className="w-full px-2.5 py-2 border border-gray-300 rounded-xl text-xs"
-                    placeholder="Terminal M / T1"
+                    placeholder="Terminal M / Terminal 1"
                   />
                 </div>
                 <div>
@@ -568,7 +646,7 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
                     value={flightGate}
                     onChange={(e) => setFlightGate(e.target.value)}
                     className="w-full px-2.5 py-2 border border-gray-300 rounded-xl text-xs"
-                    placeholder="Puerta 5"
+                    placeholder="Por asignar"
                   />
                 </div>
                 <div>
@@ -578,37 +656,20 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
                     value={flightSeat}
                     onChange={(e) => setFlightSeat(e.target.value)}
                     className="w-full px-2.5 py-2 border border-gray-300 rounded-xl text-xs"
-                    placeholder="24A-E"
+                    placeholder="Por asignar"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-bold text-gray-700 block mb-1">Código de Reserva (PNR)</label>
-                  <input
-                    type="text"
-                    value={flightReference}
-                    onChange={(e) => setFlightReference(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-xl uppercase font-mono"
-                    placeholder="E9-858-SJO"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-bold text-gray-700 block mb-1">Nombre del Pasajero / Asignado</label>
-                  <select
-                    value={flightTravelerId}
-                    onChange={(e) => setFlightTravelerId(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-xl bg-white focus:ring-2 focus:ring-sky-500 focus:outline-none"
-                  >
-                    <option value="">Grupo Completo (5 Pasajeros)</option>
-                    {travelers.map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+              <div>
+                <label className="text-xs font-bold text-gray-700 block mb-1">Código de Reserva (PNR / Localizador)</label>
+                <input
+                  type="text"
+                  value={flightReference}
+                  onChange={(e) => setFlightReference(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-xl uppercase font-mono"
+                  placeholder="E9-858-SJO"
+                />
               </div>
 
               <div className="p-3 bg-gray-50 rounded-xl border border-dashed border-gray-300">
