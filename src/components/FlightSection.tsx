@@ -517,12 +517,17 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
             >
               {/* Banner Destacado Superior si es el tiquete del viajero en sesión */}
               {isMine && (
-                <div className="bg-gradient-to-r from-amber-500 via-amber-400 to-amber-500 text-stone-950 px-4 py-2 font-black text-xs sm:text-sm flex items-center justify-between shadow-xs">
-                  <div className="flex items-center gap-2">
-                    <span className="text-base sm:text-lg">⭐</span>
-                    <span className="uppercase tracking-wider">¡ESTE ES TU TIQUETE DE VUELO! ({passengerDisplayName})</span>
+                <div className="bg-gradient-to-r from-amber-400 via-amber-300 to-amber-400 text-stone-950 px-4 sm:px-6 py-3 sm:py-4 font-black flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 shadow-md border-b-2 border-amber-500">
+                  <div className="flex items-center gap-3 flex-wrap">
+                    <span className="text-2xl sm:text-3xl animate-bounce">⭐</span>
+                    <span className="uppercase tracking-wide text-stone-950 font-black text-lg sm:text-2xl drop-shadow-2xs">
+                      ¡ESTE ES TU TIQUETE DE VUELO!
+                    </span>
+                    <span className="bg-stone-950 text-amber-300 px-3.5 py-1.5 rounded-xl text-lg sm:text-2xl font-black shadow-md ring-2 ring-amber-400/80">
+                      {passengerDisplayName}
+                    </span>
                   </div>
-                  <span className="text-[11px] font-bold bg-stone-950 text-amber-400 px-2.5 py-0.5 rounded-full shadow-2xs">
+                  <span className="text-xs sm:text-sm font-black bg-stone-950 text-amber-300 px-3.5 py-1 rounded-full shadow-xs self-start sm:self-auto uppercase tracking-wider shrink-0">
                     Tu Pase Personal #1
                   </span>
                 </div>
@@ -541,35 +546,51 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
 
                       {/* Nombre del Pasajero destacado en grande y de alta visibilidad */}
                       <span
-                        className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm sm:text-base font-black text-white shadow-md ${
+                        className={`inline-flex items-center gap-2.5 px-4 sm:px-5 py-2 rounded-full font-black text-white shadow-lg ${
                           isMine
-                            ? 'bg-gradient-to-r from-amber-600 via-amber-700 to-yellow-600 border-2 border-amber-300 ring-2 ring-amber-400/50'
+                            ? 'bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-600 border-2 border-amber-200 ring-4 ring-amber-400/50'
                             : 'bg-gradient-to-r from-purple-600 via-purple-700 to-indigo-700 border-2 border-purple-300 ring-2 ring-purple-400/50'
                         }`}
                       >
-                        <span className="text-base sm:text-lg">👤</span>
-                        <span className="text-[10px] sm:text-xs uppercase font-bold tracking-wider">
+                        <span className="text-lg sm:text-xl">👤</span>
+                        <span className="text-xs sm:text-sm uppercase font-bold tracking-wider opacity-90">
                           {isMine ? 'PASAJERO (TÚ):' : 'PASAJERO:'}
                         </span>
-                        <span className="text-white drop-shadow-xs">{passengerDisplayName}</span>
+                        <span className="text-white font-black text-base sm:text-xl drop-shadow-sm">
+                          {passengerDisplayName}
+                        </span>
                       </span>
                     </div>
                     <h3 className="text-base sm:text-lg font-bold text-white mt-1.5">{flight.title}</h3>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 self-end sm:self-center">
+                <div className="flex items-center gap-3 self-end sm:self-center flex-wrap">
+                  {/* BOTÓN GRANDE: Ver tiquete de vuelo (Reemplaza a Editar Vuelo tal como pidió el usuario) */}
                   <button
                     type="button"
-                    onClick={() => handleOpenEditModal(flight)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-sky-500 hover:bg-sky-400 active:bg-sky-600 text-slate-950 transition shadow-xs cursor-pointer border border-sky-300"
-                    title="Editar información de este vuelo"
+                    onClick={() =>
+                      setPreviewDoc({
+                        url: flightPreviewUrl,
+                        title: `Tiquete de Vuelo • ${passengerDisplayName} (${flight.flightNumber || 'E9 858'})`,
+                        type: (flight.dataUrl
+                          ? flight.fileType ||
+                            (flight.dataUrl.startsWith('data:application/pdf') ||
+                            flight.fileName?.toLowerCase().endsWith('.pdf')
+                              ? 'pdf'
+                              : 'image')
+                          : 'image') as any,
+                        fileName: flight.fileName || `Pase_Abordar_${passengerDisplayName}.svg`,
+                      })
+                    }
+                    className="inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3.5 rounded-xl text-sm sm:text-base font-black bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-slate-950 transition-all shadow-md hover:shadow-lg cursor-pointer transform active:scale-95 border-2 border-emerald-300"
+                    title="Ver y ampliar tiquete de vuelo con zoom táctil"
                   >
-                    <Pencil className="w-3.5 h-3.5" />
-                    <span>Editar Vuelo</span>
+                    <Eye className="w-5 h-5 stroke-[2.5]" />
+                    <span>Ver tiquete de vuelo</span>
                   </button>
 
-                  <div className="text-right pl-2 border-l border-slate-700">
+                  <div className="text-right pl-2 border-l border-slate-700 hidden sm:block">
                     <span className="text-[10px] uppercase font-mono text-gray-400 block">Ref / PNR</span>
                     <span className="text-xs font-mono font-bold text-amber-300">{flight.referenceNumber || 'N/A'}</span>
                   </div>
@@ -685,16 +706,6 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={() => handleOpenEditModal(flight)}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-sky-900 bg-sky-100 hover:bg-sky-200 active:bg-sky-300 rounded-lg transition border border-sky-300 cursor-pointer shadow-2xs"
-                      title="Editar información de este vuelo"
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                      <span>Editar Vuelo</span>
-                    </button>
-
                     {/* BOTÓN GRANDE VER TIQUETE DE VUELO CON ZOOM PELLIZCO */}
                     <button
                       type="button"
