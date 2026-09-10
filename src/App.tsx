@@ -574,7 +574,7 @@ export default function App() {
       />
 
       {/* Main Container */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 w-full mt-3 sm:mt-5 space-y-5">
+      <main className="w-full max-w-7xl mx-auto px-4 sm:px-6 mt-3 sm:mt-5 space-y-5">
         {/* PWA Download Banner */}
         <PWAInstallButton variant="banner" />
 

@@ -51,7 +51,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200 shadow-2xs">
-      <div className="max-w-6xl mx-auto px-3 sm:px-6 py-2 sm:py-2.5">
+      <div className="w-full max-w-7xl mx-auto px-3 sm:px-6 py-2 sm:py-2.5">
         {/* Top Primary Bar */}
         <div className="flex items-center justify-between gap-2">
           {/* Brand & Subtitle */}
@@ -83,8 +83,9 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
           </div>
 
-          {/* Desktop Navigation Tabs */}
-          <div className="hidden md:flex items-center gap-1 bg-stone-100 p-1 rounded-xl border border-stone-200">
+          {/* Desktop Navigation Tabs: Centrado en PC */}
+          <div className="hidden md:flex items-center justify-center flex-1 mx-2">
+            <div className="flex items-center gap-1 bg-stone-100 p-1 rounded-xl border border-stone-200">
             <button
               onClick={() => onChangeTab('itinerary')}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
@@ -133,6 +134,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <span>Entradas</span>
             </button>
           </div>
+        </div>
 
           {/* Action Buttons: Status, Download Arrow, Alerts & Add Tour */}
           <div className="flex items-center gap-1.5 shrink-0">
@@ -163,9 +165,9 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         {/* Second Row: 5 Travelers Fully Visible + Quick Progress on larger screens */}
-        <div className="mt-2 pt-1.5 border-t border-stone-100 flex items-center justify-between gap-2">
+        <div className="mt-2 pt-1.5 border-t border-stone-100 flex items-center justify-center gap-2">
           {/* 5 Travelers grid/flex taking full available width */}
-          <div className="grid grid-cols-5 sm:flex sm:items-center gap-1 sm:gap-1.5 flex-1 min-w-0">
+          <div className="grid grid-cols-5 sm:flex sm:items-center sm:justify-center gap-1 sm:gap-1.5 w-full sm:w-auto min-w-0">
             <span className="text-[10px] font-extrabold uppercase tracking-wider text-stone-400 shrink-0 mr-1 hidden md:inline">
               Viajero:
             </span>
