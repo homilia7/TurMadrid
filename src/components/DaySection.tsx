@@ -70,8 +70,34 @@ export const DaySection: React.FC<DaySectionProps> = ({
 
   const dayTicketsCount = dayTicketIds.size;
   const hasTourTickets = toursWithTicketsCount > 0 || dayTicketsCount > 0;
-  const hasTours = dayTours.length > 0;
-  const hasToursOrTickets = hasTours || hasTourTickets;
+
+  // Check if this day has a real tour or excursion scheduled
+  const hasScheduledTour = dayTours.some((tour) => {
+    // Explicitly exclude flights, general transport/airport transfer, leisure/shopping, and food/tapas
+    if (
+      tour.category === 'vuelo' ||
+      tour.category === 'transporte' ||
+      tour.category === 'ocio' ||
+      tour.category === 'gastronomia'
+    ) {
+      return false;
+    }
+    if (tour.category === 'excursion') return true;
+    const title = (tour.title || '').toLowerCase();
+    return (
+      title.includes('tour') ||
+      title.includes('excursión') ||
+      title.includes('excursion') ||
+      title.includes('visita oficial') ||
+      title.includes('visita guiada') ||
+      title.includes('palacio real') ||
+      title.includes('sagrada familia') ||
+      title.includes('parque güell') ||
+      title.includes('parque guell')
+    );
+  });
+
+  const isTourDay = hasTourTickets || hasScheduledTour;
 
   // Check if 10:00 PM in Spain has arrived or passed for this day
   const isPast10pmInSpain = isDayCompletedAt10pm(day.date, now);
@@ -83,32 +109,36 @@ export const DaySection: React.FC<DaySectionProps> = ({
   const isDayCompletedByUser =
     dayTours.length > 0 && activeUserVisitedOnDay === dayTours.length;
 
-  // Tour Fulfilled Rule: A day with tours/tickets turns GREEN if 10 PM has arrived in Spain OR if marked visited
-  const isFulfilledTourDay = hasToursOrTickets && (isPast10pmInSpain || isDayCompletedByUser);
+  // Tour Fulfilled Rule: A tour day turns GREEN if 10 PM has arrived in Spain OR if marked visited
+  const isFulfilledTourDay = isTourDay && (isPast10pmInSpain || isDayCompletedByUser);
 
   // Day turns GREEN if fulfilled tour or user marked complete
-  const isGreenDay = isFulfilledTourDay || isDayCompletedByUser;
+  const isGreenDay = isTourDay ? isFulfilledTourDay : (dayTours.length > 0 && isDayCompletedByUser);
 
-  // Day turns YELLOW if it has tours (or tickets) but has NOT yet reached 10 PM (pending)
-  const isYellowDay = hasToursOrTickets && !isGreenDay;
+  // Day turns YELLOW only if it is a tour day and has NOT yet reached 10 PM (pending)
+  const isYellowDay = isTourDay && !isGreenDay;
 
   return (
     <div
       id={`day-section-${day.dayNumber}`}
       className={`rounded-2xl border-2 overflow-hidden shadow-xs transition-all ${
-        isGreenDay
+        isGreenDay && isTourDay
           ? 'bg-emerald-100/90 border-emerald-500 shadow-md ring-1 ring-emerald-400/40'
           : isYellowDay
           ? 'bg-yellow-100/90 border-yellow-400 shadow-md ring-1 ring-yellow-400/40'
+          : isGreenDay
+          ? 'bg-emerald-50/80 border-emerald-300'
           : 'bg-stone-50/80 border-stone-200/90'
       }`}
     >
       <div
         className={`p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer transition-colors ${
-          isGreenDay
+          isGreenDay && isTourDay
             ? 'bg-emerald-200/60 hover:bg-emerald-200/90'
             : isYellowDay
             ? 'bg-yellow-200/60 hover:bg-yellow-200/90'
+            : isGreenDay
+            ? 'bg-emerald-100/60 hover:bg-emerald-100/90'
             : 'hover:bg-stone-100/70'
         }`}
         onClick={() => setIsExpanded(!isExpanded)}
@@ -116,10 +146,12 @@ export const DaySection: React.FC<DaySectionProps> = ({
         <div className="flex items-start sm:items-center gap-3">
           <div
             className={`w-12 h-12 rounded-xl flex flex-col items-center justify-center font-bold shrink-0 shadow-2xs ${
-              isGreenDay
+              isGreenDay && isTourDay
                 ? 'bg-emerald-600 text-white ring-2 ring-emerald-400 shadow-xs'
                 : isYellowDay
                 ? 'bg-stone-900 text-yellow-400 ring-2 ring-yellow-400 shadow-xs'
+                : isGreenDay
+                ? 'bg-emerald-600 text-white'
                 : 'bg-stone-900 text-white'
             }`}
           >
@@ -131,10 +163,12 @@ export const DaySection: React.FC<DaySectionProps> = ({
             <div className="flex items-center gap-2 flex-wrap">
               <span
                 className={`text-xs font-bold px-2.5 py-0.5 rounded-full ${
-                  isGreenDay
+                  isGreenDay && isTourDay
                     ? 'text-emerald-950 bg-emerald-300 border border-emerald-400 font-extrabold'
                     : isYellowDay
                     ? 'text-yellow-950 bg-yellow-300 border border-yellow-400 font-extrabold'
+                    : isGreenDay
+                    ? 'text-emerald-900 bg-emerald-100'
                     : 'text-amber-800 bg-amber-100/80'
                 }`}
               >
@@ -142,18 +176,18 @@ export const DaySection: React.FC<DaySectionProps> = ({
               </span>
               <span
                 className={`text-xs font-semibold flex items-center gap-1 ${
-                  isGreenDay
+                  isGreenDay && isTourDay
                     ? 'text-emerald-900'
                     : isYellowDay
                     ? 'text-stone-800'
                     : 'text-stone-600'
                 }`}
               >
-                <MapPin className={`w-3 h-3 ${isGreenDay ? 'text-emerald-700' : isYellowDay ? 'text-yellow-700' : 'text-stone-400'}`} />
+                <MapPin className={`w-3 h-3 ${isGreenDay && isTourDay ? 'text-emerald-700' : isYellowDay ? 'text-yellow-700' : 'text-stone-400'}`} />
                 {day.city}
               </span>
 
-              {isGreenDay && hasTourTickets && (
+              {isGreenDay && isTourDay && (
                 <span className="inline-flex items-center gap-1 text-[11px] font-black px-2.5 py-0.5 rounded-full bg-emerald-600 text-white border border-emerald-700 shadow-2xs">
                   <CheckCircle2 className="w-3.5 h-3.5 stroke-[2.5]" />
                   <span>Paseo Cumplido</span>
@@ -184,7 +218,7 @@ export const DaySection: React.FC<DaySectionProps> = ({
           <div className="flex items-center gap-2">
             <span
               className={`text-xs font-semibold ${
-                isGreenDay
+                isGreenDay && isTourDay
                   ? 'text-emerald-900'
                   : isYellowDay
                   ? 'text-stone-800'
@@ -196,10 +230,12 @@ export const DaySection: React.FC<DaySectionProps> = ({
             {dayTours.length > 0 && (
               <span
                 className={`text-xs px-2 py-0.5 rounded-md font-bold ${
-                  isGreenDay
+                  isGreenDay && isTourDay
                     ? 'bg-emerald-300 text-emerald-950 border border-emerald-400 font-extrabold'
                     : isYellowDay
                     ? 'bg-yellow-300 text-yellow-950 border border-yellow-400 font-extrabold'
+                    : isDayCompletedByUser
+                    ? 'bg-emerald-100 text-emerald-800'
                     : 'bg-stone-200/80 text-stone-700'
                 }`}
               >
@@ -215,8 +251,8 @@ export const DaySection: React.FC<DaySectionProps> = ({
                 e.stopPropagation();
                 onAddNewTourToDay(day.dayNumber);
               }}
-              className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-colors flex items-center gap-1 ${
-                isGreenDay
+              className={`px-2.5 py-1 text-xs font-bold rounded-lg transition-colors flex items-center gap-1 cursor-pointer ${
+                isGreenDay && isTourDay
                   ? 'text-emerald-950 bg-emerald-300 hover:bg-emerald-400 border border-emerald-400'
                   : isYellowDay
                   ? 'text-yellow-950 bg-yellow-300 hover:bg-yellow-400 border border-yellow-400'
@@ -231,7 +267,7 @@ export const DaySection: React.FC<DaySectionProps> = ({
             <button
               type="button"
               className={`p-1 rounded-lg ${
-                isGreenDay
+                isGreenDay && isTourDay
                   ? 'text-emerald-800 hover:text-emerald-950'
                   : isYellowDay
                   ? 'text-stone-700 hover:text-stone-950'
@@ -247,7 +283,7 @@ export const DaySection: React.FC<DaySectionProps> = ({
       {isExpanded && (
         <div
           className={`p-4 sm:p-5 pt-0 space-y-3 ${
-            isGreenDay
+            isGreenDay && isTourDay
               ? 'bg-emerald-100/90'
               : isYellowDay
               ? 'bg-yellow-100/90'
