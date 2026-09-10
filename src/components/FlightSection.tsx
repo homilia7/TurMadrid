@@ -262,21 +262,19 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
                     <Plane className="w-5 h-5" />
                   </div>
                   <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs font-bold uppercase tracking-wider text-sky-400 bg-sky-950/80 px-2 py-0.5 rounded border border-sky-800">
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      <span className="text-xs font-bold uppercase tracking-wider text-sky-300 bg-sky-950 px-2.5 py-1 rounded-lg border border-sky-700 shadow-2xs">
                         {flight.airline || 'Aerolínea'} {flight.flightNumber && `• ${flight.flightNumber}`}
                       </span>
-                      {assignedTraveler ? (
-                        <span className="text-xs font-bold text-purple-200 bg-purple-950/90 px-2.5 py-0.5 rounded-full border border-purple-700 flex items-center gap-1 shadow-2xs">
-                          👤 {assignedTraveler.name}
-                        </span>
-                      ) : (
-                        <span className="text-xs font-bold text-emerald-200 bg-emerald-950/90 px-2.5 py-0.5 rounded-full border border-emerald-700 flex items-center gap-1 shadow-2xs">
-                          <Users className="w-3 h-3" /> Grupo Completo (5 Viajeros)
-                        </span>
-                      )}
+
+                      {/* Nombre del Pasajero destacado en grande y de alta visibilidad */}
+                      <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-sm sm:text-base font-black text-white bg-gradient-to-r from-purple-600 via-purple-700 to-indigo-700 border-2 border-purple-300 shadow-md ring-2 ring-purple-400/50">
+                        <span className="text-base sm:text-lg">👤</span>
+                        <span className="text-[10px] sm:text-xs uppercase font-bold text-purple-200 tracking-wider">PASAJERO:</span>
+                        <span className="text-white drop-shadow-xs">{passengerDisplayName}</span>
+                      </span>
                     </div>
-                    <h3 className="text-base sm:text-lg font-bold text-white mt-1">{flight.title}</h3>
+                    <h3 className="text-base sm:text-lg font-bold text-white mt-1.5">{flight.title}</h3>
                   </div>
                 </div>
 
@@ -302,16 +300,16 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
                 {/* Cuadrícula Principal: COLUMNA DE NOMBRE DEL PASAJERO AFUERA EN GRANDE + TRAMO */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-3.5 items-center bg-gradient-to-r from-sky-50/90 via-indigo-50/40 to-slate-50 p-4 rounded-2xl border border-sky-200/80 shadow-2xs">
                   {/* Columna 1: Nombre del Pasajero afuera en grande */}
-                  <div className="p-3.5 bg-white rounded-xl border-2 border-sky-400 shadow-sm flex flex-col justify-center">
-                    <span className="text-[11px] font-black uppercase tracking-wider text-sky-800 flex items-center gap-1">
-                      <Users className="w-3.5 h-3.5 text-sky-600" />
-                      Nombre del Pasajero
+                  <div className="p-4 bg-white rounded-2xl border-2 border-purple-500 shadow-sm flex flex-col justify-center">
+                    <span className="text-xs font-black uppercase tracking-wider text-purple-900 flex items-center gap-1.5">
+                      <Users className="w-4 h-4 text-purple-600" />
+                      Nombre del Pasajero / Titular
                     </span>
-                    <p className="text-lg sm:text-xl font-black text-slate-900 mt-1 truncate" title={passengerDisplayName}>
+                    <p className="text-xl sm:text-2xl font-black text-slate-900 mt-1 truncate" title={passengerDisplayName}>
                       {passengerDisplayName}
                     </p>
-                    <span className="text-xs font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded-md border border-purple-200 mt-1 self-start">
-                      {flight.seatOrSection && flight.seatOrSection !== 'Por asignar' ? `Asiento: ${flight.seatOrSection}` : (assignedTraveler ? `Viajero: ${assignedTraveler.name}` : '👥 Grupo Completo')}
+                    <span className="text-xs font-bold text-purple-800 bg-purple-100 px-2.5 py-1 rounded-lg border border-purple-300 mt-1.5 self-start">
+                      {flight.seatOrSection && flight.seatOrSection !== 'Por asignar' ? `Asiento: ${flight.seatOrSection}` : `Viajero Asignado: ${passengerDisplayName}`}
                     </span>
                   </div>
 
