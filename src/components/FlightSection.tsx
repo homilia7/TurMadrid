@@ -565,8 +565,8 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 self-end sm:self-center flex-wrap">
-                  {/* BOTÓN GRANDE: Ver tiquete de vuelo (Reemplaza a Editar Vuelo tal como pidió el usuario) */}
+                <div className="w-full sm:w-auto flex items-center justify-center sm:justify-end gap-3 self-center pt-2 sm:pt-0">
+                  {/* BOTÓN GRANDE: Ver tiquete de vuelo (Centrado en celular) */}
                   <button
                     type="button"
                     onClick={() =>
@@ -583,7 +583,7 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
                         fileName: flight.fileName || `Pase_Abordar_${passengerDisplayName}.svg`,
                       })
                     }
-                    className="inline-flex items-center gap-2 px-5 sm:px-6 py-2.5 sm:py-3.5 rounded-xl text-sm sm:text-base font-black bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-slate-950 transition-all shadow-md hover:shadow-lg cursor-pointer transform active:scale-95 border-2 border-emerald-300"
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 sm:py-3.5 rounded-xl text-sm sm:text-base font-black bg-emerald-500 hover:bg-emerald-400 active:bg-emerald-600 text-slate-950 transition-all shadow-md hover:shadow-lg cursor-pointer transform active:scale-95 border-2 border-emerald-300"
                     title="Ver y ampliar tiquete de vuelo con zoom táctil"
                   >
                     <Eye className="w-5 h-5 stroke-[2.5]" />
