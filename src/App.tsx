@@ -724,6 +724,7 @@ export default function App() {
               travelers={travelers}
               documents={documents}
               onAddDocument={handleAddDocument}
+              onUpdateDocument={handleAddDocument}
               onDeleteDocument={handleDeleteDocument}
               activeTravelerId={activeTravelerId}
             />

@@ -18,6 +18,7 @@ export type DocumentCategory = 'entrada' | 'vuelo' | 'pasaporte' | 'reserva' | '
 export interface DocumentItem {
   id: string;
   travelerId?: string;
+  passengerName?: string;
   tourId?: string;
   category: DocumentCategory;
   title: string;
