@@ -16,6 +16,7 @@ import {
   MessageCircle,
 } from 'lucide-react';
 import { DocumentItem } from '../types';
+import { REALISTIC_AIRPLANE_CENTERED_PATH } from './RealisticAirplane';
 
 interface FlightLiveTrackerProps {
   documents?: DocumentItem[];
@@ -479,13 +480,12 @@ export const FlightLiveTracker: React.FC<FlightLiveTrackerProps> = ({ documents 
                   <circle cx="0" cy="0" r="22" fill="#38bdf8" opacity="0.15" />
                   <circle cx="0" cy="0" r="14" fill="#38bdf8" opacity="0.3" />
                   
-                  {/* Airplane SVG Silhouette */}
+                  {/* Airplane SVG Silhouette Realista */}
                   <path
-                    d="M 0 -10 L 4 -3 L 14 -1 L 14 3 L 4 2 L 3 9 L 7 12 L 7 14 L 0 13 L -7 14 L -7 12 L -3 9 L -4 2 L -14 3 L -14 -1 L -4 -3 Z"
+                    d={REALISTIC_AIRPLANE_CENTERED_PATH}
                     fill="#ffffff"
                     stroke="#0284c7"
-                    strokeWidth="1.5"
-                    transform="scale(1.3) rotate(90)"
+                    strokeWidth="1.2"
                   />
                 </g>
 
