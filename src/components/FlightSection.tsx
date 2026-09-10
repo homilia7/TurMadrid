@@ -350,7 +350,7 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                   <div className="p-2.5 rounded-lg bg-gray-50 border border-gray-100">
                     <span className="text-gray-400 block font-semibold">Terminal</span>
-                    <span className="font-bold text-gray-800">{flight.terminal || 'T4S'}</span>
+                    <span className="font-bold text-gray-800">{flight.terminal || 'Terminal 1 (MAD)'}</span>
                   </div>
                   <div className="p-2.5 rounded-lg bg-gray-50 border border-gray-100">
                     <span className="text-gray-400 block font-semibold">Puerta</span>
