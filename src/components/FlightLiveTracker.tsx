@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { DocumentItem } from '../types';
 import { REALISTIC_AIRPLANE_CENTERED_PATH } from './RealisticAirplane';
+import { getDualClocks } from '../utils/timeUtils';
 
 interface FlightLiveTrackerProps {
   documents?: DocumentItem[];
@@ -77,7 +78,7 @@ const PRESET_ROUTES: FlightRoute[] = [
     destinationCity: 'San José, Costa Rica',
     scheduledDeparture: '2026-09-22T12:30:00+02:00',
     scheduledArrival: '2026-09-22T16:15:00-06:00',
-    flightDurationHours: 11.25,
+    flightDurationHours: 11.75,
     totalDistanceKm: 8485,
     departureTimeLocal: '22 Sept • 12:30 PM (Terminal 1, España)',
     arrivalTimeLocal: '22 Sept • 4:15 PM (Costa Rica)',
@@ -90,35 +91,97 @@ export const FlightLiveTracker: React.FC<FlightLiveTrackerProps> = ({ documents 
   const [selectedRouteId, setSelectedRouteId] = useState<string>('outbound-sjo-mad');
   const [activeTrackerTab, setActiveTrackerTab] = useState<'native_map' | 'satellite_radar'>('native_map');
   
+  // Reloj en tiempo real segundo a segundo
+  const [currentTime, setCurrentTime] = useState<Date>(new Date());
+  const [previewPercent, setPreviewPercent] = useState<number | null>(null);
+  const [showSimulationTools, setShowSimulationTools] = useState<boolean>(false);
+
   // OpenSky / Live GPS State
   const [isFetchingOpenSky, setIsFetchingOpenSky] = useState<boolean>(false);
   const [lastApiSync, setLastApiSync] = useState<string>('');
   const [telemetrySource, setTelemetrySource] = useState<'opensky' | 'dead_reckoning' | 'scheduled'>('scheduled');
-  const [liveAltitudeFeet, setLiveAltitudeFeet] = useState<number>(37800);
-  const [liveSpeedKmh, setLiveSpeedKmh] = useState<number>(885);
+  const [liveAltitudeFeet, setLiveAltitudeFeet] = useState<number>(0);
+  const [liveSpeedKmh, setLiveSpeedKmh] = useState<number>(0);
   const [flightPhase, setFlightPhase] = useState<string>('Programado a Tiempo');
-  const [progressPercent, setProgressPercent] = useState<number>(42);
   const [copiedLink, setCopiedLink] = useState<boolean>(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState<boolean>(false);
 
-  // Active route
+  // Ruta activa
   const activeRoute = PRESET_ROUTES.find((r) => r.id === selectedRouteId) || PRESET_ROUTES[0];
 
-  // Try to read custom flight number from uploaded documents if exists
+  // Intenta leer el código de vuelo desde documentos subidos si existe
   const flightDocs = documents.filter((d) => d.category === 'vuelo' && d.flightNumber);
   const displayFlightCode = flightDocs.length > 0 && flightDocs[0].flightNumber
     ? flightDocs[0].flightNumber.trim().toUpperCase()
     : activeRoute.code;
   const radarFlightCode = displayFlightCode.replace(/\s+/g, '').toUpperCase();
 
-  // Real-time query to OpenSky Network API
+  // Actualización periódica del reloj local cada segundo
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const clocks = getDualClocks(currentTime);
+
+  // Cálculos precisos conforme al horario del vuelo real
+  const depDate = new Date(activeRoute.scheduledDeparture);
+  const arrDate = new Date(activeRoute.scheduledArrival);
+  const totalDurationMs = arrDate.getTime() - depDate.getTime();
+  const elapsedMs = currentTime.getTime() - depDate.getTime();
+
+  const isBeforeFlight = currentTime < depDate;
+  const isFlightActive = currentTime >= depDate && currentTime <= arrDate;
+  const isFlightCompleted = currentTime > arrDate;
+
+  const diffMs = Math.max(0, depDate.getTime() - currentTime.getTime());
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const diffMins = Math.floor((diffMs % (1000 * 60)) / (1000 * 60));
+  const diffSecs = Math.floor((diffMs % (1000 * 60)) / 1000);
+
+  // Porcentaje real transcurrido según el reloj oficial
+  let calculatedRealPct = 0;
+  if (isBeforeFlight) {
+    calculatedRealPct = 0;
+  } else if (isFlightActive) {
+    calculatedRealPct = Math.min(99.4, Math.max(0.6, (elapsedMs / totalDurationMs) * 100));
+  } else {
+    calculatedRealPct = 100;
+  }
+
+  // Si está en modo demostración usa el valor probado; de lo contrario SIEMPRE el vuelo real
+  const isPreviewMode = previewPercent !== null;
+  const progressPercent = isPreviewMode ? previewPercent : Math.round(calculatedRealPct * 10) / 10;
+
+  // Consulta en tiempo real a la API de OpenSky Network
   const fetchOpenSkyTelemetry = useCallback(async () => {
+    const dep = new Date(activeRoute.scheduledDeparture);
+    const arr = new Date(activeRoute.scheduledArrival);
+    const now = new Date();
+    const isActiveNow = now >= dep && now <= arr;
+
+    if (!isActiveNow) {
+      if (now < dep) {
+        setTelemetrySource('scheduled');
+        setLiveAltitudeFeet(0);
+        setLiveSpeedKmh(0);
+        setFlightPhase('En Tierra • Programado a Tiempo');
+      } else {
+        setTelemetrySource('scheduled');
+        setLiveAltitudeFeet(0);
+        setLiveSpeedKmh(0);
+        setFlightPhase(`Aterrizado en ${activeRoute.destinationCode}`);
+      }
+      setLastApiSync(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+      return;
+    }
+
     setIsFetchingOpenSky(true);
     const cleanCallsign = displayFlightCode.replace(/[\s-]+/g, '').toUpperCase();
     const flightDigits = cleanCallsign.replace(/^[A-Z0-9]{2,3}/, '');
 
     try {
-      // OpenSky Network Anonymous Endpoint
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 6000);
 
@@ -134,7 +197,6 @@ export const FlightLiveTracker: React.FC<FlightLiveTrackerProps> = ({ documents 
         const data = await res.json();
         const states = Array.isArray(data?.states) ? data.states : [];
         
-        // Match callsign (states[1] is callsign)
         const match = states.find((st: any[]) => {
           const callsign = (st[1] || '').trim().toUpperCase();
           return (
@@ -154,27 +216,39 @@ export const FlightLiveTracker: React.FC<FlightLiveTrackerProps> = ({ documents 
           setLiveAltitudeFeet(altFeet);
           setLiveSpeedKmh(speedKm);
           setTelemetrySource('opensky');
-          setFlightPhase('En Vuelo • Radar ADS-B Conectado');
+          setFlightPhase('En Vuelo • Radar Satelital ADS-B Conectado');
         }
       }
 
       if (!foundOnline) {
-        // High fidelity Dead Reckoning & Scheduled Simulation
+        // Navegación ortodrómica de alta fidelidad durante el vuelo real
         setTelemetrySource('dead_reckoning');
-        setLiveAltitudeFeet(38200);
-        setLiveSpeedKmh(895);
-        setFlightPhase('Crucero Transatlántico • Trayectoria Prevista');
+        const pct = calculatedRealPct;
+        if (pct < 8) {
+          setLiveAltitudeFeet(Math.round(1500 + (pct / 8) * 35000));
+          setLiveSpeedKmh(Math.round(420 + (pct / 8) * 465));
+          setFlightPhase('Despegue y Ascenso sobre el Caribe');
+        } else if (pct < 88) {
+          setLiveAltitudeFeet(38200);
+          setLiveSpeedKmh(895);
+          setFlightPhase(pct < 50 ? 'Crucero Transatlántico (Océano Atlántico)' : 'Cruce Atlántico rumbo a Península Ibérica');
+        } else {
+          const descentRatio = (100 - pct) / 12;
+          setLiveAltitudeFeet(Math.round(2500 + descentRatio * 34000));
+          setLiveSpeedKmh(Math.round(320 + descentRatio * 560));
+          setFlightPhase('Descenso y Aproximación a Madrid Barajas');
+        }
       }
 
-      const now = new Date();
-      setLastApiSync(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+      const nowSync = new Date();
+      setLastApiSync(nowSync.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
     } catch {
       setTelemetrySource('dead_reckoning');
       setLastApiSync(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
     } finally {
       setIsFetchingOpenSky(false);
     }
-  }, [displayFlightCode]);
+  }, [displayFlightCode, activeRoute, calculatedRealPct]);
 
   useEffect(() => {
     fetchOpenSkyTelemetry();
@@ -182,7 +256,7 @@ export const FlightLiveTracker: React.FC<FlightLiveTrackerProps> = ({ documents 
     return () => clearInterval(interval);
   }, [fetchOpenSkyTelemetry]);
 
-  // Handle Copy Link for family members
+  // Manejo de compartir enlace con la familia
   const handleShareFlight = () => {
     const text = `Seguimiento en Vivo del Vuelo ${displayFlightCode} (${activeRoute.originCode} ✈ ${activeRoute.destinationCode}): https://www.flightradar24.com/${radarFlightCode}`;
     if (navigator.clipboard) {
@@ -192,25 +266,61 @@ export const FlightLiveTracker: React.FC<FlightLiveTrackerProps> = ({ documents 
     }
   };
 
-  // SVG Great Circle Coordinates & Markers
-  const progressRatio = progressPercent / 100;
-  
-  // Approximate point along quadratic curve B(t) = (1-t)^2 P0 + 2(1-t)t P1 + t^2 P2
-  const p0 = { x: 130, y: 245 };
+  // Coordenadas ortodrómicas en la curva de Bézier (Soporte Ida y Regreso)
+  const isReturn = activeRoute.id === 'return-mad-sjo';
+  const p0 = isReturn ? { x: 675, y: 115 } : { x: 130, y: 245 };
   const p1 = { x: 400, y: 55 };
-  const p2 = { x: 675, y: 115 };
+  const p2 = isReturn ? { x: 130, y: 245 } : { x: 675, y: 115 };
+  const progressRatio = progressPercent / 100;
   const t = progressRatio;
+
   const planeX = (1 - t) * (1 - t) * p0.x + 2 * (1 - t) * t * p1.x + t * t * p2.x;
   const planeY = (1 - t) * (1 - t) * p0.y + 2 * (1 - t) * t * p1.y + t * t * p2.y;
 
-  // Tangent angle
+  // Ángulo tangente para orientar el avión
   const dx = 2 * (1 - t) * (p1.x - p0.x) + 2 * t * (p2.x - p1.x);
   const dy = 2 * (1 - t) * (p1.y - p0.y) + 2 * t * (p2.y - p1.y);
   const planeAngle = (Math.atan2(dy, dx) * 180) / Math.PI;
 
-  const distanceDoneKm = Math.round(activeRoute.totalDistanceKm * progressRatio);
-  const distanceLeftKm = activeRoute.totalDistanceKm - distanceDoneKm;
-  const hoursLeft = ((1 - progressRatio) * activeRoute.flightDurationHours).toFixed(1);
+  const distanceDoneKm = isPreviewMode
+    ? Math.round(activeRoute.totalDistanceKm * progressRatio)
+    : isBeforeFlight
+    ? 0
+    : isFlightCompleted
+    ? activeRoute.totalDistanceKm
+    : Math.round(activeRoute.totalDistanceKm * progressRatio);
+
+  const distanceLeftKm = Math.max(0, activeRoute.totalDistanceKm - distanceDoneKm);
+
+  const hoursLeft = isPreviewMode
+    ? ((1 - progressRatio) * activeRoute.flightDurationHours).toFixed(1)
+    : isBeforeFlight
+    ? activeRoute.flightDurationHours.toFixed(1)
+    : isFlightCompleted
+    ? '0.0'
+    : Math.max(0, ((arrDate.getTime() - currentTime.getTime()) / (1000 * 60 * 60))).toFixed(1);
+
+  const displayAltitude = isPreviewMode
+    ? 38200
+    : isBeforeFlight || isFlightCompleted
+    ? 0
+    : liveAltitudeFeet || 38200;
+
+  const displaySpeed = isPreviewMode
+    ? 895
+    : isBeforeFlight || isFlightCompleted
+    ? 0
+    : liveSpeedKmh || 885;
+
+  const displayPhase = isPreviewMode
+    ? `Demostración de Avance (${previewPercent}%)`
+    : isBeforeFlight
+    ? diffDays > 0
+      ? `En Tierra • Salida en ${diffDays}d ${diffHours}h ${diffMins}m`
+      : `En Tierra • Salida en ${diffHours}h ${diffMins}m ${diffSecs}s`
+    : isFlightCompleted
+    ? `✅ Aterrizado en ${activeRoute.destinationCode}`
+    : flightPhase;
 
   return (
     <div className="bg-white rounded-3xl border border-sky-200/80 shadow-md overflow-hidden">
@@ -237,6 +347,19 @@ export const FlightLiveTracker: React.FC<FlightLiveTrackerProps> = ({ documents 
             <p className="text-xs sm:text-sm text-sky-200/90 mt-0.5">
               Monitoreo en tiempo real del cruce transatlántico de Costa Rica a España
             </p>
+
+            {/* Relojes duales en vivo para los familiares */}
+            <div className="flex items-center gap-2 flex-wrap mt-2.5">
+              <div className="bg-sky-900/80 border border-sky-700/60 px-2.5 py-1 rounded-xl flex items-center gap-1.5 text-sky-100 text-xs shadow-2xs">
+                <span className="text-[11px] font-bold">🇨🇷 Costa Rica:</span>
+                <span className="font-mono font-black text-amber-300">{clocks.costaRicaTime}</span>
+              </div>
+              <div className="bg-sky-900/80 border border-sky-700/60 px-2.5 py-1 rounded-xl flex items-center gap-1.5 text-sky-100 text-xs shadow-2xs">
+                <span className="text-[11px] font-bold">🇪🇸 Madrid:</span>
+                <span className="font-mono font-black text-emerald-300">{clocks.spainTime}</span>
+                <span className="text-[10px] text-sky-300 font-bold">(+8h)</span>
+              </div>
+            </div>
           </div>
 
           <div className="flex items-center gap-2 self-start md:self-center">
@@ -263,7 +386,7 @@ export const FlightLiveTracker: React.FC<FlightLiveTrackerProps> = ({ documents 
           </div>
         </div>
 
-        {/* Route Selector Pill (Ida o Regreso) */}
+        {/* Selector de Trayecto (Ida o Regreso) */}
         <div className="mt-5 pt-3 border-t border-sky-800/40 flex items-center gap-2 flex-wrap">
           <span className="text-[11px] font-bold uppercase tracking-wider text-sky-300">Trayecto:</span>
           {PRESET_ROUTES.map((route) => {
@@ -272,7 +395,10 @@ export const FlightLiveTracker: React.FC<FlightLiveTrackerProps> = ({ documents 
               <button
                 key={route.id}
                 type="button"
-                onClick={() => setSelectedRouteId(route.id)}
+                onClick={() => {
+                  setSelectedRouteId(route.id);
+                  setPreviewPercent(null);
+                }}
                 className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
                   isSelected
                     ? 'bg-amber-400 text-slate-950 shadow-sm'
@@ -288,7 +414,7 @@ export const FlightLiveTracker: React.FC<FlightLiveTrackerProps> = ({ documents 
         </div>
       </div>
 
-      {/* Main View Mode Selector: Option A vs Option B */}
+      {/* Selector de Vista: Opción A vs Opción B */}
       <div className="bg-sky-50/70 p-3 border-b border-sky-100 flex flex-col sm:flex-row items-center justify-between gap-3">
         <span className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
           <span>Vista para los Familiares:</span>
@@ -324,7 +450,7 @@ export const FlightLiveTracker: React.FC<FlightLiveTrackerProps> = ({ documents 
       </div>
 
       {/* ========================================================================= */}
-      {/* SECCIÓN 1: MAPA NATIVO INTERACTIVO & TELEMETRÍA GPS (OPENSKY)            */}
+      {/* SECCIÓN 1: MAPA NATIVO INTERACTIVO & TELEMETRÍA EN VIVO CONFORME AL HORARIO */}
       {/* ========================================================================= */}
       {activeTrackerTab === 'native_map' && (
         <div className="p-4 sm:p-6 space-y-6">
@@ -334,25 +460,39 @@ export const FlightLiveTracker: React.FC<FlightLiveTrackerProps> = ({ documents 
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
                 Estado del Vuelo
               </span>
-              <span className="text-xs sm:text-sm font-black text-slate-900 flex items-center gap-1 mt-0.5 truncate">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping shrink-0" />
-                {flightPhase}
+              <span className="text-xs sm:text-sm font-black text-slate-900 flex items-center gap-1.5 mt-0.5 truncate">
+                {isBeforeFlight && !isPreviewMode ? (
+                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse shrink-0" />
+                ) : isFlightCompleted && !isPreviewMode ? (
+                  <span className="w-2 h-2 rounded-full bg-emerald-600 shrink-0" />
+                ) : (
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping shrink-0" />
+                )}
+                <span>{displayPhase}</span>
               </span>
               <span className="text-[10px] text-slate-500 font-medium block mt-1">
-                {telemetrySource === 'opensky' ? '🛰️ Señal ADS-B Activa' : '⏱️ Estimación Automática'}
+                {isPreviewMode
+                  ? '⚠️ Demostración Visual'
+                  : telemetrySource === 'opensky'
+                  ? '🛰️ Señal ADS-B Activa'
+                  : isBeforeFlight
+                  ? '⏱️ Espera en Rampa SJO'
+                  : isFlightCompleted
+                  ? '🏁 Llegada Confirmada'
+                  : '⏱️ Navegación Ortodrómica'}
               </span>
             </div>
 
             <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-                Altitud de Crucero
+                Altitud
               </span>
               <span className="text-xs sm:text-sm font-black text-sky-950 flex items-center gap-1 mt-0.5">
                 <Gauge className="w-3.5 h-3.5 text-sky-600" />
-                {liveAltitudeFeet.toLocaleString()} pies
+                {displayAltitude > 0 ? `${displayAltitude.toLocaleString()} pies` : '0 pies (En tierra)'}
               </span>
               <span className="text-[10px] text-slate-500 font-medium block mt-1">
-                ~{Math.round(liveAltitudeFeet * 0.3048).toLocaleString()} metros
+                {displayAltitude > 0 ? `~${Math.round(displayAltitude * 0.3048).toLocaleString()} metros` : 'Rampa de abordaje'}
               </span>
             </div>
 
@@ -362,22 +502,32 @@ export const FlightLiveTracker: React.FC<FlightLiveTrackerProps> = ({ documents 
               </span>
               <span className="text-xs sm:text-sm font-black text-sky-950 flex items-center gap-1 mt-0.5">
                 <Clock className="w-3.5 h-3.5 text-sky-600" />
-                {liveSpeedKmh} km/h
+                {displaySpeed > 0 ? `${displaySpeed} km/h` : '0 km/h (Estacionado)'}
               </span>
               <span className="text-[10px] text-slate-500 font-medium block mt-1">
-                ~{Math.round(liveSpeedKmh * 0.5399)} nudos (kts)
+                {displaySpeed > 0 ? `~${Math.round(displaySpeed * 0.5399)} nudos (kts)` : 'Aeronave en tierra'}
               </span>
             </div>
 
             <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3">
               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-                Tiempo Restante
+                {isBeforeFlight && !isPreviewMode ? 'Cuenta Regresiva Salida' : 'Tiempo Restante'}
               </span>
               <span className="text-xs sm:text-sm font-black text-amber-700 flex items-center gap-1 mt-0.5">
-                ~{hoursLeft} horas
+                {isBeforeFlight && !isPreviewMode ? (
+                  `${diffHours}h ${diffMins}m ${diffSecs}s`
+                ) : isFlightCompleted && !isPreviewMode ? (
+                  '0 horas (Llegó)'
+                ) : (
+                  `~${hoursLeft} horas`
+                )}
               </span>
               <span className="text-[10px] text-slate-500 font-medium block mt-1">
-                Faltan {distanceLeftKm.toLocaleString()} km
+                {isBeforeFlight && !isPreviewMode
+                  ? 'Salida hoy 11:20 PM'
+                  : isFlightCompleted && !isPreviewMode
+                  ? 'Trayecto completado'
+                  : `Faltan ${distanceLeftKm.toLocaleString()} km`}
               </span>
             </div>
           </div>
@@ -453,25 +603,32 @@ export const FlightLiveTracker: React.FC<FlightLiveTrackerProps> = ({ documents 
                   strokeDasharray="6,6"
                 />
 
-                {/* Traveled Route Line (colored glow) */}
-                <path
-                  d={`M 130 245 Q ${(1 - t) * 130 + t * 400} ${(1 - t) * 245 + t * 55} ${planeX} ${planeY}`}
-                  fill="none"
-                  stroke="url(#flightGrad)"
-                  strokeWidth="3.5"
-                  filter="url(#glow)"
-                />
+                {/* Traveled Route Line (colored glow) - solo si ha comenzado el vuelo */}
+                {progressPercent > 0.5 && (
+                  <path
+                    d={`M ${p0.x} ${p0.y} Q ${(1 - t) * p0.x + t * p1.x} ${(1 - t) * p0.y + t * p1.y} ${planeX} ${planeY}`}
+                    fill="none"
+                    stroke="url(#flightGrad)"
+                    strokeWidth="3.5"
+                    filter="url(#glow)"
+                  />
+                )}
 
                 {/* Origin Marker SJO */}
-                <circle cx="130" cy="245" r="7" fill="#10b981" />
-                <circle cx="130" cy="245" r="14" fill="#10b981" opacity="0.2" className="animate-ping" />
-                <text x="130" y="272" fill="#34d399" fontSize="11" fontWeight="bold" textAnchor="middle">
+                <circle cx="130" cy="245" r="7" fill={isReturn ? "#f59e0b" : "#10b981"} />
+                {(!isReturn && isBeforeFlight) && (
+                  <circle cx="130" cy="245" r="14" fill="#10b981" opacity="0.25" className="animate-ping" />
+                )}
+                <text x="130" y="272" fill={isReturn ? "#fbbf24" : "#34d399"} fontSize="11" fontWeight="bold" textAnchor="middle">
                   SJO (Costa Rica)
                 </text>
 
                 {/* Destination Marker MAD */}
-                <circle cx="675" cy="115" r="7" fill="#f59e0b" />
-                <text x="675" y="142" fill="#fbbf24" fontSize="11" fontWeight="bold" textAnchor="middle">
+                <circle cx="675" cy="115" r="7" fill={isReturn ? "#10b981" : "#f59e0b"} />
+                {(isReturn && isBeforeFlight) && (
+                  <circle cx="675" cy="115" r="14" fill="#10b981" opacity="0.25" className="animate-ping" />
+                )}
+                <text x="675" y="142" fill={isReturn ? "#34d399" : "#fbbf24"} fontSize="11" fontWeight="bold" textAnchor="middle">
                   MAD (Madrid Barajas)
                 </text>
 
@@ -490,10 +647,16 @@ export const FlightLiveTracker: React.FC<FlightLiveTrackerProps> = ({ documents 
                 </g>
 
                 {/* Current Flight Label above the plane */}
-                <g transform={`translate(${planeX}, ${planeY - 24})`}>
-                  <rect x="-48" y="-14" width="96" height="18" rx="6" fill="#0f172a" stroke="#38bdf8" strokeWidth="1" />
-                  <text x="0" y="-2" fill="#ffffff" fontSize="9" fontWeight="bold" textAnchor="middle">
-                    ✈ {displayFlightCode} ({progressPercent}%)
+                <g transform={`translate(${planeX}, ${planeY - 26})`}>
+                  <rect x="-65" y="-14" width="130" height="20" rx="6" fill="#0f172a" stroke="#38bdf8" strokeWidth="1" />
+                  <text x="0" y="0" fill="#ffffff" fontSize="9" fontWeight="bold" textAnchor="middle">
+                    {isPreviewMode
+                      ? `✈ ${displayFlightCode} (${Math.round(progressPercent)}% Demo)`
+                      : isBeforeFlight
+                      ? `✈ ${displayFlightCode} (Salida Hoy 11:20 PM)`
+                      : isFlightCompleted
+                      ? `✈ ${displayFlightCode} (Aterrizado)`
+                      : `✈ ${displayFlightCode} (${Math.round(progressPercent)}%)`}
                   </text>
                 </g>
               </svg>
@@ -503,7 +666,15 @@ export const FlightLiveTracker: React.FC<FlightLiveTrackerProps> = ({ documents 
             <div className="mt-3 space-y-1.5">
               <div className="flex items-center justify-between text-xs text-slate-300 font-semibold">
                 <span>{distanceDoneKm.toLocaleString()} km recorridos</span>
-                <span className="text-amber-300 font-bold">{progressPercent}% del trayecto</span>
+                <span className="text-amber-300 font-bold">
+                  {isPreviewMode
+                    ? `${progressPercent}% (Demostración)`
+                    : isBeforeFlight
+                    ? '0% • En Espera de Salida'
+                    : isFlightCompleted
+                    ? '100% • Vuelo Concluido'
+                    : `${progressPercent}% del trayecto`}
+                </span>
                 <span>{activeRoute.totalDistanceKm.toLocaleString()} km totales</span>
               </div>
 
@@ -514,25 +685,91 @@ export const FlightLiveTracker: React.FC<FlightLiveTrackerProps> = ({ documents 
                 />
               </div>
 
-              {/* Waypoint simulation controls for demo & family check */}
-              <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1">
-                <span>Último reporte: {lastApiSync || 'Conectado'}</span>
-                <div className="flex items-center gap-1">
-                  <span>Simular avance:</span>
-                  {[15, 45, 75, 95].map((pct) => (
-                    <button
-                      key={pct}
-                      type="button"
-                      onClick={() => setProgressPercent(pct)}
-                      className={`px-1.5 py-0.5 rounded text-[10px] font-bold cursor-pointer ${
-                        progressPercent === pct ? 'bg-sky-500 text-slate-950' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                      }`}
-                    >
-                      {pct}%
-                    </button>
-                  ))}
+              {/* Status footer with sync timestamp and optional test tools */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between text-[11px] text-slate-300 pt-2 border-t border-slate-800/80 gap-2">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-slate-400">
+                    Último reporte: <strong className="text-white">{lastApiSync || currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</strong>
+                  </span>
+                  {isPreviewMode ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-400/20 border border-amber-400/40 text-amber-300 font-bold text-[10px]">
+                      <span>⚠️ Vista previa ({previewPercent}%)</span>
+                      <button
+                        type="button"
+                        onClick={() => setPreviewPercent(null)}
+                        className="underline hover:text-white cursor-pointer ml-1"
+                      >
+                        Volver al Vuelo Real
+                      </button>
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 font-bold text-[10px]">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      <span>Tiempo Real Sincronizado</span>
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2 self-end sm:self-auto">
+                  {isBeforeFlight && !isPreviewMode && (
+                    <span className="text-amber-300 font-mono font-bold text-[11px] flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5" />
+                      <span>Despegue en {diffHours}h {diffMins}m {diffSecs}s</span>
+                    </span>
+                  )}
+                  {isFlightActive && !isPreviewMode && (
+                    <span className="text-emerald-300 font-mono font-bold text-[11px] flex items-center gap-1">
+                      <Plane className="w-3.5 h-3.5 animate-pulse" />
+                      <span>En vuelo hacia {activeRoute.destinationCode}</span>
+                    </span>
+                  )}
+                  {isFlightCompleted && !isPreviewMode && (
+                    <span className="text-emerald-300 font-bold text-[11px] flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>Vuelo concluido</span>
+                    </span>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => setShowSimulationTools(!showSimulationTools)}
+                    className="text-[10px] text-slate-400 hover:text-sky-300 underline cursor-pointer ml-2"
+                    title="Herramienta opcional para verificar animación"
+                  >
+                    {showSimulationTools ? 'Ocultar prueba' : 'Probar animación'}
+                  </button>
                 </div>
               </div>
+
+              {/* Panel de prueba opcional */}
+              {showSimulationTools && (
+                <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-700 flex items-center justify-between gap-2 flex-wrap text-[10px] animate-in fade-in mt-2">
+                  <span className="text-slate-300 font-semibold">Probar posición en ruta (Demostración):</span>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => setPreviewPercent(null)}
+                      className={`px-2 py-1 rounded font-bold cursor-pointer transition ${
+                        previewPercent === null ? 'bg-emerald-500 text-slate-950 shadow-xs' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                      }`}
+                    >
+                      🟢 Vuelo Real (En Vivo)
+                    </button>
+                    {[15, 45, 75, 95].map((pct) => (
+                      <button
+                        key={pct}
+                        type="button"
+                        onClick={() => setPreviewPercent(pct)}
+                        className={`px-2 py-1 rounded font-bold cursor-pointer transition ${
+                          previewPercent === pct ? 'bg-sky-500 text-slate-950 shadow-xs' : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                        }`}
+                      >
+                        {pct}%
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -544,11 +781,19 @@ export const FlightLiveTracker: React.FC<FlightLiveTrackerProps> = ({ documents 
                 Horarios Programados del Vuelo:
               </p>
               <p className="text-slate-600">
-                <span className="font-bold">Salida SJO: </span>{activeRoute.departureTimeLocal}
+                <span className="font-bold">Salida {activeRoute.originCode}: </span>{activeRoute.departureTimeLocal}
               </p>
               <p className="text-slate-600">
-                <span className="font-bold">Llegada MAD: </span>{activeRoute.arrivalTimeLocal}
+                <span className="font-bold">Llegada {activeRoute.destinationCode}: </span>{activeRoute.arrivalTimeLocal}
               </p>
+              {isBeforeFlight && !isPreviewMode && (
+                <div className="pt-1">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-amber-100 border border-amber-300 text-amber-950 font-bold font-mono text-[11px]">
+                    <Clock className="w-3 h-3 text-amber-800" />
+                    <span>Despegue programado en {diffHours}h {diffMins}m {diffSecs}s</span>
+                  </span>
+                </div>
+              )}
             </div>
 
             <div className="bg-white px-3.5 py-2 rounded-xl border border-sky-200 text-center shrink-0 shadow-2xs self-stretch sm:self-auto">
