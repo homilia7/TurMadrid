@@ -36,19 +36,19 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
   const [previewDoc, setPreviewDoc] = useState<{ url: string; title: string; type: string } | null>(null);
 
-  const [flightTitle, setFlightTitle] = useState<string>('Vuelo San José ✈ Madrid');
-  const [flightAirline, setFlightAirline] = useState<string>('Iberia');
-  const [flightNumber, setFlightNumber] = useState<string>('IB-6310');
+  const [flightTitle, setFlightTitle] = useState<string>('Vuelo San José ✈ Madrid (E9 858)');
+  const [flightAirline, setFlightAirline] = useState<string>('Iberojet');
+  const [flightNumber, setFlightNumber] = useState<string>('E9 858');
   const [flightOrigin, setFlightOrigin] = useState<string>('San José (SJO)');
   const [flightDestination, setFlightDestination] = useState<string>('Madrid (MAD)');
   const [flightDeparture, setFlightDeparture] = useState<string>('2026-09-10T23:20');
-  const [flightArrival, setFlightArrival] = useState<string>('2026-09-11T16:30');
-  const [flightTerminal, setFlightTerminal] = useState<string>('T4S');
-  const [flightGate, setFlightGate] = useState<string>('Puerta 5');
+  const [flightArrival, setFlightArrival] = useState<string>('2026-09-11T17:35');
+  const [flightTerminal, setFlightTerminal] = useState<string>('Terminal M (SJO) / Terminal 1 (MAD)');
+  const [flightGate, setFlightGate] = useState<string>('Por asignar');
   const [flightSeat, setFlightSeat] = useState<string>('Asientos Grupo');
-  const [flightReference, setFlightReference] = useState<string>('PNR-77894');
+  const [flightReference, setFlightReference] = useState<string>('E9-858-SJO');
   const [flightTravelerId, setFlightTravelerId] = useState<string>('');
-  const [flightNotes, setFlightNotes] = useState<string>('');
+  const [flightNotes, setFlightNotes] = useState<string>('Vuelo directo San José a Madrid Barajas Terminal 1.');
   const [uploadedFileData, setUploadedFileData] = useState<{ name: string; url: string; type: 'pdf' | 'image' | 'digital' } | null>(null);
 
   const safeTravelers = Array.isArray(travelers) ? travelers : [];

@@ -45,30 +45,30 @@ interface FlightRoute {
 const PRESET_ROUTES: FlightRoute[] = [
   {
     id: 'outbound-sjo-mad',
-    code: 'IB6310',
-    airline: 'Iberia',
-    title: 'Vuelo de Ida: San José ✈ Madrid',
-    originName: 'Aeropuerto Internacional Juan Santamaría',
+    code: 'E9 858',
+    airline: 'Iberojet',
+    title: 'Vuelo de Ida: San José ✈ Madrid (E9 858)',
+    originName: 'Aeropuerto Internacional Juan Santamaría (Terminal M)',
     originCode: 'SJO',
     originCity: 'San José, Costa Rica',
-    destinationName: 'Aeropuerto Adolfo Suárez Madrid-Barajas',
+    destinationName: 'Aeropuerto Adolfo Suárez Madrid-Barajas (Terminal 1)',
     destinationCode: 'MAD',
     destinationCity: 'Madrid, España',
     scheduledDeparture: '2026-09-10T23:20:00-06:00',
-    scheduledArrival: '2026-09-11T16:30:00+02:00',
-    flightDurationHours: 10.5,
+    scheduledArrival: '2026-09-11T17:35:00+02:00',
+    flightDurationHours: 10.25,
     totalDistanceKm: 8485,
-    departureTimeLocal: '10 Sept • 11:20 PM (Hora Costa Rica)',
-    arrivalTimeLocal: '11 Sept • 4:30 PM (Hora España)',
+    departureTimeLocal: '10 Sept • 11:20 PM (Terminal M, Costa Rica)',
+    arrivalTimeLocal: '11 Sept • 5:35 PM (Terminal 1, España)',
     departureTimeUtc: '11 Sept 05:20 UTC',
-    arrivalTimeUtc: '11 Sept 14:30 UTC',
+    arrivalTimeUtc: '11 Sept 15:35 UTC',
   },
   {
     id: 'return-mad-sjo',
-    code: 'IB6317',
-    airline: 'Iberia',
+    code: 'E9 857',
+    airline: 'Iberojet',
     title: 'Vuelo de Retorno: Madrid ✈ San José',
-    originName: 'Aeropuerto Adolfo Suárez Madrid-Barajas',
+    originName: 'Aeropuerto Adolfo Suárez Madrid-Barajas (Terminal 1)',
     originCode: 'MAD',
     originCity: 'Madrid, España',
     destinationName: 'Aeropuerto Internacional Juan Santamaría',
@@ -78,8 +78,8 @@ const PRESET_ROUTES: FlightRoute[] = [
     scheduledArrival: '2026-09-22T16:15:00-06:00',
     flightDurationHours: 11.25,
     totalDistanceKm: 8485,
-    departureTimeLocal: '22 Sept • 12:30 PM (Hora España)',
-    arrivalTimeLocal: '22 Sept • 4:15 PM (Hora Costa Rica)',
+    departureTimeLocal: '22 Sept • 12:30 PM (Terminal 1, España)',
+    arrivalTimeLocal: '22 Sept • 4:15 PM (Costa Rica)',
     departureTimeUtc: '22 Sept 10:30 UTC',
     arrivalTimeUtc: '22 Sept 22:15 UTC',
   },
@@ -106,13 +106,15 @@ export const FlightLiveTracker: React.FC<FlightLiveTrackerProps> = ({ documents 
   // Try to read custom flight number from uploaded documents if exists
   const flightDocs = documents.filter((d) => d.category === 'vuelo' && d.flightNumber);
   const displayFlightCode = flightDocs.length > 0 && flightDocs[0].flightNumber
-    ? flightDocs[0].flightNumber.replace(/\s+/g, '').toUpperCase()
+    ? flightDocs[0].flightNumber.trim().toUpperCase()
     : activeRoute.code;
+  const radarFlightCode = displayFlightCode.replace(/\s+/g, '').toUpperCase();
 
   // Real-time query to OpenSky Network API
   const fetchOpenSkyTelemetry = useCallback(async () => {
     setIsFetchingOpenSky(true);
-    const cleanCallsign = displayFlightCode.replace('-', '').trim();
+    const cleanCallsign = displayFlightCode.replace(/[\s-]+/g, '').toUpperCase();
+    const flightDigits = cleanCallsign.replace(/^[A-Z0-9]{2,3}/, '');
 
     try {
       // OpenSky Network Anonymous Endpoint
@@ -134,7 +136,11 @@ export const FlightLiveTracker: React.FC<FlightLiveTrackerProps> = ({ documents 
         // Match callsign (states[1] is callsign)
         const match = states.find((st: any[]) => {
           const callsign = (st[1] || '').trim().toUpperCase();
-          return callsign.includes(cleanCallsign) || callsign.includes('IBE' + cleanCallsign.replace('IB', ''));
+          return (
+            callsign.includes(cleanCallsign) ||
+            (flightDigits && callsign.includes('EVE' + flightDigits)) ||
+            (flightDigits && callsign.includes('IBE' + flightDigits))
+          );
         });
 
         if (match) {
@@ -177,7 +183,7 @@ export const FlightLiveTracker: React.FC<FlightLiveTrackerProps> = ({ documents 
 
   // Handle Copy Link for family members
   const handleShareFlight = () => {
-    const text = `Seguimiento en Vivo del Vuelo ${displayFlightCode} (${activeRoute.originCode} ✈ ${activeRoute.destinationCode}): https://www.flightradar24.com/${displayFlightCode}`;
+    const text = `Seguimiento en Vivo del Vuelo ${displayFlightCode} (${activeRoute.originCode} ✈ ${activeRoute.destinationCode}): https://www.flightradar24.com/${radarFlightCode}`;
     if (navigator.clipboard) {
       navigator.clipboard.writeText(text);
       setCopiedLink(true);
@@ -485,7 +491,7 @@ export const FlightLiveTracker: React.FC<FlightLiveTrackerProps> = ({ documents 
 
                 {/* Current Flight Label above the plane */}
                 <g transform={`translate(${planeX}, ${planeY - 24})`}>
-                  <rect x="-42" y="-14" width="84" height="18" rx="6" fill="#0f172a" stroke="#38bdf8" strokeWidth="1" />
+                  <rect x="-48" y="-14" width="96" height="18" rx="6" fill="#0f172a" stroke="#38bdf8" strokeWidth="1" />
                   <text x="0" y="-2" fill="#ffffff" fontSize="9" fontWeight="bold" textAnchor="middle">
                     ✈ {displayFlightCode} ({progressPercent}%)
                   </text>
@@ -605,13 +611,13 @@ export const FlightLiveTracker: React.FC<FlightLiveTrackerProps> = ({ documents 
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-400">Aerolínea:</span>
-                    <span className="text-white">{activeRoute.airline} (Airbus A330 / A350)</span>
+                    <span className="text-white">{activeRoute.airline} (Airbus A350-900 / A330)</span>
                   </div>
                 </div>
               </div>
 
               <a
-                href={`https://www.flightradar24.com/${displayFlightCode}`}
+                href={`https://www.flightradar24.com/${radarFlightCode}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full py-3 px-4 rounded-xl bg-amber-400 hover:bg-amber-300 active:bg-amber-500 text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center gap-2 transition shadow-md cursor-pointer"
@@ -649,17 +655,17 @@ export const FlightLiveTracker: React.FC<FlightLiveTrackerProps> = ({ documents 
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-400">Terminal Salida:</span>
-                    <span className="font-bold text-white">SJO Terminal Principal</span>
+                    <span className="font-bold text-white">{activeRoute.id === 'outbound-sjo-mad' ? 'SJO Terminal M' : 'MAD Terminal 1'}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-400">Terminal Llegada:</span>
-                    <span className="font-bold text-emerald-400">MAD Terminal 4S (Satélite)</span>
+                    <span className="font-bold text-emerald-400">{activeRoute.id === 'outbound-sjo-mad' ? 'MAD Terminal 1' : 'SJO Terminal M'}</span>
                   </div>
                 </div>
               </div>
 
               <a
-                href={`https://www.flightaware.com/live/flight/${displayFlightCode}`}
+                href={`https://www.flightaware.com/live/flight/${radarFlightCode}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full py-3 px-4 rounded-xl bg-sky-500 hover:bg-sky-400 active:bg-sky-600 text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center gap-2 transition shadow-md cursor-pointer"
@@ -676,7 +682,7 @@ export const FlightLiveTracker: React.FC<FlightLiveTrackerProps> = ({ documents 
               💡 Consejos para los familiares durante el viaje:
             </h5>
             <ul className="list-disc list-inside space-y-1 text-[11px] text-stone-600">
-              <li>El vuelo de ida sale de Costa Rica a las <strong>11:20 PM</strong> del 10 de Septiembre y aterriza en Madrid a las <strong>4:30 PM</strong> del 11 de Septiembre (hora de España).</li>
+              <li>El vuelo de ida <strong>E9 858</strong> sale de Costa Rica a las <strong>11:20 PM</strong> del 10 de Septiembre (Terminal M) y aterriza en Madrid a las <strong>5:35 PM</strong> del 11 de Septiembre en la <strong>Terminal 1</strong> (hora de España).</li>
               <li>Al tocar el botón de Flightradar24, pueden ver el avión en 3D en tiempo real mientras cruza el Atlántico.</li>
               <li>Recuerden que en España son <strong>8 horas más</strong> que en Costa Rica (horario de verano europeo CEST).</li>
             </ul>
