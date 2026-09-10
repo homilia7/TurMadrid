@@ -21,6 +21,8 @@ import { getDualClocks } from '../utils/timeUtils';
 
 interface FlightLiveTrackerProps {
   documents?: DocumentItem[];
+  mode?: 'traveler' | 'family';
+  activeTravelerName?: string;
 }
 
 interface FlightRoute {
@@ -87,7 +89,11 @@ const PRESET_ROUTES: FlightRoute[] = [
   },
 ];
 
-export const FlightLiveTracker: React.FC<FlightLiveTrackerProps> = ({ documents = [] }) => {
+export const FlightLiveTracker: React.FC<FlightLiveTrackerProps> = ({
+  documents = [],
+  mode = 'traveler',
+  activeTravelerName,
+}) => {
   const [selectedRouteId, setSelectedRouteId] = useState<string>('outbound-sjo-mad');
   const [activeTrackerTab, setActiveTrackerTab] = useState<'native_map' | 'satellite_radar'>('native_map');
   
@@ -106,15 +112,47 @@ export const FlightLiveTracker: React.FC<FlightLiveTrackerProps> = ({ documents 
   const [copiedLink, setCopiedLink] = useState<boolean>(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState<boolean>(false);
 
-  // Ruta activa
-  const activeRoute = PRESET_ROUTES.find((r) => r.id === selectedRouteId) || PRESET_ROUTES[0];
+  // Ruta base predeterminada
+  const presetRoute = PRESET_ROUTES.find((r) => r.id === selectedRouteId) || PRESET_ROUTES[0];
 
-  // Intenta leer el código de vuelo desde documentos subidos si existe
-  const flightDocs = documents.filter((d) => d.category === 'vuelo' && d.flightNumber);
-  const displayFlightCode = flightDocs.length > 0 && flightDocs[0].flightNumber
-    ? flightDocs[0].flightNumber.trim().toUpperCase()
-    : activeRoute.code;
+  // Extraer lista de pasajeros a bordo si existen en documents
+  const passengerNames = Array.from(
+    new Set(
+      documents
+        .filter((d) => d.category === 'vuelo' && d.passengerName)
+        .map((d) => d.passengerName!.trim())
+    )
+  );
+
+  // Buscar tiquete de vuelo real correspondiente en documents
+  const flightDocs = documents.filter((d) => d.category === 'vuelo');
+  const matchingFlightDoc = flightDocs.find((d) => {
+    if (selectedRouteId === 'outbound-sjo-mad') {
+      return (
+        (d.flightNumber && (d.flightNumber.includes('858') || d.flightNumber.includes('E9'))) ||
+        (d.destination && (d.destination.includes('MAD') || d.destination.toLowerCase().includes('madrid'))) ||
+        true
+      );
+    } else {
+      return (
+        (d.flightNumber && d.flightNumber.includes('857')) ||
+        (d.destination && (d.destination.includes('SJO') || d.destination.toLowerCase().includes('josé') || d.destination.toLowerCase().includes('jose')))
+      );
+    }
+  }) || flightDocs[0];
+
+  // Integrar dinámicamente datos del vuelo real si están en documents
+  const displayFlightCode = (matchingFlightDoc?.flightNumber || presetRoute.code).trim().toUpperCase();
+  const displayAirline = matchingFlightDoc?.airline || presetRoute.airline;
   const radarFlightCode = displayFlightCode.replace(/\s+/g, '').toUpperCase();
+
+  const activeRoute: FlightRoute = {
+    ...presetRoute,
+    code: displayFlightCode,
+    airline: displayAirline,
+    originName: matchingFlightDoc?.origin ? `${matchingFlightDoc.origin} (Terminal M)` : presetRoute.originName,
+    destinationName: matchingFlightDoc?.destination ? `${matchingFlightDoc.destination} (Terminal 1)` : presetRoute.destinationName,
+  };
 
   // Actualización periódica del reloj local cada segundo
   useEffect(() => {
@@ -137,7 +175,7 @@ export const FlightLiveTracker: React.FC<FlightLiveTrackerProps> = ({ documents 
   const diffMs = Math.max(0, depDate.getTime() - currentTime.getTime());
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
   const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-  const diffMins = Math.floor((diffMs % (1000 * 60)) / (1000 * 60));
+  const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
   const diffSecs = Math.floor((diffMs % (1000 * 60)) / 1000);
 
   // Porcentaje real transcurrido según el reloj oficial
@@ -335,7 +373,7 @@ export const FlightLiveTracker: React.FC<FlightLiveTrackerProps> = ({ documents 
             <div className="flex items-center gap-2 flex-wrap mb-1.5">
               <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider bg-amber-400 text-slate-950 flex items-center gap-1 shadow-2xs">
                 <Radio className="w-3 h-3 animate-pulse" />
-                Seguimiento en Vivo para Familiares
+                {mode === 'family' ? 'Seguimiento en Vivo para Familiares' : 'Seguimiento en Tiempo Real del Vuelo (SJO ✈ MAD)'}
               </span>
               <span className="text-xs font-mono font-bold bg-sky-900/80 text-sky-200 px-2 py-0.5 rounded border border-sky-700/60">
                 {displayFlightCode} • {activeRoute.airline}
@@ -345,10 +383,36 @@ export const FlightLiveTracker: React.FC<FlightLiveTrackerProps> = ({ documents 
               {activeRoute.title}
             </h3>
             <p className="text-xs sm:text-sm text-sky-200/90 mt-0.5">
-              Monitoreo en tiempo real del cruce transatlántico de Costa Rica a España
+              {mode === 'family'
+                ? 'Monitoreo en tiempo real del cruce transatlántico de Costa Rica a España'
+                : 'Vuelo directo transatlántico • San José Juan Santamaría (SJO) a Madrid Barajas (MAD)'}
             </p>
 
-            {/* Relojes duales en vivo para los familiares */}
+            {/* Pasajeros confirmados en el vuelo */}
+            {passengerNames.length > 0 && (
+              <div className="flex items-center gap-1.5 flex-wrap mt-2.5">
+                <span className="text-[11px] text-amber-300 font-bold uppercase tracking-wider">👥 A bordo:</span>
+                <div className="flex items-center gap-1 flex-wrap">
+                  {passengerNames.map((name) => {
+                    const isCurrent = activeTravelerName && name.toLowerCase() === activeTravelerName.toLowerCase();
+                    return (
+                      <span
+                        key={name}
+                        className={`text-[11px] px-2 py-0.5 rounded-lg font-bold border transition ${
+                          isCurrent
+                            ? 'bg-amber-400 text-slate-950 border-amber-300 shadow-2xs font-black'
+                            : 'bg-sky-900/90 text-sky-100 border-sky-700/60'
+                        }`}
+                      >
+                        {name} {isCurrent ? '⭐ (Tú)' : ''}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Relojes duales en vivo */}
             <div className="flex items-center gap-2 flex-wrap mt-2.5">
               <div className="bg-sky-900/80 border border-sky-700/60 px-2.5 py-1 rounded-xl flex items-center gap-1.5 text-sky-100 text-xs shadow-2xs">
                 <span className="text-[11px] font-bold">🇨🇷 Costa Rica:</span>
@@ -417,7 +481,7 @@ export const FlightLiveTracker: React.FC<FlightLiveTrackerProps> = ({ documents 
       {/* Selector de Vista: Opción A vs Opción B */}
       <div className="bg-sky-50/70 p-3 border-b border-sky-100 flex flex-col sm:flex-row items-center justify-between gap-3">
         <span className="text-xs font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-          <span>Vista para los Familiares:</span>
+          <span>{mode === 'family' ? 'Vista para los Familiares:' : 'Modo de Seguimiento:'}</span>
         </span>
 
         <div className="grid grid-cols-2 gap-1.5 w-full sm:w-auto bg-slate-200/80 p-1 rounded-2xl">
@@ -862,7 +926,7 @@ export const FlightLiveTracker: React.FC<FlightLiveTrackerProps> = ({ documents 
               </div>
 
               <a
-                href={`https://www.flightradar24.com/${radarFlightCode}`}
+                href={`https://www.flightradar24.com/data/flights/${radarFlightCode.toLowerCase()}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full py-3 px-4 rounded-xl bg-amber-400 hover:bg-amber-300 active:bg-amber-500 text-slate-950 font-black text-xs sm:text-sm flex items-center justify-center gap-2 transition shadow-md cursor-pointer"

@@ -433,7 +433,7 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
       </div>
 
       {/* Rastreador de Vuelo en Tiempo Real (Dos Secciones: Mapa GPS & Radar Satelital) */}
-      <FlightLiveTracker documents={safeDocs} />
+      <FlightLiveTracker documents={allResolvedFlights} mode="traveler" activeTravelerName={activeTraveler?.name} />
 
       {/* Barra de Filtro y Estado de Sesión Activa */}
       <div className="bg-slate-900 text-white p-3 sm:p-4 rounded-2xl border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
