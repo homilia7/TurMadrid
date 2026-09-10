@@ -402,21 +402,24 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
                     {hasFile && (
                       <>
                         <button
+                          type="button"
                           onClick={() => setPreviewDoc({
                             url: flight.dataUrl,
                             title: flight.title,
                             type: flight.fileType,
                           })}
-                          className="flex items-center gap-1.5 px-3.5 py-2 text-xs sm:text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 rounded-xl transition shadow-xs cursor-pointer"
+                          className="flex items-center gap-2 px-5 py-2.5 sm:px-6 sm:py-3 text-sm sm:text-base font-extrabold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 rounded-xl transition shadow-md hover:shadow-lg cursor-pointer transform active:scale-95"
+                          title="Ver tiquete de vuelo en pantalla completa"
                         >
-                          <Eye className="w-4 h-4 stroke-[2.5]" /> Ver Pase
+                          <Eye className="w-5 h-5 stroke-[2.5]" />
+                          <span>Ver tiquete de Vuelo</span>
                         </button>
                         <a
                           href={flight.dataUrl}
-                          download={flight.fileName || 'BoardingPass.pdf'}
-                          className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg hover:bg-emerald-100 transition"
+                          download={flight.fileName || 'Tiquete_Vuelo.pdf'}
+                          className="flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl hover:bg-emerald-100 transition shadow-2xs"
                         >
-                          <Download className="w-3.5 h-3.5" /> Descargar
+                          <Download className="w-4 h-4" /> Descargar
                         </a>
                       </>
                     )}
