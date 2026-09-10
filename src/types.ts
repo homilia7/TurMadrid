@@ -74,6 +74,7 @@ export interface ItineraryDay {
   city: string;
   title: string;
   subtitle?: string;
+  dayOfWeek?: string;
 }
 
 export interface AppNotification {
@@ -93,3 +94,85 @@ export interface CloudSyncState {
   lastSyncedAt?: string;
   error?: string;
 }
+
+export interface WallPost {
+  id: string;
+  authorName: string;
+  authorType: 'traveler' | 'family';
+  authorColor?: string;
+  text: string;
+  photoUrl?: string;
+  photoName?: string;
+  locationName?: string;
+  likesCount?: number;
+  likedBy?: string[];
+  createdAt: string;
+  timezoneSpain: string;
+  timezoneCostaRica: string;
+}
+
+export interface FamilyMessage {
+  id: string;
+  chatRoomId: string;
+  travelerName: string;
+  familyMemberName: string;
+  senderName: string;
+  senderType: 'traveler' | 'family';
+  text?: string;
+  photoUrl?: string;
+  photoName?: string;
+  audioUrl?: string;
+  audioDuration?: number;
+  isQuickStatus?: boolean;
+  quickStatusType?: 'airport' | 'hotel' | 'home' | 'location' | 'custom';
+  locationCoordinates?: {
+    lat: number;
+    lng: number;
+    address?: string;
+  };
+  createdAt: string;
+  timezoneSpain: string;
+  timezoneCostaRica: string;
+  isReadByTraveler?: boolean;
+  isReadByFamily?: boolean;
+}
+
+export interface PresenceUser {
+  id: string;
+  name: string;
+  role: 'traveler' | 'family';
+  avatarColor: string;
+  lastActive: string;
+  isOnline: boolean;
+  associatedTraveler?: string;
+}
+
+export interface LiveLocationShare {
+  travelerId: string;
+  travelerName: string;
+  lat: number;
+  lng: number;
+  accuracy?: number;
+  placeName?: string;
+  address?: string;
+  speed?: number | null;
+  heading?: number | null;
+  altitude?: number | null;
+  batteryLevel?: number | null;
+  updatedAt: string;
+  isActive: boolean;
+}
+
+export interface Expense {
+  id: string;
+  title: string;
+  amount: number;
+  date: string; // YYYY-MM-DD
+  time?: string; // HH:mm
+  travelerId?: string;
+  travelerName?: string;
+  category?: 'comida' | 'transporte' | 'entradas' | 'compras' | 'alojamiento' | 'otro';
+  notes?: string;
+  createdAt: string;
+}
+

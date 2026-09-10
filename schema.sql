@@ -76,3 +76,59 @@ CREATE TABLE IF NOT EXISTS settings (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS wall_posts (
+  id TEXT PRIMARY KEY,
+  authorName TEXT NOT NULL,
+  authorType TEXT NOT NULL,
+  authorColor TEXT,
+  text TEXT,
+  photoUrl TEXT,
+  photoName TEXT,
+  locationName TEXT,
+  likesCount INTEGER DEFAULT 0,
+  likedBy TEXT DEFAULT '[]',
+  timezoneSpain TEXT,
+  timezoneCostaRica TEXT,
+  createdAt DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS family_messages (
+  id TEXT PRIMARY KEY,
+  chatRoomId TEXT NOT NULL,
+  travelerName TEXT NOT NULL,
+  familyMemberName TEXT NOT NULL,
+  senderName TEXT NOT NULL,
+  senderType TEXT NOT NULL,
+  text TEXT,
+  photoUrl TEXT,
+  photoName TEXT,
+  audioUrl TEXT,
+  audioDuration INTEGER,
+  isQuickStatus INTEGER DEFAULT 0,
+  quickStatusType TEXT,
+  timezoneSpain TEXT,
+  timezoneCostaRica TEXT,
+  createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
+  isReadByTraveler INTEGER DEFAULT 0,
+  isReadByFamily INTEGER DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS presence_status (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  role TEXT NOT NULL,
+  avatarColor TEXT,
+  lastActive DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS traveler_locations (
+  travelerId TEXT PRIMARY KEY,
+  travelerName TEXT NOT NULL,
+  lat REAL NOT NULL,
+  lng REAL NOT NULL,
+  accuracy REAL,
+  placeName TEXT,
+  isActive INTEGER DEFAULT 1,
+  updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
+);
