@@ -33,7 +33,7 @@ export const DaySection: React.FC<DaySectionProps> = ({
   onAddNewTourToDay,
   onUpdateTourTickets,
 }) => {
-  const [isExpanded, setIsExpanded] = useState<boolean>(day.dayNumber === 1);
+  const [isExpanded, setIsExpanded] = useState<boolean>(false);
 
   // Live timer every 30s to re-evaluate when 10:00 PM arrives in Spain / phone
   const [now, setNow] = useState<Date>(() => new Date());
