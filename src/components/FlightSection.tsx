@@ -19,6 +19,7 @@ import {
 import { formatDateWithDay } from '../utils/dateUtils';
 import { optimizeImageForUpload } from '../utils/imageUtils';
 import { FlightLiveTracker } from './FlightLiveTracker';
+import { ImageLightboxModal } from './ImageLightboxModal';
 
 interface FlightSectionProps {
   travelers: Traveler[];
@@ -46,7 +47,12 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
   const [editingFlightId, setEditingFlightId] = useState<string | null>(null);
-  const [previewDoc, setPreviewDoc] = useState<{ url: string; title: string; type: string } | null>(null);
+  const [previewDoc, setPreviewDoc] = useState<{
+    url: string;
+    title: string;
+    type: 'image' | 'pdf' | 'digital';
+    fileName?: string;
+  } | null>(null);
 
   const [flightTitle, setFlightTitle] = useState<string>('Vuelo San José ✈ Madrid (E9 858)');
   const [flightAirline, setFlightAirline] = useState<string>('Iberojet');
@@ -403,11 +409,12 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
                           type="button"
                           onClick={() => setPreviewDoc({
                             url: flight.dataUrl,
-                            title: flight.title,
-                            type: flight.fileType,
+                            title: flight.title || 'Tiquete de Vuelo',
+                            type: (flight.fileType || (flight.dataUrl?.startsWith('data:application/pdf') || flight.fileName?.toLowerCase().endsWith('.pdf') ? 'pdf' : 'image')) as any,
+                            fileName: flight.fileName || 'Tiquete_Vuelo.png',
                           })}
                           className="flex items-center gap-2 px-5 py-2.5 sm:px-6 sm:py-3 text-sm sm:text-base font-extrabold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 rounded-xl transition shadow-md hover:shadow-lg cursor-pointer transform active:scale-95"
-                          title="Ver tiquete de vuelo en pantalla completa"
+                          title="Ver y ampliar tiquete de vuelo"
                         >
                           <Eye className="w-5 h-5 stroke-[2.5]" />
                           <span>Ver tiquete de Vuelo</span>
@@ -741,35 +748,14 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
       )}
 
       {previewDoc && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3">
-          <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden animate-in fade-in zoom-in-95">
-            <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-gray-50">
-              <h3 className="font-bold text-gray-900 text-sm truncate">{previewDoc.title}</h3>
-              <button
-                onClick={() => setPreviewDoc(null)}
-                className="p-1.5 text-gray-500 hover:text-gray-900 rounded-lg transition"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="flex-1 p-4 overflow-auto flex items-center justify-center bg-gray-900/5 min-h-[300px]">
-              {previewDoc.type === 'pdf' ? (
-                <iframe
-                  src={previewDoc.url}
-                  className="w-full h-[65vh] rounded-xl border border-gray-200"
-                  title="PDF Preview"
-                />
-              ) : (
-                <img
-                  src={previewDoc.url}
-                  alt={previewDoc.title}
-                  className="max-h-[65vh] max-w-full object-contain rounded-xl shadow-md"
-                />
-              )}
-            </div>
-          </div>
-        </div>
+        <ImageLightboxModal
+          isOpen={Boolean(previewDoc)}
+          onClose={() => setPreviewDoc(null)}
+          imageUrl={previewDoc.url}
+          title={previewDoc.title}
+          fileType={previewDoc.type}
+          fileName={previewDoc.fileName}
+        />
       )}
     </div>
   );
