@@ -70,6 +70,8 @@ export const DaySection: React.FC<DaySectionProps> = ({
 
   const dayTicketsCount = dayTicketIds.size;
   const hasTourTickets = toursWithTicketsCount > 0 || dayTicketsCount > 0;
+  const hasTours = dayTours.length > 0;
+  const hasToursOrTickets = hasTours || hasTourTickets;
 
   // Check if 10:00 PM in Spain has arrived or passed for this day
   const isPast10pmInSpain = isDayCompletedAt10pm(day.date, now);
@@ -81,14 +83,14 @@ export const DaySection: React.FC<DaySectionProps> = ({
   const isDayCompletedByUser =
     dayTours.length > 0 && activeUserVisitedOnDay === dayTours.length;
 
-  // Tour Fulfilled Rule: A day with tickets turns GREEN if 10 PM has arrived in Spain OR if marked visited
-  const isFulfilledTourDay = hasTourTickets && (isPast10pmInSpain || isDayCompletedByUser);
+  // Tour Fulfilled Rule: A day with tours/tickets turns GREEN if 10 PM has arrived in Spain OR if marked visited
+  const isFulfilledTourDay = hasToursOrTickets && (isPast10pmInSpain || isDayCompletedByUser);
 
   // Day turns GREEN if fulfilled tour or user marked complete
   const isGreenDay = isFulfilledTourDay || isDayCompletedByUser;
 
-  // Day turns YELLOW if it has tickets but has NOT yet reached 10 PM (pending)
-  const isYellowDay = hasTourTickets && !isGreenDay;
+  // Day turns YELLOW if it has tours (or tickets) but has NOT yet reached 10 PM (pending)
+  const isYellowDay = hasToursOrTickets && !isGreenDay;
 
   return (
     <div
