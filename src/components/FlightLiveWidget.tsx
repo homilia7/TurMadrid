@@ -178,21 +178,7 @@ export const FlightLiveWidget: React.FC<FlightLiveWidgetProps> = ({
             />
           </div>
 
-          {/* Puntos de referencia / waypoints sobre el riel */}
-          <div className="absolute top-6 left-4 right-4 sm:left-8 sm:right-8 pointer-events-none flex justify-between h-2.5 items-center">
-            {/* Hito 0: SJO */}
-            <div className="w-2.5 h-2.5 rounded-full bg-amber-400 ring-2 ring-slate-900" title="San José (SJO)"></div>
-            {/* Hito 1: Caribe (~25%) */}
-            <div className="w-2.5 h-2.5 rounded-full bg-slate-600 ring-2 ring-slate-900" title="Caribe"></div>
-            {/* Hito 2: Océano Atlántico (~50%) */}
-            <div className="w-2.5 h-2.5 rounded-full bg-slate-600 ring-2 ring-slate-900" title="Océano Atlántico"></div>
-            {/* Hito 3: Península Ibérica (~75%) */}
-            <div className="w-2.5 h-2.5 rounded-full bg-slate-600 ring-2 ring-slate-900" title="Península Ibérica"></div>
-            {/* Hito 4: MAD */}
-            <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-slate-900" title="Madrid (MAD)"></div>
-          </div>
-
-          {/* EL AVIÓN (SIN BORDE, TAL COMO PIDIÓ EL USUARIO) */}
+          {/* EL AVIÓN (SIN PUNTOS NI BORDES, SOLO EL AVIONCITO TAL COMO PIDIÓ EL USUARIO) */}
           <div
             className="absolute top-6 -translate-y-1/2 -translate-x-1/2 transition-all duration-1000 pointer-events-none z-20 flex items-center justify-center"
             style={{
