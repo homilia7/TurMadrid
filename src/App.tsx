@@ -402,6 +402,7 @@ export default function App() {
   const handleUpdateTraveler = (updatedTraveler: Traveler) => {
     setTravelers((prev) => {
       const updated = prev.map((t) => (t.id === updatedTraveler.id ? updatedTraveler : t));
+      saveTravelers(updated);
       saveTravelerToCloud(updatedTraveler);
       return updated;
     });

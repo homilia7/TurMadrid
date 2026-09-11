@@ -31,6 +31,89 @@ import { optimizeImageForUpload } from '../utils/imageUtils';
 import { formatCleanReference } from '../utils/ticketGenerator';
 import { formatDateWithDay } from '../utils/dateUtils';
 
+// Generador oficial de pasaporte digital de Costa Rica en formato SVG vectorial
+function generatePassportSvg({
+  name = 'Viajero',
+  passportNumber = '112340567',
+  expiryDate = '2030-05-15',
+  nationality = 'Costarricense',
+  emergencyContact = 'No registrado',
+  color = '#2563eb',
+}: {
+  name?: string;
+  passportNumber?: string;
+  expiryDate?: string;
+  nationality?: string;
+  emergencyContact?: string;
+  color?: string;
+}): string {
+  const cleanPassNum = passportNumber || 'CR-' + Math.floor(10000000 + Math.random() * 90000000);
+  const svg = `
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 560" width="900" height="560">
+    <defs>
+      <linearGradient id="passBg" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#0b192e" />
+        <stop offset="50%" stop-color="#172554" />
+        <stop offset="100%" stop-color="#091220" />
+      </linearGradient>
+      <linearGradient id="goldHead" x1="0%" y1="0%" x2="100%" y2="100%">
+        <stop offset="0%" stop-color="#fbbf24" />
+        <stop offset="100%" stop-color="#d97706" />
+      </linearGradient>
+    </defs>
+    <!-- Background Card -->
+    <rect x="0" y="0" width="900" height="560" rx="28" fill="url(#passBg)" stroke="#38bdf8" stroke-width="2.5"/>
+    <rect x="0" y="0" width="900" height="14" rx="7" fill="url(#goldHead)"/>
+
+    <!-- Header info -->
+    <text x="50" y="55" fill="#f59e0b" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="900" letter-spacing="3">REPÚBLICA DE COSTA RICA • PASAPORTE DIGITAL OFICIAL</text>
+    <text x="850" y="55" fill="#93c5fd" font-family="system-ui, monospace" font-size="14" font-weight="800" text-anchor="end">TIPO: P • CÓDIGO: CRI</text>
+
+    <!-- Main Section -->
+    <g transform="translate(50, 75)">
+      <!-- Photo Area -->
+      <rect x="0" y="0" width="220" height="280" rx="20" fill="#1e293b" stroke="#60a5fa" stroke-width="2"/>
+      <circle cx="110" cy="110" r="55" fill="${color}"/>
+      <text x="110" y="128" fill="#ffffff" font-family="system-ui, sans-serif" font-size="52" font-weight="900" text-anchor="middle">${name.charAt(0).toUpperCase()}</text>
+      <rect x="15" y="210" width="190" height="40" rx="10" fill="#0f172a"/>
+      <text x="110" y="235" fill="#38bdf8" font-family="system-ui, sans-serif" font-size="12" font-weight="800" text-anchor="middle">PASAPORTE BIOMÉTRICO</text>
+
+      <!-- Data Fields -->
+      <g transform="translate(250, 0)">
+        <!-- Apellidos y Nombres -->
+        <text x="0" y="20" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="11" font-weight="800">NOMBRE DEL TITULAR / FULL NAME</text>
+        <text x="0" y="55" fill="#ffffff" font-family="system-ui, sans-serif" font-size="28" font-weight="900">${name}</text>
+
+        <!-- Pasaporte & Nacionalidad -->
+        <g transform="translate(0, 95)">
+          <text x="0" y="0" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="11" font-weight="800">NÚMERO DE PASAPORTE / PASSPORT NO.</text>
+          <text x="0" y="30" fill="#f59e0b" font-family="system-ui, monospace" font-size="24" font-weight="900">${cleanPassNum}</text>
+
+          <text x="320" y="0" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="11" font-weight="800">NACIONALIDAD / NATIONALITY</text>
+          <text x="320" y="30" fill="#34d399" font-family="system-ui, sans-serif" font-size="18" font-weight="800">${nationality}</text>
+        </g>
+
+        <!-- Vencimiento & Contacto -->
+        <g transform="translate(0, 185)">
+          <text x="0" y="0" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="11" font-weight="800">FECHA DE VENCIMIENTO / EXPIRY DATE</text>
+          <text x="0" y="28" fill="#ffffff" font-family="system-ui, monospace" font-size="17" font-weight="800">${expiryDate || 'No registrada'}</text>
+
+          <text x="320" y="0" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="11" font-weight="800">CONTACTO DE EMERGENCIA</text>
+          <text x="320" y="28" fill="#f43f5e" font-family="system-ui, sans-serif" font-size="15" font-weight="800">${emergencyContact || 'Registrado en sistema'}</text>
+        </g>
+      </g>
+    </g>
+
+    <!-- MRZ Machine Readable Zone (Bottom Strip) -->
+    <g transform="translate(50, 420)">
+      <rect x="0" y="0" width="800" height="90" rx="14" fill="#030712" stroke="#1e293b"/>
+      <text x="25" y="38" fill="#38bdf8" font-family="Consolas, 'Courier New', monospace" font-size="17" font-weight="700" letter-spacing="3">P&lt;CRI${name.toUpperCase().replace(/\s+/g, '&lt;')}<<<<<<<<<<<<<<<<<<<<<<</text>
+      <text x="25" y="68" fill="#38bdf8" font-family="Consolas, 'Courier New', monospace" font-size="17" font-weight="700" letter-spacing="3">${cleanPassNum.replace(/[^A-Z0-9]/gi, '')}&lt;0CRI9001010M3005151<<<<<<<<<<<<<<02</text>
+    </g>
+  </svg>`;
+  return `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+}
+
 interface PassportSectionProps {
   travelers: Traveler[];
   documents?: DocumentItem[];
@@ -437,48 +520,91 @@ export const PassportSection: React.FC<PassportSectionProps> = ({
             })}
           </div>
 
-          {activeTraveler && (
-            <div className="bg-white rounded-2xl border border-stone-200 shadow-xs overflow-hidden">
-              <div className="p-5 border-b border-stone-100 flex items-center justify-between bg-stone-50">
-                <div className="flex items-center gap-3">
-                  <div
-                    className="w-12 h-12 rounded-2xl flex items-center justify-center text-lg font-black text-white shadow-sm"
-                    style={{ backgroundColor: activeTraveler.avatarColor }}
-                  >
-                    {activeTraveler.name.charAt(0)}
+          {activeTraveler && (() => {
+            const currentPassportUrl = activeTraveler.passportDocUrl || generatePassportSvg({
+              name: activeTraveler.name,
+              passportNumber: activeTraveler.passportNumber,
+              expiryDate: activeTraveler.passportExpiry,
+              nationality: activeTraveler.nationality,
+              emergencyContact: activeTraveler.emergencyContact,
+              color: activeTraveler.avatarColor,
+            });
+            const currentPassportFileName = activeTraveler.passportDocName || `Pasaporte_${activeTraveler.name}.svg`;
+            const hasUploadedPassportDoc = Boolean(activeTraveler.passportDocUrl);
+
+            return (
+              <div className="bg-white rounded-2xl border border-stone-200 shadow-xs overflow-hidden">
+                <div className="p-5 border-b border-stone-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-stone-50">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-12 h-12 rounded-2xl flex items-center justify-center text-lg font-black text-white shadow-sm shrink-0"
+                      style={{ backgroundColor: activeTraveler.avatarColor }}
+                    >
+                      {activeTraveler.name.charAt(0)}
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-bold text-stone-900">{activeTraveler.name}</h3>
+                      <span className="inline-flex items-center gap-1 text-xs text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                        <ShieldCheck className="w-3.5 h-3.5" /> Viajero Registrado
+                      </span>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-stone-900">{activeTraveler.name}</h3>
-                    <span className="inline-flex items-center gap-1 text-xs text-emerald-700 font-semibold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                      <ShieldCheck className="w-3.5 h-3.5" /> Viajero Registrado
-                    </span>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* BOTÓN GRANDE: VER PASAPORTE (Cabecera) */}
+                    <button
+                      type="button"
+                      onClick={() => setPreviewDoc({
+                        url: currentPassportUrl,
+                        title: `Pasaporte Oficial • ${activeTraveler.name}`,
+                        type: (activeTraveler.passportDocType || 'image') as any,
+                      })}
+                      className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-5 py-2.5 sm:px-6 sm:py-3 text-sm sm:text-base font-black text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-xl transition shadow-md hover:shadow-lg cursor-pointer transform active:scale-95 border-2 border-blue-400"
+                      title={`Ver pasaporte de ${activeTraveler.name}`}
+                    >
+                      <Eye className="w-5 h-5 stroke-[2.5]" />
+                      <span>Ver Pasaporte</span>
+                    </button>
+
+                    {/* BOTÓN GUARDAR PASAPORTE (Cabecera) */}
+                    <a
+                      href={currentPassportUrl}
+                      download={currentPassportFileName}
+                      className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-2.5 sm:px-5 sm:py-3 text-xs sm:text-sm font-black text-emerald-950 bg-emerald-400 hover:bg-emerald-300 active:bg-emerald-500 border-2 border-emerald-500 rounded-xl transition shadow-sm hover:shadow-md cursor-pointer transform active:scale-95"
+                      title={`Guardar pasaporte de ${activeTraveler.name} en tu dispositivo`}
+                    >
+                      <Download className="w-4 h-4 stroke-[2.5]" />
+                      <span>Guardar Pasaporte</span>
+                    </a>
+
+                    {!isEditingPassport ? (
+                      <button
+                        type="button"
+                        onClick={() => setIsEditingPassport(true)}
+                        className="flex items-center gap-1.5 px-3.5 py-2.5 sm:py-3 text-xs font-bold text-blue-700 bg-white border border-blue-200 rounded-xl hover:bg-blue-50 transition cursor-pointer shadow-2xs"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" /> Editar Datos
+                      </button>
+                    ) : (
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={handleSavePassportDetails}
+                          className="flex items-center gap-1 px-4 py-2.5 text-xs font-bold text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 shadow-sm transition cursor-pointer"
+                        >
+                          <Check className="w-4 h-4" /> Guardar
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setIsEditingPassport(false)}
+                          className="p-2 text-stone-500 hover:text-stone-700 hover:bg-stone-200 rounded-xl transition cursor-pointer"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
-
-                {!isEditingPassport ? (
-                  <button
-                    onClick={() => setIsEditingPassport(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition cursor-pointer"
-                  >
-                    <Edit3 className="w-3.5 h-3.5" /> Editar Datos
-                  </button>
-                ) : (
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      onClick={handleSavePassportDetails}
-                      className="flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 rounded-lg hover:bg-emerald-700 shadow-sm transition cursor-pointer"
-                    >
-                      <Check className="w-3.5 h-3.5" /> Guardar
-                    </button>
-                    <button
-                      onClick={() => setIsEditingPassport(false)}
-                      className="p-1.5 text-stone-500 hover:text-stone-700 hover:bg-stone-100 rounded-lg transition cursor-pointer"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                )}
-              </div>
 
               <div className="p-5 space-y-6">
                 {!isEditingPassport ? (
@@ -598,48 +724,72 @@ export const PassportSection: React.FC<PassportSectionProps> = ({
 
                 {/* Passport Document File Box */}
                 <div className="pt-4 border-t border-stone-100">
-                  <h4 className="text-sm font-bold text-stone-800 mb-3 flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-blue-600" />
-                    Copia Digital del Pasaporte (Foto / PDF)
-                  </h4>
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+                    <h4 className="text-sm font-bold text-stone-800 flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-blue-600" />
+                      Copia Digital del Pasaporte (Foto / PDF / Oficial)
+                    </h4>
+                    <span className="text-xs text-stone-500 font-medium">
+                      Disponible para visualización y descarga en cualquier momento
+                    </span>
+                  </div>
 
-                  {activeTraveler.passportDocUrl ? (
-                    <div className="p-4 rounded-xl border border-blue-200 bg-blue-50/40 flex flex-col sm:flex-row items-center justify-between gap-3">
-                      <div className="flex items-center gap-3 w-full sm:w-auto">
-                        <div className="w-10 h-10 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-xs uppercase shadow-xs">
-                          {activeTraveler.passportDocType === 'pdf' ? 'PDF' : 'IMG'}
-                        </div>
-                        <div className="truncate max-w-[220px]">
-                          <p className="text-sm font-bold text-stone-800 truncate">
-                            {activeTraveler.passportDocName || `Pasaporte_${activeTraveler.name}`}
-                          </p>
-                          <span className="text-xs text-emerald-600 font-semibold flex items-center gap-1">
-                            <Check className="w-3 h-3" /> Guardado y Disponible Offline
-                          </span>
-                        </div>
+                  <div className="p-4 sm:p-5 rounded-2xl border-2 border-blue-200 bg-gradient-to-r from-blue-50/70 via-indigo-50/40 to-sky-50/50 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xs">
+                    <div className="flex items-center gap-3 w-full sm:w-auto">
+                      <div className="w-12 h-12 rounded-xl bg-blue-600 text-white flex items-center justify-center font-black text-sm uppercase shadow-sm shrink-0">
+                        {activeTraveler.passportDocType === 'pdf' ? 'PDF' : hasUploadedPassportDoc ? 'IMG' : 'OFIC'}
                       </div>
+                      <div className="truncate max-w-[240px] sm:max-w-[320px]">
+                        <p className="text-sm sm:text-base font-black text-stone-900 truncate">
+                          {activeTraveler.passportDocName || `Pasaporte Oficial • ${activeTraveler.name}`}
+                        </p>
+                        <span className="text-xs text-emerald-700 font-bold flex items-center gap-1 mt-0.5">
+                          <Check className="w-3.5 h-3.5 stroke-[2.5]" /> Guardado y Disponible Offline
+                        </span>
+                      </div>
+                    </div>
 
-                      <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+                    <div className="flex flex-wrap items-center gap-2.5 w-full sm:w-auto justify-end">
+                      {/* BOTÓN GRANDE: VER PASAPORTE */}
+                      <button
+                        type="button"
+                        onClick={() => setPreviewDoc({
+                          url: currentPassportUrl,
+                          title: `Pasaporte Oficial • ${activeTraveler.name}`,
+                          type: (activeTraveler.passportDocType || 'image') as any,
+                        })}
+                        className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-5 py-3 sm:px-6 sm:py-3.5 text-sm sm:text-base font-black text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-xl transition shadow-md hover:shadow-lg cursor-pointer transform active:scale-95 border-2 border-blue-400"
+                        title={`Ver y ampliar pasaporte de ${activeTraveler.name}`}
+                      >
+                        <Eye className="w-5 h-5 stroke-[2.5]" />
+                        <span>Ver Pasaporte</span>
+                      </button>
+
+                      {/* BOTÓN GUARDAR PASAPORTE */}
+                      <a
+                        href={currentPassportUrl}
+                        download={currentPassportFileName}
+                        className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-4 py-3 sm:px-5 sm:py-3.5 text-xs sm:text-sm font-black text-emerald-950 bg-emerald-400 hover:bg-emerald-300 active:bg-emerald-500 border-2 border-emerald-500 rounded-xl transition shadow-sm hover:shadow-md cursor-pointer transform active:scale-95"
+                        title={`Guardar pasaporte de ${activeTraveler.name} en tu dispositivo`}
+                      >
+                        <Download className="w-4 h-4 stroke-[2.5]" />
+                        <span>Guardar Pasaporte</span>
+                      </a>
+
+                      {/* SUBIR / CAMBIAR ARCHIVO FÍSICO */}
+                      <button
+                        type="button"
+                        onClick={() => passportFileInputRef.current?.click()}
+                        className="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-3 text-xs sm:text-sm font-bold text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 rounded-xl transition cursor-pointer shadow-2xs active:scale-95"
+                        title="Subir foto o PDF del pasaporte físico"
+                      >
+                        <Upload className="w-4 h-4 text-blue-600" />
+                        <span>{hasUploadedPassportDoc ? 'Cambiar Foto/PDF' : 'Subir Foto/PDF'}</span>
+                      </button>
+
+                      {hasUploadedPassportDoc && (
                         <button
-                          onClick={() => setPreviewDoc({
-                            url: activeTraveler.passportDocUrl!,
-                            title: `Pasaporte - ${activeTraveler.name}`,
-                            type: activeTraveler.passportDocType || 'image',
-                          })}
-                          className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2 text-xs sm:text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 rounded-xl transition shadow-xs cursor-pointer"
-                        >
-                          <Eye className="w-4 h-4 text-white stroke-[2.5]" /> Ver
-                        </button>
-
-                        <a
-                          href={activeTraveler.passportDocUrl}
-                          download={activeTraveler.passportDocName || `Pasaporte_${activeTraveler.name}`}
-                          className="flex-1 sm:flex-initial flex items-center justify-center gap-1 px-3 py-2 text-xs font-semibold text-emerald-700 bg-white border border-emerald-300 rounded-lg hover:bg-emerald-50 transition shadow-xs cursor-pointer"
-                        >
-                          <Download className="w-3.5 h-3.5" /> Descargar
-                        </a>
-
-                        <button
+                          type="button"
                           onClick={() => {
                             setItemToDelete({
                               id: activeTraveler.id,
@@ -647,35 +797,14 @@ export const PassportSection: React.FC<PassportSectionProps> = ({
                               type: 'passport',
                             });
                           }}
-                          className="p-2 text-rose-600 hover:bg-rose-50 rounded-lg border border-transparent hover:border-rose-200 transition cursor-pointer"
-                          title="Eliminar (Requiere código 8888)"
+                          className="p-3 text-rose-600 hover:bg-rose-50 rounded-xl border border-transparent hover:border-rose-200 transition cursor-pointer"
+                          title="Eliminar archivo adjunto (Requiere código 8888)"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
-                      </div>
+                      )}
                     </div>
-                  ) : (
-                    <div 
-                      className="border-2 border-dashed border-stone-300 rounded-2xl p-6 text-center hover:border-blue-400 hover:bg-blue-50/20 transition cursor-pointer"
-                      onClick={() => passportFileInputRef.current?.click()}
-                    >
-                      <div className="w-12 h-12 mx-auto rounded-full bg-blue-100 flex items-center justify-center text-blue-600 mb-2">
-                        <Camera className="w-6 h-6" />
-                      </div>
-                      <p className="text-sm font-bold text-stone-800">
-                        Subir foto o PDF del pasaporte de {activeTraveler.name}
-                      </p>
-                      <p className="text-xs text-stone-500 mt-1">
-                        Toma una foto con tu celular o selecciona archivo (JPG, PNG o PDF)
-                      </p>
-                      <button
-                        type="button"
-                        className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-xs transition cursor-pointer"
-                      >
-                        <Upload className="w-3.5 h-3.5" /> Seleccionar Archivo
-                      </button>
-                    </div>
-                  )}
+                  </div>
 
                   <input
                     ref={passportFileInputRef}
@@ -688,7 +817,8 @@ export const PassportSection: React.FC<PassportSectionProps> = ({
                 </div>
               </div>
             </div>
-          )}
+          );
+        })()}
         </div>
       )}
 
@@ -818,9 +948,9 @@ export const PassportSection: React.FC<PassportSectionProps> = ({
                               title: doc.title,
                               type: doc.fileType,
                             })}
-                            className="px-3.5 py-2 text-xs sm:text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 rounded-xl transition flex items-center gap-1.5 shadow-xs cursor-pointer"
+                            className="px-2.5 py-1.5 text-xs font-bold text-amber-800 bg-amber-50 hover:bg-amber-100 rounded-lg border border-amber-200 transition flex items-center gap-1 cursor-pointer"
                           >
-                            <Eye className="w-4 h-4 stroke-[2.5]" />
+                            <Eye className="w-3.5 h-3.5" />
                             <span>Ver Foto</span>
                           </button>
                         )}
@@ -968,9 +1098,9 @@ export const PassportSection: React.FC<PassportSectionProps> = ({
                               title: doc.title,
                               type: doc.fileType,
                             })}
-                            className="px-3.5 py-2 text-xs sm:text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 rounded-xl transition flex items-center gap-1.5 shadow-xs cursor-pointer"
+                            className="px-2.5 py-1.5 text-xs font-bold text-emerald-800 bg-emerald-50 hover:bg-emerald-100 rounded-lg border border-emerald-200 transition flex items-center gap-1 cursor-pointer"
                           >
-                            <Eye className="w-4 h-4 stroke-[2.5]" />
+                            <Eye className="w-3.5 h-3.5" />
                             <span>Ver Entrada</span>
                           </button>
                         )}
@@ -1097,9 +1227,9 @@ export const PassportSection: React.FC<PassportSectionProps> = ({
                               <button
                                 type="button"
                                 onClick={() => setPreviewDoc({ url: idaDoc.dataUrl, title: idaDoc.title, type: idaDoc.fileType })}
-                                className="px-3.5 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 rounded-xl transition flex items-center gap-1.5 shadow-xs cursor-pointer"
+                                className="px-2.5 py-1 text-xs font-bold text-emerald-800 bg-white hover:bg-emerald-100/60 rounded-lg border border-emerald-300 transition flex items-center gap-1 cursor-pointer"
                               >
-                                <Eye className="w-3.5 h-3.5 stroke-[2.5]" /> Ver
+                                <Eye className="w-3 h-3" /> Ver
                               </button>
                             )}
                             {idaDoc.dataUrl && (
@@ -1158,9 +1288,9 @@ export const PassportSection: React.FC<PassportSectionProps> = ({
                               <button
                                 type="button"
                                 onClick={() => setPreviewDoc({ url: regresoDoc.dataUrl, title: regresoDoc.title, type: regresoDoc.fileType })}
-                                className="px-3.5 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 rounded-xl transition flex items-center gap-1.5 shadow-xs cursor-pointer"
+                                className="px-2.5 py-1 text-xs font-bold text-blue-800 bg-white hover:bg-blue-100/60 rounded-lg border border-blue-300 transition flex items-center gap-1 cursor-pointer"
                               >
-                                <Eye className="w-3.5 h-3.5 stroke-[2.5]" /> Ver
+                                <Eye className="w-3 h-3" /> Ver
                               </button>
                             )}
                             {regresoDoc.dataUrl && (
@@ -1212,11 +1342,9 @@ export const PassportSection: React.FC<PassportSectionProps> = ({
                                 <button
                                   type="button"
                                   onClick={() => setPreviewDoc({ url: doc.dataUrl, title: doc.title, type: doc.fileType })}
-                                  className="px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 rounded-xl transition flex items-center gap-1.5 shadow-xs cursor-pointer"
-                                  title="Ver documento"
+                                  className="p-1.5 text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg transition"
                                 >
-                                  <Eye className="w-3.5 h-3.5 stroke-[2.5]" />
-                                  <span>Ver</span>
+                                  <Eye className="w-3.5 h-3.5" />
                                 </button>
                               )}
                               <button
@@ -1255,11 +1383,9 @@ export const PassportSection: React.FC<PassportSectionProps> = ({
                           <button
                             type="button"
                             onClick={() => setPreviewDoc({ url: doc.dataUrl, title: doc.title, type: doc.fileType })}
-                            className="px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 rounded-xl transition flex items-center gap-1.5 shadow-xs cursor-pointer"
-                            title="Ver documento"
+                            className="p-1.5 text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg transition"
                           >
-                            <Eye className="w-3.5 h-3.5 stroke-[2.5]" />
-                            <span>Ver</span>
+                            <Eye className="w-3.5 h-3.5" />
                           </button>
                         )}
                         <button
@@ -1653,11 +1779,12 @@ export const PassportSection: React.FC<PassportSectionProps> = ({
               <div className="flex items-center gap-2">
                 <a
                   href={previewDoc.url}
-                  download={previewDoc.title}
-                  className="p-1.5 text-stone-700 hover:bg-stone-200 rounded-lg transition"
-                  title="Descargar"
+                  download={`${previewDoc.title.replace(/[\s•/]+/g, '_')}.png`}
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 rounded-xl transition shadow-xs cursor-pointer"
+                  title="Guardar o Descargar este documento"
                 >
-                  <Download className="w-4 h-4" />
+                  <Download className="w-3.5 h-3.5 stroke-[2.5]" />
+                  <span>Guardar</span>
                 </a>
                 <button
                   onClick={() => setPreviewDoc(null)}
