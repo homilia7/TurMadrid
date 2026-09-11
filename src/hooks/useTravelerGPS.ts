@@ -8,8 +8,31 @@ interface UseTravelerGPSProps {
   onLocationUpdated?: (loc: LiveLocationShare) => void;
 }
 
-// Quick known landmarks lookup in Madrid/Spain to instantly name places even offline
+// Quick known landmarks lookup in Costa Rica and Spain to instantly name places even offline
 function detectSpanishLandmark(lat: number, lng: number): string {
+  // Costa Rica landmarks & regions
+  const crLandmarks = [
+    { name: 'Alajuela (Residencial Cataluña / Desamparados)', lat: 10.0133, lng: -84.1945, radius: 0.02 },
+    { name: 'Aeropuerto Internacional Juan Santamaría (SJO)', lat: 9.9981, lng: -84.2041, radius: 0.03 },
+    { name: 'Centro de Alajuela', lat: 10.0163, lng: -84.2116, radius: 0.03 },
+    { name: 'San José Centro / Paseo Colón', lat: 9.9333, lng: -84.0833, radius: 0.04 },
+    { name: 'Heredia Centro', lat: 9.9986, lng: -84.1165, radius: 0.04 },
+    { name: 'Escazú / Multiplaza', lat: 9.9372, lng: -84.1481, radius: 0.03 },
+  ];
+
+  for (const lm of crLandmarks) {
+    const dLat = Math.abs(lat - lm.lat);
+    const dLng = Math.abs(lng - lm.lng);
+    if (dLat <= lm.radius && dLng <= lm.radius) {
+      return `${lm.name}, Costa Rica 🇨🇷`;
+    }
+  }
+
+  // General Costa Rica bounding box
+  if (lat >= 8.0 && lat <= 11.5 && lng >= -86.0 && lng <= -82.5) {
+    return 'Alajuela / San José, Costa Rica 🇨🇷';
+  }
+
   const landmarks = [
     { name: 'Aeropuerto Madrid-Barajas (T4)', lat: 40.4918, lng: -3.5933, radius: 0.04 },
     { name: 'Aeropuerto Madrid-Barajas (T1-T2-T3)', lat: 40.4688, lng: -3.5686, radius: 0.03 },
@@ -30,25 +53,25 @@ function detectSpanishLandmark(lat: number, lng: number): string {
     const dLat = Math.abs(lat - lm.lat);
     const dLng = Math.abs(lng - lm.lng);
     if (dLat <= lm.radius && dLng <= lm.radius) {
-      return lm.name;
+      return `${lm.name}, España 🇪🇸`;
     }
   }
 
   // General bounding boxes
   if (lat >= 40.35 && lat <= 40.50 && lng >= -3.80 && lng <= -3.55) {
-    return 'Madrid, España';
+    return 'Madrid, España 🇪🇸';
   }
   if (lat >= 39.80 && lat <= 39.90 && lng >= -4.10 && lng <= -3.95) {
-    return 'Toledo, España';
+    return 'Toledo, España 🇪🇸';
   }
   if (lat >= 40.90 && lat <= 41.00 && lng >= -4.15 && lng <= -4.05) {
-    return 'Segovia, España';
+    return 'Segovia, España 🇪🇸';
   }
   if (lat >= 36.0 && lat <= 43.8 && lng >= -9.3 && lng <= 3.3) {
-    return 'España';
+    return 'España 🇪🇸';
   }
 
-  return 'En trayecto';
+  return 'En trayecto ✈️';
 }
 
 export function useTravelerGPS({
