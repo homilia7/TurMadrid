@@ -565,7 +565,18 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
                   </div>
                 </div>
 
-                <div className="w-full sm:w-auto flex items-center justify-center sm:justify-end gap-3 self-center pt-2 sm:pt-0">
+                <div className="w-full sm:w-auto flex flex-wrap items-center justify-center sm:justify-end gap-2.5 self-center pt-2 sm:pt-0">
+                  {/* BOTÓN EDITAR VUELO (Arriba) */}
+                  <button
+                    type="button"
+                    onClick={() => handleOpenEditModal(flight)}
+                    className="inline-flex items-center justify-center gap-1.5 px-4 py-3 sm:py-3.5 rounded-xl text-xs sm:text-sm font-black bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-amber-300 hover:text-amber-200 border-2 border-amber-400/60 hover:border-amber-400 transition-all shadow-md cursor-pointer transform active:scale-95 shrink-0"
+                    title="Editar información de este vuelo"
+                  >
+                    <Pencil className="w-4 h-4 text-amber-400 stroke-[2.5]" />
+                    <span>Editar Vuelo</span>
+                  </button>
+
                   {/* BOTÓN GRANDE: Ver tiquete de vuelo (Centrado en celular) */}
                   <button
                     type="button"
@@ -705,7 +716,18 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
                     )}
                   </div>
 
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    {/* BOTÓN EDITAR VUELO (Abajo) */}
+                    <button
+                      type="button"
+                      onClick={() => handleOpenEditModal(flight)}
+                      className="flex items-center gap-1.5 px-3.5 py-2.5 sm:px-4 sm:py-2.5 text-xs sm:text-sm font-bold text-slate-900 bg-amber-200 hover:bg-amber-300 active:bg-amber-400 rounded-xl transition border-2 border-amber-400 cursor-pointer shadow-2xs hover:shadow-xs transform active:scale-95"
+                      title="Editar información y detalles de este vuelo"
+                    >
+                      <Pencil className="w-4 h-4 text-amber-800 stroke-[2.5]" />
+                      <span>Editar Vuelo</span>
+                    </button>
+
                     {/* BOTÓN GRANDE VER TIQUETE DE VUELO CON ZOOM PELLIZCO */}
                     <button
                       type="button"
