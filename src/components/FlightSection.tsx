@@ -168,6 +168,7 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
   const [flightPassengerName, setFlightPassengerName] = useState<string>(defaultTraveler?.name || 'Jessica');
   const [flightNotes, setFlightNotes] = useState<string>('Vuelo directo nocturno San José (SJO) a Madrid Barajas (MAD) Terminal 1.');
   const [uploadedFileData, setUploadedFileData] = useState<{ name: string; url: string; type: 'pdf' | 'image' | 'digital' } | null>(null);
+  const [saveNotification, setSaveNotification] = useState<string | null>(null);
 
   const resetFormToDefaults = () => {
     const curTraveler = safeTravelers.find((t) => t.id === activeTravelerId) || safeTravelers[0];
@@ -196,6 +197,7 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
 
   const handleOpenEditModal = (flight: DocumentItem) => {
     const assignedT = safeTravelers.find((t) => t.id === flight.travelerId);
+    const resolvedTravelerId = flight.travelerId || (flight.id.startsWith('flight-default-') ? flight.id.replace('flight-default-', '') : '');
     setEditingFlightId(flight.id);
     setFlightTitle(flight.title || 'Vuelo San José ✈ Madrid (E9 858)');
     setFlightAirline(flight.airline || 'Iberojet');
@@ -208,7 +210,7 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
     setFlightGate(flight.gate || 'Por asignar');
     setFlightSeat(flight.seatOrSection || 'Por asignar');
     setFlightReference(flight.referenceNumber || 'E9-858-SJO');
-    setFlightTravelerId(flight.travelerId || '');
+    setFlightTravelerId(resolvedTravelerId);
     setFlightPassengerName(flight.passengerName || assignedT?.name || 'Grupo Completo (5 Pasajeros)');
     setFlightNotes(flight.notes || 'Vuelo directo nocturno San José (SJO) a Madrid Barajas (MAD) Terminal 1.');
     setUploadedFileData(
@@ -247,32 +249,41 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
   };
 
   const handleSaveFlight = () => {
-    if (!flightTitle.trim()) return;
+    // 1. Encontrar vuelo previo buscando tanto en allResolvedFlights como en safeDocs
+    const existing = allResolvedFlights.find((d) => d.id === editingFlightId) || safeDocs.find((d) => d.id === editingFlightId);
 
-    const selectedTraveler = safeTravelers.find((t) => t.id === flightTravelerId);
-    const finalPassengerName = flightPassengerName.trim() || selectedTraveler?.name || (flightTravelerId ? undefined : 'Grupo Completo (5 Pasajeros)');
+    // 2. Determinar si es grupo o viajero individual
+    const isGroup = flightPassengerName.trim().toLowerCase().includes('grupo');
+    let finalTravelerId: string | undefined = isGroup ? undefined : (flightTravelerId || existing?.travelerId);
+    if (!finalTravelerId && editingFlightId && editingFlightId.startsWith('flight-default-') && !isGroup) {
+      finalTravelerId = editingFlightId.replace('flight-default-', '');
+    }
+
+    const matchedTraveler = safeTravelers.find((t) => t.id === finalTravelerId);
+    const finalPassengerName = flightPassengerName.trim() || matchedTraveler?.name || (isGroup ? 'Grupo Completo (5 Pasajeros)' : 'Pasajero');
+    const finalTitle = flightTitle.trim() || `Vuelo ${flightOrigin.trim() || 'San José'} ✈ ${flightDestination.trim() || 'Madrid'} (${flightNumber.trim() || 'E9 858'}) • ${finalPassengerName}`;
 
     if (editingFlightId) {
-      const existing = safeDocs.find((d) => d.id === editingFlightId);
       const updatedFlight: DocumentItem = {
         ...(existing || {}),
         id: editingFlightId,
         category: 'vuelo',
-        title: flightTitle.trim(),
-        airline: flightAirline.trim(),
-        flightNumber: flightNumber.trim(),
-        origin: flightOrigin.trim(),
-        destination: flightDestination.trim(),
-        departureTime: flightDeparture,
-        arrivalTime: flightArrival,
-        terminal: flightTerminal.trim(),
-        gate: flightGate.trim(),
-        seatOrSection: flightSeat.trim(),
-        referenceNumber: flightReference.trim(),
-        travelerId: flightTravelerId || undefined,
+        tourId: existing?.tourId || 't-1-flight',
+        title: finalTitle,
+        airline: flightAirline.trim() || 'Iberojet',
+        flightNumber: flightNumber.trim() || 'E9 858',
+        origin: flightOrigin.trim() || 'San José (SJO)',
+        destination: flightDestination.trim() || 'Madrid (MAD)',
+        departureTime: flightDeparture || '2026-09-10T23:20',
+        arrivalTime: flightArrival || '2026-09-11T17:35',
+        terminal: flightTerminal.trim() || 'Terminal M (SJO) / Terminal 1 (MAD)',
+        gate: flightGate.trim() || 'Por asignar',
+        seatOrSection: flightSeat.trim() || 'Por asignar',
+        referenceNumber: flightReference.trim() || existing?.referenceNumber || 'E9-858-SJO',
+        travelerId: finalTravelerId,
         passengerName: finalPassengerName,
         notes: flightNotes.trim(),
-        fileName: uploadedFileData?.name || existing?.fileName || 'Pase_Digital.pdf',
+        fileName: uploadedFileData?.name || existing?.fileName || `Pase_Abordar_${finalPassengerName}.pdf`,
         fileType: uploadedFileData?.type || existing?.fileType || 'digital',
         dataUrl: uploadedFileData?.url || existing?.dataUrl || '',
         uploadedAt: existing?.uploadedAt || new Date().toISOString().split('T')[0],
@@ -287,21 +298,22 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
       const newFlight: DocumentItem = {
         id: `flight-${Date.now()}`,
         category: 'vuelo',
-        title: flightTitle.trim(),
-        airline: flightAirline.trim(),
-        flightNumber: flightNumber.trim(),
-        origin: flightOrigin.trim(),
-        destination: flightDestination.trim(),
-        departureTime: flightDeparture,
-        arrivalTime: flightArrival,
-        terminal: flightTerminal.trim(),
-        gate: flightGate.trim(),
-        seatOrSection: flightSeat.trim(),
-        referenceNumber: flightReference.trim(),
-        travelerId: flightTravelerId || undefined,
+        tourId: 't-1-flight',
+        title: finalTitle,
+        airline: flightAirline.trim() || 'Iberojet',
+        flightNumber: flightNumber.trim() || 'E9 858',
+        origin: flightOrigin.trim() || 'San José (SJO)',
+        destination: flightDestination.trim() || 'Madrid (MAD)',
+        departureTime: flightDeparture || '2026-09-10T23:20',
+        arrivalTime: flightArrival || '2026-09-11T17:35',
+        terminal: flightTerminal.trim() || 'Terminal M (SJO) / Terminal 1 (MAD)',
+        gate: flightGate.trim() || 'Por asignar',
+        seatOrSection: flightSeat.trim() || 'Por asignar',
+        referenceNumber: flightReference.trim() || `E9-858-${Math.floor(1000 + Math.random() * 9000)}`,
+        travelerId: finalTravelerId,
         passengerName: finalPassengerName,
         notes: flightNotes.trim(),
-        fileName: uploadedFileData?.name || 'Pase_Digital.pdf',
+        fileName: uploadedFileData?.name || `Pase_Abordar_${finalPassengerName}.pdf`,
         fileType: uploadedFileData?.type || 'digital',
         dataUrl: uploadedFileData?.url || '',
         uploadedAt: new Date().toISOString().split('T')[0],
@@ -312,6 +324,10 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
 
     setIsAddModalOpen(false);
     resetFormToDefaults();
+    setSaveNotification(`¡Tiquete de vuelo de ${finalPassengerName} guardado con éxito!`);
+    setTimeout(() => {
+      setSaveNotification(null);
+    }, 4500);
   };
 
   // Helper para verificar si un vuelo pertenece al viajero en sesión activa
@@ -357,8 +373,13 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
   safeTravelers.forEach((traveler, index) => {
     const hasFlight = allResolvedFlights.some(
       (f) =>
-        f.travelerId === traveler.id ||
-        (f.passengerName && f.passengerName.trim().toLowerCase() === traveler.name.trim().toLowerCase())
+        f.id === `flight-default-${traveler.id}` ||
+        (f.travelerId && f.travelerId === traveler.id) ||
+        (f.passengerName && (
+          f.passengerName.trim().toLowerCase() === traveler.name.trim().toLowerCase() ||
+          f.passengerName.toLowerCase().includes(traveler.name.toLowerCase()) ||
+          traveler.name.toLowerCase().includes(f.passengerName.toLowerCase())
+        ))
     );
     if (!hasFlight) {
       allResolvedFlights.push({
@@ -387,8 +408,18 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
     }
   });
 
+  // Garantizar unicidad absoluta de IDs para no romper la reconciliación de React
+  const uniqueResolvedFlights: DocumentItem[] = [];
+  const seenFlightIds = new Set<string>();
+  for (const f of allResolvedFlights) {
+    if (!seenFlightIds.has(f.id)) {
+      seenFlightIds.add(f.id);
+      uniqueResolvedFlights.push(f);
+    }
+  }
+
   // ORDENAR INCONDICIONALMENTE: El tiquete del viajero en sesión APARECE DE PRIMERO
-  const sortedFlights = [...allResolvedFlights].sort((a, b) => {
+  const sortedFlights = [...uniqueResolvedFlights].sort((a, b) => {
     const aMine = isMyFlight(a);
     const bMine = isMyFlight(b);
     if (aMine && !bMine) return -1;
@@ -411,6 +442,22 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
 
   return (
     <div className="space-y-6">
+      {saveNotification && (
+        <div className="bg-emerald-600 text-white px-4 py-3 rounded-2xl shadow-lg flex items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 border-2 border-emerald-400">
+          <div className="flex items-center gap-2.5 font-black text-sm">
+            <Check className="w-5 h-5 stroke-[3] shrink-0 text-emerald-200" />
+            <span>{saveNotification}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setSaveNotification(null)}
+            className="text-emerald-100 hover:text-white text-xs font-black px-2.5 py-1 bg-emerald-700/60 hover:bg-emerald-700 rounded-lg transition cursor-pointer"
+          >
+            Entendido
+          </button>
+        </div>
+      )}
+
       <div className="bg-gradient-to-r from-sky-900 via-blue-900 to-indigo-950 text-white p-5 rounded-2xl shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-xl bg-sky-500/20 border border-sky-400/30 flex items-center justify-center text-2xl">
@@ -835,8 +882,12 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
                   onChange={(e) => {
                     const val = e.target.value;
                     setFlightPassengerName(val);
-                    const matched = safeTravelers.find((t) => t.name.toLowerCase() === val.toLowerCase());
-                    setFlightTravelerId(matched ? matched.id : '');
+                    const matched = safeTravelers.find(
+                      (t) => t.name.toLowerCase() === val.trim().toLowerCase()
+                    );
+                    if (matched) {
+                      setFlightTravelerId(matched.id);
+                    }
                   }}
                   className="w-full px-3.5 py-2.5 text-base font-black text-slate-900 bg-white border-2 border-sky-400 rounded-xl focus:ring-2 focus:ring-sky-500 focus:outline-none shadow-xs"
                   placeholder="Ej: Jessica, Mayela, Vilma, Mercedes, Angelica..."
@@ -1056,21 +1107,23 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
               </div>
             </div>
 
-            <div className="p-4 border-t border-gray-200 bg-gray-50 flex items-center justify-end gap-2">
+            <div className="p-4 border-t border-gray-200 bg-gray-50 flex items-center justify-end gap-2.5">
               <button
+                type="button"
                 onClick={() => {
                   setIsAddModalOpen(false);
                   resetFormToDefaults();
                 }}
-                className="px-4 py-2 text-xs font-semibold text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-100 transition cursor-pointer"
+                className="px-4 py-2.5 text-xs sm:text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-xl hover:bg-gray-100 transition cursor-pointer"
               >
                 Cancelar
               </button>
               <button
+                type="button"
                 onClick={handleSaveFlight}
-                className="px-5 py-2 text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 rounded-xl shadow-sm transition flex items-center gap-1.5 cursor-pointer"
+                className="px-6 py-2.5 sm:py-3 text-xs sm:text-sm font-black text-white bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 rounded-xl shadow-md hover:shadow-lg transition-all flex items-center gap-2 cursor-pointer transform active:scale-95"
               >
-                <Check className="w-4 h-4" />
+                <Check className="w-5 h-5 stroke-[3]" />
                 <span>{editingFlightId ? 'Guardar Cambios' : 'Guardar Vuelo'}</span>
               </button>
             </div>

@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS documents (
   qrCodeText TEXT,
   qrCropUrl TEXT,
   notes TEXT,
+  passengerName TEXT,
   uploadedAt DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 

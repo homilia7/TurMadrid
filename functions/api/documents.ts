@@ -61,9 +61,16 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       return new Response(JSON.stringify({ error: 'Missing id or title' }), { status: 400 });
     }
 
+    // Auto-migrate: Ensure passengerName column exists in documents table
+    try {
+      await db.prepare('ALTER TABLE documents ADD COLUMN passengerName TEXT').run();
+    } catch {
+      // Column already exists
+    }
+
     await db.prepare(`
-      INSERT INTO documents (id, travelerId, tourId, category, title, fileName, fileType, dataUrl, fileSize, referenceNumber, seatOrSection, airline, flightNumber, terminal, gate, departureTime, arrivalTime, origin, destination, qrCodeText, qrCropUrl, notes)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO documents (id, travelerId, tourId, category, title, fileName, fileType, dataUrl, fileSize, referenceNumber, seatOrSection, airline, flightNumber, terminal, gate, departureTime, arrivalTime, origin, destination, qrCodeText, qrCropUrl, notes, passengerName)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         travelerId = excluded.travelerId,
         tourId = excluded.tourId,
@@ -85,7 +92,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
         destination = excluded.destination,
         qrCodeText = excluded.qrCodeText,
         qrCropUrl = excluded.qrCropUrl,
-        notes = excluded.notes
+        notes = excluded.notes,
+        passengerName = excluded.passengerName
     `).bind(
       doc.id,
       doc.travelerId || '',
@@ -108,7 +116,8 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
       doc.destination || '',
       doc.qrCodeText || '',
       doc.qrCropUrl || '',
-      doc.notes || ''
+      doc.notes || '',
+      doc.passengerName || ''
     ).run();
 
     return new Response(JSON.stringify({ success: true, id: doc.id }), {
