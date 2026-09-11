@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Traveler, DocumentItem } from '../types';
 import { 
   ShieldCheck, 
@@ -134,6 +134,7 @@ export const PassportSection: React.FC<PassportSectionProps> = ({
   onAddDocument,
   onDeleteDocument,
   activeTravelerId,
+  onSelectTraveler,
 }) => {
   const safeTravelers = Array.isArray(travelers) && travelers.length > 0 ? travelers : [];
   const safeDocs = Array.isArray(documents) ? documents : [];
@@ -145,6 +146,22 @@ export const PassportSection: React.FC<PassportSectionProps> = ({
   const [selectedTravelerId, setSelectedTravelerId] = useState<string>(
     activeTravelerId || safeTravelers[0]?.id || 'u1'
   );
+
+  // Sync when activeTravelerId changes externally (e.g. from Flights tab)
+  useEffect(() => {
+    if (activeTravelerId && activeTravelerId !== selectedTravelerId) {
+      setSelectedTravelerId(activeTravelerId);
+      const target = safeTravelers.find((t) => t.id === activeTravelerId);
+      if (target) {
+        setFormName(target.name);
+        setFormPassportNumber(target.passportNumber || '');
+        setFormPassportExpiry(target.passportExpiry || '');
+        setFormNationality(target.nationality || 'Costarricense');
+        setFormEmergencyContact(target.emergencyContact || '');
+        setFormNotes(target.notes || '');
+      }
+    }
+  }, [activeTravelerId]);
   const [isEditingPassport, setIsEditingPassport] = useState<boolean>(false);
   const [previewDoc, setPreviewDoc] = useState<{ url: string; title: string; type: string } | null>(null);
 
@@ -196,6 +213,7 @@ export const PassportSection: React.FC<PassportSectionProps> = ({
 
   const handleSelectTraveler = (id: string) => {
     setSelectedTravelerId(id);
+    onSelectTraveler?.(id);
     const target = safeTravelers.find((t) => t.id === id);
     if (target) {
       setFormName(target.name);

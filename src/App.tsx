@@ -247,6 +247,15 @@ export default function App() {
   const [activeTravelerId, setActiveTravelerId] = useState<string>(() => {
     return localStorage.getItem('tur_traveler_session') || loadActiveTravelerId();
   });
+
+  useEffect(() => {
+    if (activeTravelerId) {
+      saveActiveTravelerId(activeTravelerId);
+      try {
+        localStorage.setItem('tur_traveler_session', activeTravelerId);
+      } catch {}
+    }
+  }, [activeTravelerId]);
   const [defaultAlertHours, setDefaultAlertHours] = useState<number>(loadDefaultAlertHours);
   const [soundEnabled, setSoundEnabled] = useState<boolean>(loadAlertSoundEnabled);
 
@@ -1512,6 +1521,7 @@ export default function App() {
               onUpdateDocument={handleAddDocument}
               onDeleteDocument={handleDeleteDocument}
               activeTravelerId={activeTravelerId}
+              onSelectTraveler={setActiveTravelerId}
             />
           </div>
         )}

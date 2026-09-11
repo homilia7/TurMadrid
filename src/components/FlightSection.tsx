@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Traveler, DocumentItem } from '../types';
 import { 
   Plane, 
@@ -125,6 +125,7 @@ interface FlightSectionProps {
   onUpdateDocument?: (doc: DocumentItem) => void;
   onDeleteDocument: (id: string) => void;
   activeTravelerId: string;
+  onSelectTraveler?: (id: string) => void;
 }
 
 export const FlightSection: React.FC<FlightSectionProps> = ({
@@ -134,6 +135,7 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
   onUpdateDocument,
   onDeleteDocument,
   activeTravelerId,
+  onSelectTraveler,
 }) => {
   const safeTravelers = Array.isArray(travelers) ? travelers : [];
   const safeDocs = Array.isArray(documents) ? documents : [];
@@ -263,6 +265,10 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
     const finalPassengerName = flightPassengerName.trim() || matchedTraveler?.name || (isGroup ? 'Grupo Completo (5 Pasajeros)' : 'Pasajero');
     const finalTitle = flightTitle.trim() || `Vuelo ${flightOrigin.trim() || 'San José'} ✈ ${flightDestination.trim() || 'Madrid'} (${flightNumber.trim() || 'E9 858'}) • ${finalPassengerName}`;
 
+    const finalDataUrl = uploadedFileData ? uploadedFileData.url : '';
+    const finalFileName = uploadedFileData ? uploadedFileData.name : `Pase_Abordar_${finalPassengerName}.pdf`;
+    const finalFileType = uploadedFileData ? uploadedFileData.type : 'digital';
+
     if (editingFlightId) {
       const updatedFlight: DocumentItem = {
         ...(existing || {}),
@@ -283,9 +289,9 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
         travelerId: finalTravelerId,
         passengerName: finalPassengerName,
         notes: flightNotes.trim(),
-        fileName: uploadedFileData?.name || existing?.fileName || `Pase_Abordar_${finalPassengerName}.pdf`,
-        fileType: uploadedFileData?.type || existing?.fileType || 'digital',
-        dataUrl: uploadedFileData?.url || existing?.dataUrl || '',
+        fileName: finalFileName,
+        fileType: finalFileType,
+        dataUrl: finalDataUrl,
         uploadedAt: existing?.uploadedAt || new Date().toISOString().split('T')[0],
       };
 
@@ -313,13 +319,19 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
         travelerId: finalTravelerId,
         passengerName: finalPassengerName,
         notes: flightNotes.trim(),
-        fileName: uploadedFileData?.name || `Pase_Abordar_${finalPassengerName}.pdf`,
-        fileType: uploadedFileData?.type || 'digital',
-        dataUrl: uploadedFileData?.url || '',
+        fileName: finalFileName,
+        fileType: finalFileType,
+        dataUrl: finalDataUrl,
         uploadedAt: new Date().toISOString().split('T')[0],
       };
 
       onAddDocument(newFlight);
+    }
+
+    // Enfocar automáticamente el viajero guardado para que permanezca en pantalla y NO salte a otro
+    if (finalTravelerId) {
+      setSelectedTravelerFilter(finalTravelerId);
+      onSelectTraveler?.(finalTravelerId);
     }
 
     setIsAddModalOpen(false);
@@ -482,42 +494,73 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
       {/* Rastreador de Vuelo en Tiempo Real (Dos Secciones: Mapa GPS & Radar Satelital) */}
       <FlightLiveTracker documents={allResolvedFlights} mode="traveler" activeTravelerName={activeTraveler?.name} />
 
-      {/* Barra de Filtro y Estado de Sesión Activa */}
-      <div className="bg-slate-900 text-white p-3 sm:p-4 rounded-2xl border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-sm">
-        <div className="flex items-center gap-2.5 flex-wrap">
-          <span className="text-xs font-black uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
-            <span className="text-base">👤</span>
-            <span>Viajero en Sesión:</span>
-          </span>
-          <span className="text-xs sm:text-sm font-black text-white bg-amber-500/25 px-3 py-1 rounded-xl border border-amber-400/50 shadow-xs flex items-center gap-1.5">
-            <span>{activeTraveler?.name || 'Viajero'}</span>
-            <span className="text-[10px] text-amber-300 font-normal">(Tu tiquete aparece de primero ⭐)</span>
-          </span>
+      {/* Selector Rápido de Viajeros (5 Viajeros) & Filtro */}
+      <div className="bg-slate-900 text-white p-3.5 sm:p-4 rounded-2xl border border-slate-800 shadow-sm space-y-3">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs font-black uppercase tracking-wider text-amber-400 flex items-center gap-1.5">
+              <span className="text-base">👤</span>
+              <span>Viajero en Sesión:</span>
+            </span>
+            <span className="text-xs sm:text-sm font-black text-white bg-amber-500/25 px-3 py-1 rounded-xl border border-amber-400/50 shadow-xs flex items-center gap-1.5">
+              <span>{activeTraveler?.name || 'Viajero'}</span>
+              <span className="text-[10px] text-amber-300 font-normal">⭐ Tu tiquete activo</span>
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <button
+              type="button"
+              onClick={() => setSelectedTravelerFilter('all')}
+              className={`flex-1 sm:flex-initial px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                selectedTravelerFilter === 'all'
+                  ? 'bg-sky-500 text-slate-950 shadow-sm font-black ring-2 ring-sky-300'
+                  : 'bg-white/10 text-slate-300 hover:bg-white/15'
+              }`}
+            >
+              <Users className="w-3.5 h-3.5" />
+              <span>Ver Todos ({uniqueResolvedFlights.length})</span>
+            </button>
+          </div>
         </div>
 
-        <div className="flex items-center gap-1.5 flex-wrap w-full sm:w-auto">
-          <button
-            type="button"
-            onClick={() => setSelectedTravelerFilter('all')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer ${
-              selectedTravelerFilter === 'all'
-                ? 'bg-sky-500 text-slate-950 shadow-sm font-black'
-                : 'bg-white/10 text-slate-300 hover:bg-white/15'
-            }`}
-          >
-            Todos ({sortedFlights.length})
-          </button>
-          <button
-            type="button"
-            onClick={() => setSelectedTravelerFilter('mine')}
-            className={`px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer flex items-center gap-1.5 ${
-              selectedTravelerFilter === 'mine'
-                ? 'bg-amber-400 text-slate-950 shadow-sm'
-                : 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-400/30'
-            }`}
-          >
-            <span>⭐ Solo Mi Tiquete</span>
-          </button>
+        {/* Píldoras de los 5 Viajeros para cambiar de viajero al instante */}
+        <div className="grid grid-cols-5 gap-1.5 sm:gap-2.5 pt-2 border-t border-slate-800/80">
+          {safeTravelers.map((t) => {
+            const isSelected = selectedTravelerFilter === t.id || (selectedTravelerFilter === 'all' && activeTravelerId === t.id);
+            const travelerFlight = allResolvedFlights.find(
+              (f) => f.travelerId === t.id || (f.passengerName && f.passengerName.toLowerCase().includes(t.name.toLowerCase()))
+            );
+            const hasCustomDoc = Boolean(travelerFlight?.dataUrl);
+
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => {
+                  setSelectedTravelerFilter(t.id);
+                  onSelectTraveler?.(t.id);
+                }}
+                className={`flex flex-col sm:flex-row items-center justify-center sm:justify-start gap-1 sm:gap-2 px-1 py-2 sm:px-3 sm:py-2.5 rounded-xl font-bold text-[10px] sm:text-xs transition-all border cursor-pointer min-w-0 ${
+                  isSelected
+                    ? 'bg-amber-400 text-slate-950 border-amber-300 shadow-md ring-2 ring-amber-300 scale-[1.01]'
+                    : 'bg-slate-800/80 text-slate-200 border-slate-700 hover:bg-slate-700'
+                }`}
+                title={`Ver tiquete de ${t.name}`}
+              >
+                <div
+                  className="w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-black text-white shadow-xs shrink-0"
+                  style={{ backgroundColor: t.avatarColor }}
+                >
+                  {t.name.charAt(0)}
+                </div>
+                <span className="truncate max-w-full text-center sm:text-left">{t.name}</span>
+                {hasCustomDoc && (
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 ring-1 ring-white shrink-0 sm:ml-auto hidden sm:inline-block" title="Tiene archivo adjunto"></span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -1062,29 +1105,82 @@ export const FlightSection: React.FC<FlightSectionProps> = ({
                 />
               </div>
 
-              <div className="p-3 bg-gray-50 rounded-xl border border-dashed border-gray-300">
-                <label className="text-xs font-bold text-gray-700 block mb-1">
-                  Adjuntar Pase de Abordar (PDF o Foto)
+              <div className="p-3.5 bg-slate-50 rounded-2xl border-2 border-dashed border-slate-300">
+                <label className="text-xs font-black text-slate-800 block mb-1.5 uppercase tracking-wider">
+                  Adjuntar Pase de Abordar / Foto del Tiquete
                 </label>
                 {uploadedFileData ? (
-                  <div className="flex items-center justify-between text-xs p-2 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-800">
-                    <span className="truncate max-w-[250px] font-semibold">{uploadedFileData.name}</span>
-                    <button
-                      type="button"
-                      onClick={() => setUploadedFileData(null)}
-                      className="text-rose-600 font-bold ml-2 cursor-pointer"
-                    >
-                      Quitar
-                    </button>
+                  <div className="space-y-3 bg-white p-3 rounded-xl border border-emerald-300 shadow-xs">
+                    <div className="flex items-center gap-3">
+                      {uploadedFileData.url.startsWith('data:image') || uploadedFileData.type === 'image' ? (
+                        <img
+                          src={uploadedFileData.url}
+                          alt="Vista previa tiquete"
+                          className="w-16 h-16 object-cover rounded-lg border-2 border-emerald-400 shadow-sm shrink-0 bg-slate-900 cursor-pointer"
+                          onClick={() => setPreviewDoc({
+                            url: uploadedFileData.url,
+                            title: `Vista previa: ${uploadedFileData.name}`,
+                            type: 'image',
+                            fileName: uploadedFileData.name
+                          })}
+                          title="Clic para ver en grande"
+                        />
+                      ) : (
+                        <div className="w-16 h-16 rounded-lg bg-red-50 border-2 border-red-300 flex flex-col items-center justify-center text-red-600 shrink-0">
+                          <span className="text-xl">📄</span>
+                          <span className="text-[10px] font-black uppercase">PDF</span>
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 animate-pulse"></span>
+                          <span className="text-xs font-black text-emerald-900 truncate block">
+                            {uploadedFileData.name}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 mt-0.5">
+                          {uploadedFileData.type === 'pdf' ? 'Documento PDF adjunto' : 'Imagen de pase adjunta'}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-1 border-t border-slate-100">
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="flex-1 py-1.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-lg transition text-center cursor-pointer"
+                      >
+                        🔄 Cambiar archivo
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setUploadedFileData(null);
+                          if (fileInputRef.current) fileInputRef.current.value = '';
+                        }}
+                        className="py-1.5 px-3 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-black rounded-lg transition flex items-center gap-1 cursor-pointer"
+                        title="Eliminar este archivo adjunto y usar el pase digital limpio"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Quitar</span>
+                      </button>
+                    </div>
                   </div>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="w-full flex items-center justify-center gap-2 py-2.5 px-3 bg-white border border-gray-300 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-100 transition shadow-sm cursor-pointer"
-                  >
-                    <Upload className="w-3.5 h-3.5" /> Seleccionar Archivo del Celular
-                  </button>
+                  <div className="space-y-2">
+                    <div className="bg-sky-50 border border-sky-200 p-2.5 rounded-xl text-[11px] text-sky-900 font-medium flex items-center gap-2">
+                      <span className="text-base">ℹ️</span>
+                      <span>Sin foto adjunta. Se generará automáticamente el <strong>Pase Digital Oficial SVG de Iberojet</strong> con código QR.</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 px-3 bg-white border-2 border-slate-300 hover:border-sky-500 hover:bg-sky-50/50 rounded-xl text-xs font-bold text-slate-800 transition shadow-xs cursor-pointer"
+                    >
+                      <Upload className="w-4 h-4 text-sky-600" />
+                      <span>Seleccionar Foto o PDF del Pase</span>
+                    </button>
+                  </div>
                 )}
                 <input
                   ref={fileInputRef}
